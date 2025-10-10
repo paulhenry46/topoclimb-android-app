@@ -6,7 +6,7 @@
   "remoteUser": "vscode",
   "features": {
     "ghcr.io/devcontainers/features/java:latest": {
-      "version": "17",
+      "version": "21",
       "jdkDistro": "zulu",
       "installGradle": true
     }
