@@ -7,7 +7,7 @@
   "features": {
     "ghcr.io/devcontainers/features/java:latest": {
       "version": "17",
-      "jdkDistro": "temurin",
+      "jdkDistro": "zulu",
       "installGradle": true
     }
   },
