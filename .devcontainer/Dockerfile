@@ -17,4 +17,4 @@ ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-too
 
 # Create SDK directory and fix permissions
 RUN mkdir -p /home/vscode/android-sdk && \
-    chown -R vscode:vscode /home/vscode/android-sdk &&
+    chown -R vscode:vscode /home/vscode/android-sdk
