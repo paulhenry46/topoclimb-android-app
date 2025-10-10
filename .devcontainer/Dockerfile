@@ -12,5 +12,5 @@ RUN mkdir -p /opt/android-sdk/cmdline-tools && \
     mv cmdline-tools latest
 
 # Set environment variables
-ENV ANDROID_HOME=/opt/android-sdk
-ENV PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+ENV ANDROID_HOME=/home/vscode/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
