@@ -11,7 +11,7 @@
       "installGradle": true
     }
   },
-"postCreateCommand": "yes | sdkmanager --licenses --sdk_root=$ANDROID_HOME && sdkmanager --sdk_root=$ANDROID_HOME 'platform-tools' 'platforms;android-34' 'build-tools;34.0.0'",
+"postCreateCommand": "mkdir -p $ANDROID_HOME/licenses && echo '8933bad161af4178b1185d1a37fbf41ea5269c55' > $ANDROID_HOME/licenses/android-sdk-license && yes | sdkmanager --licenses --sdk_root=$ANDROID_HOME && sdkmanager --sdk_root=$ANDROID_HOME 'platform-tools' 'platforms;android-34' 'build-tools;34.0.0'",
   "customizations": {
     "vscode": {
       "extensions": [
