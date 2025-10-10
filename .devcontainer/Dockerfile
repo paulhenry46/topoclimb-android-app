@@ -14,3 +14,7 @@ RUN mkdir -p /home/vscode/android-sdk/cmdline-tools && \
 # Set environment variables
 ENV ANDROID_HOME=/home/vscode/android-sdk
 ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+
+# Create SDK directory and fix permissions
+RUN mkdir -p /home/vscode/android-sdk && \
+    chown -R vscode:vscode /home/vscode/android-sdk &&
