@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             TopoClimbTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "Android",
+                        name = "Paulhenry",
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
