@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.topoclimb.ui.screens.AreasScreen
 import com.example.topoclimb.ui.screens.RoutesScreen
+import com.example.topoclimb.ui.screens.SiteDetailScreen
 import com.example.topoclimb.ui.screens.SitesScreen
 
 sealed class BottomNavItem(
@@ -97,7 +98,25 @@ fun NavigationGraph(
         composable(BottomNavItem.Sites.route) {
             SitesScreen(
                 onSiteClick = { siteId ->
-                    navController.navigate("routes/$siteId")
+                    navController.navigate("site/$siteId")
+                }
+            )
+        }
+        
+        composable(
+            route = "site/{siteId}",
+            arguments = listOf(
+                navArgument("siteId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
+            
+            SiteDetailScreen(
+                siteId = siteId,
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }

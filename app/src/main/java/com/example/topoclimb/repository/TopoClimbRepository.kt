@@ -1,6 +1,9 @@
 package com.example.topoclimb.repository
 
 import com.example.topoclimb.data.Area
+import com.example.topoclimb.data.AreasResponse
+import com.example.topoclimb.data.Contest
+import com.example.topoclimb.data.ContestsResponse
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SitesResponse
@@ -57,6 +60,22 @@ class TopoClimbRepository {
     suspend fun getArea(id: Int): Result<Area> {
         return try {
             Result.success(api.getArea(id))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getAreasBySite(siteId: Int): Result<AreasResponse> {
+        return try {
+            Result.success(api.getAreasBySite(siteId))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getContestsBySite(siteId: Int): Result<ContestsResponse> {
+        return try {
+            Result.success(api.getContestsBySite(siteId))
         } catch (e: Exception) {
             Result.failure(e)
         }
