@@ -7,6 +7,7 @@ import com.example.topoclimb.data.ContestsResponse
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RoutesResponse
 import com.example.topoclimb.data.Site
+import com.example.topoclimb.data.SiteResponse
 import com.example.topoclimb.data.SitesResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -18,7 +19,7 @@ interface TopoClimbApiService {
     suspend fun getSites(): SitesResponse
     
     @GET("sites/{id}")
-    suspend fun getSite(@Path("id") id: Int): Site
+    suspend fun getSite(@Path("id") id: Int): SiteResponse
     
     @GET("routes")
     suspend fun getRoutes(
