@@ -9,7 +9,7 @@ object AppConfig {
      * 
      * Example: "https://api.topoclimb.example.com/"
      */
-    const val API_BASE_URL = "https://api.topoclimb.example.com/"
+    const val API_BASE_URL = "https://topoclimb.saux.fr/api/v1/"
     
     /**
      * Enable/disable API logging for debugging
