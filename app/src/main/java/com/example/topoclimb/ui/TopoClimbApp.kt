@@ -2,8 +2,8 @@ package com.example.topoclimb.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,7 +28,7 @@ sealed class BottomNavItem(
     val label: String
 ) {
     object Sites : BottomNavItem("sites", Icons.Default.Place, "Sites")
-    object AllRoutes : BottomNavItem("routes/all", Icons.Default.List, "Routes")
+    object AllRoutes : BottomNavItem("routes/all", Icons.AutoMirrored.Filled.List, "Routes")
     object Areas : BottomNavItem("areas", Icons.Default.Home, "Areas")
 }
 
