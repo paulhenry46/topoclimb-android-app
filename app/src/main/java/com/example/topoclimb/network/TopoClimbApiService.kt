@@ -3,6 +3,7 @@ package com.example.topoclimb.network
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.Site
+import com.example.topoclimb.data.SitesResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -10,7 +11,7 @@ import retrofit2.http.Query
 interface TopoClimbApiService {
     
     @GET("sites")
-    suspend fun getSites(): List<Site>
+    suspend fun getSites(): SitesResponse
     
     @GET("sites/{id}")
     suspend fun getSite(@Path("id") id: Int): Site
