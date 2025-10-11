@@ -125,6 +125,38 @@ class DataModelsTest {
     }
     
     @Test
+    fun siteResponse_deserializesCorrectly() {
+        val json = """
+            {
+                "data": {
+                    "id": 1,
+                    "name": "Fontainebleau",
+                    "description": "Famous bouldering area",
+                    "latitude": 48.4044,
+                    "longitude": 2.6992,
+                    "imageUrl": "https://example.com/image.jpg",
+                    "slug": "fontainebleau",
+                    "address": "Forest of Fontainebleau",
+                    "profile_picture": "https://example.com/logo.jpg",
+                    "banner": "https://example.com/banner.jpg",
+                    "default_cotation": 1
+                }
+            }
+        """.trimIndent()
+        
+        val response = gson.fromJson(json, SiteResponse::class.java)
+        
+        assertNotNull(response)
+        assertNotNull(response.data)
+        
+        val site = response.data
+        assertEquals(1, site.id)
+        assertEquals("Fontainebleau", site.name)
+        assertEquals("https://example.com/logo.jpg", site.profilePicture)
+        assertEquals("https://example.com/banner.jpg", site.banner)
+    }
+    
+    @Test
     fun routesResponse_deserializesCorrectly() {
         val json = """
             {

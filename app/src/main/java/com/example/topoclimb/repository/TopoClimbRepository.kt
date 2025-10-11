@@ -24,7 +24,8 @@ class TopoClimbRepository {
     
     suspend fun getSite(id: Int): Result<Site> {
         return try {
-            Result.success(api.getSite(id))
+            val response = api.getSite(id)
+            Result.success(response.data)
         } catch (e: Exception) {
             Result.failure(e)
         }
