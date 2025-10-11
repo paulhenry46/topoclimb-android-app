@@ -123,4 +123,39 @@ class DataModelsTest {
         assertEquals("https://example.com/logo.jpg", site.profilePicture)
         assertEquals("https://example.com/banner.jpg", site.banner)
     }
+    
+    @Test
+    fun routesResponse_deserializesCorrectly() {
+        val json = """
+            {
+                "data": [
+                    {
+                        "id": 1,
+                        "name": "La Marie-Rose",
+                        "grade": "7c",
+                        "type": "boulder",
+                        "height": 5,
+                        "siteId": 1
+                    },
+                    {
+                        "id": 2,
+                        "name": "Biographie",
+                        "grade": "9a+",
+                        "type": "sport",
+                        "height": 45,
+                        "siteId": 2
+                    }
+                ]
+            }
+        """.trimIndent()
+        
+        val response = gson.fromJson(json, RoutesResponse::class.java)
+        
+        assertNotNull(response)
+        assertEquals(2, response.data.size)
+        assertEquals("La Marie-Rose", response.data[0].name)
+        assertEquals("7c", response.data[0].grade)
+        assertEquals("Biographie", response.data[1].name)
+        assertEquals("9a+", response.data[1].grade)
+    }
 }
