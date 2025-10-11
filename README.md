@@ -4,10 +4,12 @@ A native Android application for browsing climbing sites, routes, and areas from
 
 ## Features
 
-- **Browse Sites**: View all climbing sites with location information
+- **Browse Sites**: View all climbing sites with beautiful card layouts featuring banner images and logos
+- **Site Details**: Click on a site to view detailed information, including areas and contests
 - **View Routes**: Browse climbing routes with filtering capabilities
 - **Filter Routes**: Filter routes by grade and type (sport, trad, boulder, etc.)
-- **Browse Areas**: Explore climbing areas
+- **Browse Areas**: Explore climbing areas by site
+- **Browse Contests**: View available contests at each climbing site
 - **Clean Navigation**: Easy navigation between sites, routes, and areas using bottom navigation
 
 ## Architecture
@@ -25,12 +27,12 @@ This app follows modern Android development practices:
 
 ```
 app/src/main/java/com/example/topoclimb/
-├── data/               # Data models (Site, Route, Area)
+├── data/               # Data models (Site, Route, Area, Contest)
 ├── network/            # API service and Retrofit setup
 ├── repository/         # Repository layer for data operations
 ├── viewmodel/          # ViewModels for each screen
 ├── ui/
-│   ├── screens/        # Composable screens (Sites, Routes, Areas)
+│   ├── screens/        # Composable screens (Sites, SiteDetail, Routes, Areas)
 │   ├── theme/          # App theming
 │   └── TopoClimbApp.kt # Main app navigation
 └── MainActivity.kt     # Entry point
@@ -62,12 +64,16 @@ private const val BASE_URL = "https://your-topoclimb-api.com/"
 
 The app expects the following API endpoints (matching the TopoClimb OpenAPI specification):
 
-- `GET /sites` - List all climbing sites
+- `GET /sites` - List all climbing sites (returns `{"data": [sites]}`)
 - `GET /sites/{id}` - Get a specific site
+- `GET /sites/{siteId}/areas` - Get areas for a specific site (returns `{"data": [areas]}`)
+- `GET /sites/{siteId}/contests` - Get contests for a specific site (returns `{"data": [contests]}`)
 - `GET /routes` - List all routes (with optional filters: siteId, grade, type)
 - `GET /routes/{id}` - Get a specific route
 - `GET /areas` - List all climbing areas
 - `GET /areas/{id}` - Get a specific area
+
+**Note**: All API responses should follow the format `{"data": ...}` where data contains the actual response payload.
 
 ## Building
 
@@ -119,6 +125,19 @@ Potential features for future development:
 - Search functionality
 - Favorites/bookmarking
 - User contributions (with authentication)
+- Contest registration and tracking
+- Area detail views with route lists
+
+## Recent Updates
+
+### Enhanced Site UI (Latest)
+- Redesigned site cards with banner images and logos
+- Added site detail screen showing areas and contests
+- Implemented Contest data model
+- Added proper API response wrapping for all endpoints
+- Comprehensive unit tests for data models
+
+See [SITE_UI_IMPROVEMENTS.md](SITE_UI_IMPROVEMENTS.md) and [SITE_UI_VISUAL_GUIDE.md](SITE_UI_VISUAL_GUIDE.md) for detailed documentation.
 
 ## License
 
