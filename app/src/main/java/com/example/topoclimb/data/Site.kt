@@ -3,11 +3,14 @@ package com.example.topoclimb.data
 import com.google.gson.annotations.SerializedName
 
 data class Site(
-    val id: Long,
+    val id: Int,
     val name: String,
+    val description: String?,
+    val latitude: Double?,
+    val longitude: Double?,
+    val imageUrl: String?,
     val slug: String,
     val address: String?,
-    val description: String?,
     @SerializedName("profile_picture") val profilePicture: String?,
     val banner: String?,
     @SerializedName("default_cotation") val defaultCotation: Int?,

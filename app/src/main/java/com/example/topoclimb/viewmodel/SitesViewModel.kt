@@ -30,9 +30,9 @@ class SitesViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.getSites()
-                .onSuccess { sites ->
+                .onSuccess { response ->
                     _uiState.value = _uiState.value.copy(
-                        sites = sites,
+                        sites = response.data,
                         isLoading = false
                     )
                 }

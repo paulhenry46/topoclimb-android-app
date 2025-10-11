@@ -3,13 +3,14 @@ package com.example.topoclimb.repository
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.Site
+import com.example.topoclimb.data.SitesResponse
 import com.example.topoclimb.network.RetrofitInstance
 
 class TopoClimbRepository {
     
     private val api = RetrofitInstance.api
     
-    suspend fun getSites(): Result<List<Site>> {
+    suspend fun getSites(): Result<SitesResponse> {
         return try {
             Result.success(api.getSites())
         } catch (e: Exception) {
