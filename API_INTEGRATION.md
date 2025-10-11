@@ -31,8 +31,7 @@ List all climbing sites
     "description": "Famous bouldering area in France",
     "latitude": 48.4044,
     "longitude": 2.6992,
-    "imageUrl": "https://example.com/image.jpg",
-    "areaId": 1
+    "imageUrl": "https://example.com/image.jpg"
   }
 ]
 ```
@@ -48,8 +47,7 @@ Get details of a specific site
   "description": "Famous bouldering area in France",
   "latitude": 48.4044,
   "longitude": 2.6992,
-  "imageUrl": "https://example.com/image.jpg",
-  "areaId": 1
+  "imageUrl": "https://example.com/image.jpg"
 }
 ```
 
@@ -109,7 +107,8 @@ List all climbing areas
     "name": "Île-de-France",
     "description": "Region around Paris",
     "latitude": 48.8566,
-    "longitude": 2.3522
+    "longitude": 2.3522,
+    "siteId": 1
   }
 ]
 ```
@@ -124,7 +123,8 @@ Get details of a specific area
   "name": "Île-de-France",
   "description": "Region around Paris",
   "latitude": 48.8566,
-  "longitude": 2.3522
+  "longitude": 2.3522,
+  "siteId": 1
 }
 ```
 
@@ -140,8 +140,7 @@ data class Site(
     val description: String?,
     val latitude: Double?,
     val longitude: Double?,
-    val imageUrl: String?,
-    val areaId: Int?
+    val imageUrl: String?
 )
 ```
 
@@ -166,7 +165,8 @@ data class Area(
     val name: String,
     val description: String?,
     val latitude: Double?,
-    val longitude: Double?
+    val longitude: Double?,
+    val siteId: Int
 )
 ```
 
@@ -205,8 +205,8 @@ For testing purposes, you can use the following sample data structure in your AP
 **Sample Sites:**
 ```json
 [
-  {"id": 1, "name": "Fontainebleau", "description": "World-famous bouldering", "latitude": 48.4044, "longitude": 2.6992, "areaId": 1},
-  {"id": 2, "name": "Ceüse", "description": "Legendary sport climbing", "latitude": 44.5167, "longitude": 6.0167, "areaId": 2}
+  {"id": 1, "name": "Fontainebleau", "description": "World-famous bouldering", "latitude": 48.4044, "longitude": 2.6992},
+  {"id": 2, "name": "Ceüse", "description": "Legendary sport climbing", "latitude": 44.5167, "longitude": 6.0167}
 ]
 ```
 
@@ -221,7 +221,7 @@ For testing purposes, you can use the following sample data structure in your AP
 **Sample Areas:**
 ```json
 [
-  {"id": 1, "name": "Île-de-France", "description": "Paris region"},
-  {"id": 2, "name": "Provence-Alpes-Côte d'Azur", "description": "Southern Alps"}
+  {"id": 1, "name": "Île-de-France", "description": "Paris region", "siteId": 1},
+  {"id": 2, "name": "Provence-Alpes-Côte d'Azur", "description": "Southern Alps", "siteId": 2}
 ]
 ```

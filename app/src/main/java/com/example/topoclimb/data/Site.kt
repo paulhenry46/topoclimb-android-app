@@ -6,6 +6,5 @@ data class Site(
     val description: String?,
     val latitude: Double?,
     val longitude: Double?,
-    val imageUrl: String?,
-    val areaId: Int?
+    val imageUrl: String?
 )
