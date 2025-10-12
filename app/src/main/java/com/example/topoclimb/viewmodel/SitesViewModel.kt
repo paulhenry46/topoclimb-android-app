@@ -12,7 +12,8 @@ import kotlinx.coroutines.launch
 data class SitesUiState(
     val sites: List<Site> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val favoriteSiteId: Int? = null
 )
 
 class SitesViewModel(
@@ -43,5 +44,11 @@ class SitesViewModel(
                     )
                 }
         }
+    }
+    
+    fun toggleFavorite(siteId: Int) {
+        _uiState.value = _uiState.value.copy(
+            favoriteSiteId = if (_uiState.value.favoriteSiteId == siteId) null else siteId
+        )
     }
 }

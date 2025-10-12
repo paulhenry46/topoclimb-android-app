@@ -9,12 +9,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.net.URL
 
 data class AreaDetailUiState(
     val isLoading: Boolean = true,
     val area: Area? = null,
     val routes: List<Route> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val svgMapContent: String? = null
 )
 
 class AreaDetailViewModel : ViewModel() {
@@ -44,11 +46,21 @@ class AreaDetailViewModel : ViewModel() {
             val routesResult = repository.getRoutesByArea(areaId)
             val routes = routesResult.getOrNull() ?: emptyList()
             
+            // Fetch SVG map content from URL if available
+            val svgContent = area?.svgMap?.let { mapUrl ->
+                try {
+                    URL(mapUrl).readText()
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            
             _uiState.value = AreaDetailUiState(
                 isLoading = false,
                 area = area,
                 routes = routes,
-                error = null
+                error = null,
+                svgMapContent = svgContent
             )
         }
     }

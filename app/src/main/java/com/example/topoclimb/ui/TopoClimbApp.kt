@@ -2,9 +2,9 @@ package com.example.topoclimb.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,7 +19,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.topoclimb.ui.screens.AreaDetailScreen
-import com.example.topoclimb.ui.screens.AreasScreen
+import com.example.topoclimb.ui.screens.ProfileScreen
 import com.example.topoclimb.ui.screens.RoutesScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
 import com.example.topoclimb.ui.screens.SitesScreen
@@ -30,8 +30,8 @@ sealed class BottomNavItem(
     val label: String
 ) {
     object Sites : BottomNavItem("sites", Icons.Default.Place, "Sites")
-    object AllRoutes : BottomNavItem("routes/all", Icons.AutoMirrored.Filled.List, "Routes")
-    object Areas : BottomNavItem("areas", Icons.Default.Home, "Areas")
+    object Favorite : BottomNavItem("favorite", Icons.Default.Star, "Favorite")
+    object Profile : BottomNavItem("profile", Icons.Default.Person, "You")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,8 +55,8 @@ fun TopoClimbApp() {
 fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
         BottomNavItem.Sites,
-        BottomNavItem.AllRoutes,
-        BottomNavItem.Areas
+        BottomNavItem.Favorite,
+        BottomNavItem.Profile
     )
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -162,8 +162,17 @@ fun NavigationGraph(
             )
         }
         
-        composable(BottomNavItem.Areas.route) {
-            AreasScreen()
+        composable(BottomNavItem.Favorite.route) {
+            SitesScreen(
+                onSiteClick = { siteId ->
+                    navController.navigate("site/$siteId")
+                },
+                favoriteOnly = true
+            )
+        }
+        
+        composable(BottomNavItem.Profile.route) {
+            ProfileScreen()
         }
     }
 }
