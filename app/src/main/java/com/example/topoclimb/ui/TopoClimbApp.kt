@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.topoclimb.ui.screens.AreaDetailScreen
 import com.example.topoclimb.ui.screens.AreasScreen
 import com.example.topoclimb.ui.screens.RoutesScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
@@ -115,6 +116,27 @@ fun NavigationGraph(
             
             SiteDetailScreen(
                 siteId = siteId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onAreaClick = { areaId ->
+                    navController.navigate("area/$areaId")
+                }
+            )
+        }
+        
+        composable(
+            route = "area/{areaId}",
+            arguments = listOf(
+                navArgument("areaId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
+            
+            AreaDetailScreen(
+                areaId = areaId,
                 onBackClick = {
                     navController.popBackStack()
                 }

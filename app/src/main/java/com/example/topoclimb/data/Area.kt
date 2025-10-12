@@ -6,5 +6,6 @@ data class Area(
     val description: String?,
     val latitude: Double?,
     val longitude: Double?,
-    val siteId: Int
+    val siteId: Int,
+    val svgMap: String?
 )

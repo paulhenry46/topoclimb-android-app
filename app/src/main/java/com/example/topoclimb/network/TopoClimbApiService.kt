@@ -1,6 +1,7 @@
 package com.example.topoclimb.network
 
 import com.example.topoclimb.data.Area
+import com.example.topoclimb.data.AreaResponse
 import com.example.topoclimb.data.AreasResponse
 import com.example.topoclimb.data.Contest
 import com.example.topoclimb.data.ContestsResponse
@@ -35,7 +36,10 @@ interface TopoClimbApiService {
     suspend fun getAreas(): AreasResponse
     
     @GET("areas/{id}")
-    suspend fun getArea(@Path("id") id: Int): Area
+    suspend fun getArea(@Path("id") id: Int): AreaResponse
+    
+    @GET("areas/{areaId}/routes")
+    suspend fun getRoutesByArea(@Path("areaId") areaId: Int): RoutesResponse
     
     @GET("sites/{siteId}/areas")
     suspend fun getAreasBySite(@Path("siteId") siteId: Int): AreasResponse
@@ -43,3 +47,4 @@ interface TopoClimbApiService {
     @GET("sites/{siteId}/contests")
     suspend fun getContestsBySite(@Path("siteId") siteId: Int): ContestsResponse
 }
+
