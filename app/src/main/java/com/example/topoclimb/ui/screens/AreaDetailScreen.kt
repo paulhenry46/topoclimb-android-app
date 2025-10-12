@@ -1,6 +1,5 @@
 package com.example.topoclimb.ui.screens
 
-import android.webkit.WebView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,9 +13,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.Route
+import com.example.topoclimb.ui.components.SvgMapView
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,7 +114,7 @@ fun AreaDetailScreen(
                     }
                     
                     // SVG Map section
-                    uiState.svgMapContent?.let { svgMap ->
+                    if (uiState.svgPaths.isNotEmpty()) {
                         item {
                             Text(
                                 text = "Topo Map",
@@ -130,44 +129,14 @@ fun AreaDetailScreen(
                                     .height(400.dp),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
-                                AndroidView(
-                                    factory = { context ->
-                                        WebView(context).apply {
-                                            settings.javaScriptEnabled = true
-                                            settings.loadWithOverviewMode = true
-                                            settings.useWideViewPort = true
-                                            settings.builtInZoomControls = true
-                                            settings.displayZoomControls = false
-                                        }
+                                SvgMapView(
+                                    svgPaths = uiState.svgPaths,
+                                    svgDimensions = uiState.svgDimensions,
+                                    selectedSectorId = uiState.selectedSectorId,
+                                    onPathTapped = { sectorId ->
+                                        viewModel.onSectorTapped(sectorId)
                                     },
-                                    update = { webView ->
-                                        val htmlContent = """
-                                            <!DOCTYPE html>
-                                            <html>
-                                            <head>
-                                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                                <style>
-                                                    body {
-                                                        margin: 0;
-                                                        padding: 0;
-                                                        display: flex;
-                                                        justify-content: center;
-                                                        align-items: center;
-                                                        min-height: 100vh;
-                                                    }
-                                                    svg {
-                                                        max-width: 100%;
-                                                        height: auto;
-                                                    }
-                                                </style>
-                                            </head>
-                                            <body>
-                                                $svgMap
-                                            </body>
-                                            </html>
-                                        """.trimIndent()
-                                        webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
-                                    }
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
                         }

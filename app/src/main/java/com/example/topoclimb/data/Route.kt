@@ -8,5 +8,6 @@ data class Route(
     val description: String?,
     val height: Int?,
     val siteId: Int,
-    val siteName: String?
+    val siteName: String?,
+    val lineId: Int? = null
 )

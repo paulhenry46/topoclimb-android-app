@@ -4,8 +4,12 @@ import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.AreasResponse
 import com.example.topoclimb.data.Contest
 import com.example.topoclimb.data.ContestsResponse
+import com.example.topoclimb.data.Line
+import com.example.topoclimb.data.LinesResponse
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RoutesResponse
+import com.example.topoclimb.data.Sector
+import com.example.topoclimb.data.SectorsResponse
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SitesResponse
 import com.example.topoclimb.network.RetrofitInstance
@@ -90,6 +94,33 @@ class TopoClimbRepository {
     suspend fun getContestsBySite(siteId: Int): Result<ContestsResponse> {
         return try {
             Result.success(api.getContestsBySite(siteId))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getSectorsByArea(areaId: Int): Result<List<Sector>> {
+        return try {
+            val response = api.getSectorsByArea(areaId)
+            Result.success(response.data)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getLinesBySector(sectorId: Int): Result<List<Line>> {
+        return try {
+            val response = api.getLinesBySector(sectorId)
+            Result.success(response.data)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getRoutesByLine(lineId: Int): Result<List<Route>> {
+        return try {
+            val response = api.getRoutesByLine(lineId)
+            Result.success(response.data)
         } catch (e: Exception) {
             Result.failure(e)
         }
