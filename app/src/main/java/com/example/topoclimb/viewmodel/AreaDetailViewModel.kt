@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.repository.TopoClimbRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.net.URL
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 data class AreaDetailUiState(
     val isLoading: Boolean = true,
@@ -21,6 +24,7 @@ data class AreaDetailUiState(
 
 class AreaDetailViewModel : ViewModel() {
     private val repository = TopoClimbRepository()
+    private val httpClient = OkHttpClient()
     
     private val _uiState = MutableStateFlow(AreaDetailUiState())
     val uiState: StateFlow<AreaDetailUiState> = _uiState.asStateFlow()
@@ -49,8 +53,21 @@ class AreaDetailViewModel : ViewModel() {
             // Fetch SVG map content from URL if available
             val svgContent = area?.svgMap?.let { mapUrl ->
                 try {
-                    URL(mapUrl).readText()
+                    withContext(Dispatchers.IO) {
+                        val request = Request.Builder()
+                            .url(mapUrl)
+                            .build()
+                        
+                        httpClient.newCall(request).execute().use { response ->
+                            if (response.isSuccessful) {
+                                response.body?.string()
+                            } else {
+                                null
+                            }
+                        }
+                    }
                 } catch (e: Exception) {
+                    e.printStackTrace()
                     null
                 }
             }
