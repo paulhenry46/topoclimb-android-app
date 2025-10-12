@@ -13,7 +13,7 @@ data class Site(
     val address: String?,
     @SerializedName("profile_picture") val profilePicture: String?,
     val banner: String?,
-    @SerializedName("default_cotation") val defaultCotation: Int?,
+    @SerializedName("default_cotation") val defaultCotation: Boolean?,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("updated_at") val updatedAt: String?
 )

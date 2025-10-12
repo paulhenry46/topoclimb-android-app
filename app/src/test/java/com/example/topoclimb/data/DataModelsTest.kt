@@ -106,7 +106,7 @@ class DataModelsTest {
                         "address": "Forest of Fontainebleau",
                         "profile_picture": "https://example.com/logo.jpg",
                         "banner": "https://example.com/banner.jpg",
-                        "default_cotation": 1
+                        "default_cotation": true
                     }
                 ]
             }
@@ -139,7 +139,7 @@ class DataModelsTest {
                     "address": "Forest of Fontainebleau",
                     "profile_picture": "https://example.com/logo.jpg",
                     "banner": "https://example.com/banner.jpg",
-                    "default_cotation": 1
+                    "default_cotation": true
                 }
             }
         """.trimIndent()

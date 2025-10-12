@@ -1,4 +1,5 @@
 package com.example.topoclimb.data
+import com.google.gson.annotations.SerializedName
 
 data class Area(
     val id: Int,
@@ -7,5 +8,5 @@ data class Area(
     val latitude: Double?,
     val longitude: Double?,
     val siteId: Int,
-    val svgMap: String?
+    @SerializedName("svg_schema") val svgMap: String?
 )
