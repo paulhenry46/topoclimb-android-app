@@ -121,6 +121,21 @@ fun AreaDetailScreen(
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
+                            if (uiState.selectedSectorId != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Sector ${uiState.selectedSectorId} selected - Tap to deselect",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Tap on a sector to view its routes",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                         item {
                             Card(
@@ -145,8 +160,13 @@ fun AreaDetailScreen(
                     // Routes section
                     if (uiState.routes.isNotEmpty()) {
                         item {
+                            val routesTitle = if (uiState.selectedSectorId != null) {
+                                "Routes in Sector ${uiState.selectedSectorId} (${uiState.routes.size})"
+                            } else {
+                                "Routes (${uiState.routes.size})"
+                            }
                             Text(
-                                text = "Routes (${uiState.routes.size})",
+                                text = routesTitle,
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
