@@ -115,7 +115,7 @@ fun AreaDetailScreen(
                     }
                     
                     // SVG Map section
-                    uiState.area?.svgMap?.let { svgMap ->
+                    uiState.svgMapContent?.let { svgMap ->
                         item {
                             Text(
                                 text = "Topo Map",

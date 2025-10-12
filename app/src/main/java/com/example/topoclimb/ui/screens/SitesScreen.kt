@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,14 +26,22 @@ import com.example.topoclimb.viewmodel.SitesViewModel
 @Composable
 fun SitesScreen(
     onSiteClick: (Int) -> Unit,
-    viewModel: SitesViewModel = viewModel()
+    viewModel: SitesViewModel = viewModel(),
+    favoriteOnly: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // Filter sites based on favorite flag
+    val displaySites = if (favoriteOnly) {
+        uiState.sites.filter { it.id == uiState.favoriteSiteId }
+    } else {
+        uiState.sites
+    }
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Climbing Sites") }
+                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") }
             )
         }
     ) { padding ->
@@ -72,11 +83,34 @@ fun SitesScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(uiState.sites) { site ->
-                        SiteItem(
-                            site = site,
-                            onClick = { onSiteClick(site.id) }
-                        )
+                    if (displaySites.isEmpty() && favoriteOnly) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No favorite site selected. Tap the star on a site card to set it as favorite.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        items(displaySites) { site ->
+                            SiteItem(
+                                site = site,
+                                onClick = { onSiteClick(site.id) },
+                                isFavorite = site.id == uiState.favoriteSiteId,
+                                onFavoriteClick = { viewModel.toggleFavorite(site.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -87,7 +121,9 @@ fun SitesScreen(
 @Composable
 fun SiteItem(
     site: Site,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isFavorite: Boolean = false,
+    onFavoriteClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -122,16 +158,35 @@ fun SiteItem(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Logo at the top
-                site.profilePicture?.let { logoUrl ->
-                    AsyncImage(
-                        model = logoUrl,
-                        contentDescription = "Site logo",
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
+                // Logo and favorite button row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // Logo
+                    site.profilePicture?.let { logoUrl ->
+                        AsyncImage(
+                            model = logoUrl,
+                            contentDescription = "Site logo",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    
+                    // Favorite star button
+                    IconButton(
+                        onClick = onFavoriteClick,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
                 
                 // Site info at the bottom
