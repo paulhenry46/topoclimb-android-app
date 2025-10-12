@@ -8,7 +8,9 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -96,11 +98,15 @@ fun NavigationGraph(
         startDestination = BottomNavItem.Sites.route,
         modifier = modifier
     ) {
-        composable(BottomNavItem.Sites.route) {
+        composable(BottomNavItem.Sites.route) { backStackEntry ->
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(navController.graph.findStartDestination().id)
+            }
             SitesScreen(
                 onSiteClick = { siteId ->
                     navController.navigate("site/$siteId")
-                }
+                },
+                viewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         
@@ -162,12 +168,16 @@ fun NavigationGraph(
             )
         }
         
-        composable(BottomNavItem.Favorite.route) {
+        composable(BottomNavItem.Favorite.route) { backStackEntry ->
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(navController.graph.findStartDestination().id)
+            }
             SitesScreen(
                 onSiteClick = { siteId ->
                     navController.navigate("site/$siteId")
                 },
-                favoriteOnly = true
+                favoriteOnly = true,
+                viewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         
