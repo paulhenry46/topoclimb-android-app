@@ -6,9 +6,10 @@ A native Android application for browsing climbing sites, routes, and areas from
 
 - **Browse Sites**: View all climbing sites with beautiful card layouts featuring banner images and logos
 - **Site Details**: Click on a site to view detailed information, including areas and contests
+- **Interactive Area Maps**: View area maps with interactive sectors that can be tapped to filter routes
 - **View Routes**: Browse climbing routes with filtering capabilities
-- **Filter Routes**: Filter routes by grade and type (sport, trad, boulder, etc.)
-- **Browse Areas**: Explore climbing areas by site
+- **Filter Routes**: Filter routes by grade, type (sport, trad, boulder, etc.), or by sector selection
+- **Browse Areas**: Explore climbing areas by site with SVG-based topo maps
 - **Browse Contests**: View available contests at each climbing site
 - **Clean Navigation**: Easy navigation between sites, routes, and areas using bottom navigation
 
@@ -27,11 +28,13 @@ This app follows modern Android development practices:
 
 ```
 app/src/main/java/com/example/topoclimb/
-├── data/               # Data models (Site, Route, Area, Contest)
+├── data/               # Data models (Site, Route, Area, Contest, Sector, Line)
 ├── network/            # API service and Retrofit setup
 ├── repository/         # Repository layer for data operations
 ├── viewmodel/          # ViewModels for each screen
+├── utils/              # Utility classes (SVG parser)
 ├── ui/
+│   ├── components/     # Reusable UI components (SvgMapView)
 │   ├── screens/        # Composable screens (Sites, SiteDetail, Routes, Areas)
 │   ├── theme/          # App theming
 │   └── TopoClimbApp.kt # Main app navigation
@@ -72,6 +75,10 @@ The app expects the following API endpoints (matching the TopoClimb OpenAPI spec
 - `GET /routes/{id}` - Get a specific route
 - `GET /areas` - List all climbing areas
 - `GET /areas/{id}` - Get a specific area
+- `GET /areas/{areaId}/routes` - Get routes for a specific area
+- `GET /areas/{areaId}/sectors` - Get sectors for a specific area
+- `GET /sectors/{sectorId}/lines` - Get lines for a specific sector
+- `GET /lines/{lineId}/routes` - Get routes for a specific line
 
 **Note**: All API responses should follow the format `{"data": ...}` where data contains the actual response payload.
 
@@ -123,14 +130,23 @@ Potential features for future development:
 - Map view showing site locations
 - Offline caching of sites and routes
 - Search functionality
-- Favorites/bookmarking
+- Pinch-to-zoom and pan gestures for area maps
+- Sector name labels on maps
 - User contributions (with authentication)
 - Contest registration and tracking
-- Area detail views with route lists
 
 ## Recent Updates
 
-### Enhanced Site UI (Latest)
+### Interactive SVG Maps (Latest)
+- Converted WebView-based SVG maps to native Compose components
+- Added interactive sector selection on area maps
+- Tap on map sectors to filter routes by sector
+- Visual feedback with red highlighting for selected sectors
+- Hierarchical data structure: Areas → Sectors → Lines → Routes
+
+See [SVG_TO_COMPOSE_CONVERSION.md](SVG_TO_COMPOSE_CONVERSION.md) for detailed documentation.
+
+### Enhanced Site UI
 - Redesigned site cards with banner images and logos
 - Added site detail screen showing areas and contests
 - Implemented Contest data model
