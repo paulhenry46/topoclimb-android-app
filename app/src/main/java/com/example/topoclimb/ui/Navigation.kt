@@ -9,4 +9,7 @@ sealed class Screen(val route: String) {
         fun createRoute(routeId: Int) = "route/$routeId"
     }
     object Areas : Screen("areas")
+    object AreaDetail : Screen("area/{areaId}") {
+        fun createRoute(areaId: Int) = "area/$areaId"
+    }
 }

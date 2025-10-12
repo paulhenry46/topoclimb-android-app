@@ -63,7 +63,17 @@ class TopoClimbRepository {
     
     suspend fun getArea(id: Int): Result<Area> {
         return try {
-            Result.success(api.getArea(id))
+            val response = api.getArea(id)
+            Result.success(response.data)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getRoutesByArea(areaId: Int): Result<List<Route>> {
+        return try {
+            val response = api.getRoutesByArea(areaId)
+            Result.success(response.data)
         } catch (e: Exception) {
             Result.failure(e)
         }

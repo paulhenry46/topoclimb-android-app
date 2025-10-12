@@ -25,6 +25,7 @@ import com.example.topoclimb.viewmodel.SiteDetailViewModel
 fun SiteDetailScreen(
     siteId: Int,
     onBackClick: () -> Unit,
+    onAreaClick: (Int) -> Unit = {},
     viewModel: SiteDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -129,7 +130,10 @@ fun SiteDetailScreen(
                             )
                         }
                         items(uiState.areas) { area ->
-                            AreaItem(area)
+                            SiteAreaItem(
+                                area = area,
+                                onSeeTopoClick = { onAreaClick(area.id) }
+                            )
                         }
                     }
                     
@@ -175,7 +179,10 @@ fun SiteDetailScreen(
 }
 
 @Composable
-fun AreaItem(area: Area) {
+fun SiteAreaItem(
+    area: Area,
+    onSeeTopoClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -199,6 +206,13 @@ fun AreaItem(area: Area) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary
                 )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onSeeTopoClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("See Topo")
             }
         }
     }
