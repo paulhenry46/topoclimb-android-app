@@ -2,7 +2,8 @@ package com.example.topoclimb.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -35,9 +36,15 @@ fun SvgMapView(
         }.toMap()
     }
     
+    // Calculate aspect ratio from SVG dimensions
+    val aspectRatioModifier = svgDimensions?.let { dims ->
+        Modifier.aspectRatio(dims.viewBoxWidth / dims.viewBoxHeight)
+    } ?: Modifier
+    
     Canvas(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .then(aspectRatioModifier)
             .pointerInput(svgPaths, svgDimensions) {
                 detectTapGestures { tapOffset ->
                     val canvasWidth = size.width.toFloat()
@@ -45,12 +52,12 @@ fun SvgMapView(
                     
                     svgDimensions?.let { dims ->
                         // Calculate the same scale and translation used for drawing
+                        // Use scaleX to fill full width
                         val scaleX = canvasWidth / dims.viewBoxWidth
-                        val scaleY = canvasHeight / dims.viewBoxHeight
-                        val scale = minOf(scaleX, scaleY)
+                        val scale = scaleX  // Use full width scaling
                         
-                        val translateX = (canvasWidth - dims.viewBoxWidth * scale) / 2 - dims.viewBoxX * scale
-                        val translateY = (canvasHeight - dims.viewBoxHeight * scale) / 2 - dims.viewBoxY * scale
+                        val translateX = -dims.viewBoxX * scale
+                        val translateY = -dims.viewBoxY * scale
                         
                         // Transform tap offset to SVG coordinates
                         val svgX = (tapOffset.x - translateX) / scale
@@ -59,12 +66,12 @@ fun SvgMapView(
                         
                         // Find which path was tapped using bounds checking
                         pathBoundsMap.forEach { (sectorId, bounds) ->
-                            // Expand bounds slightly for easier tapping (10 units tolerance)
+                            // Expand bounds for easier tapping (20 units tolerance, increased from 10)
                             val expandedBounds = Rect(
-                                left = bounds.left - 10f,
-                                top = bounds.top - 10f,
-                                right = bounds.right + 10f,
-                                bottom = bounds.bottom + 10f
+                                left = bounds.left - 20f,
+                                top = bounds.top - 20f,
+                                right = bounds.right + 20f,
+                                bottom = bounds.bottom + 20f
                             )
                             
                             if (expandedBounds.contains(svgPoint)) {
@@ -76,10 +83,10 @@ fun SvgMapView(
                         // Fallback for no dimensions
                         pathBoundsMap.forEach { (sectorId, bounds) ->
                             val expandedBounds = Rect(
-                                left = bounds.left - 10f,
-                                top = bounds.top - 10f,
-                                right = bounds.right + 10f,
-                                bottom = bounds.bottom + 10f
+                                left = bounds.left - 20f,
+                                top = bounds.top - 20f,
+                                right = bounds.right + 20f,
+                                bottom = bounds.bottom + 20f
                             )
                             
                             if (expandedBounds.contains(tapOffset)) {
@@ -95,14 +102,13 @@ fun SvgMapView(
         val canvasHeight = size.height
         
         svgDimensions?.let { dims ->
-            // Calculate scale to fit the SVG into the canvas
+            // Calculate scale to fit the SVG width to the canvas width
             val scaleX = canvasWidth / dims.viewBoxWidth
-            val scaleY = canvasHeight / dims.viewBoxHeight
-            val scale = minOf(scaleX, scaleY)
+            val scale = scaleX  // Use full width scaling
             
-            // Center the SVG
-            val translateX = (canvasWidth - dims.viewBoxWidth * scale) / 2 - dims.viewBoxX * scale
-            val translateY = (canvasHeight - dims.viewBoxHeight * scale) / 2 - dims.viewBoxY * scale
+            // Align to top-left (no centering)
+            val translateX = -dims.viewBoxX * scale
+            val translateY = -dims.viewBoxY * scale
             
             translate(translateX, translateY) {
                 scale(scale, scale) {
@@ -113,10 +119,11 @@ fun SvgMapView(
                             Color.Black
                         }
                         
+                        // Increased stroke width for easier tapping
                         val strokeWidth = if (pathData.sectorId == selectedSectorId) {
-                            3f / scale  // Thicker stroke for selected path
+                            6f / scale  // Increased from 3f
                         } else {
-                            2f / scale
+                            4f / scale  // Increased from 2f
                         }
                         
                         drawPath(
@@ -136,10 +143,11 @@ fun SvgMapView(
                     Color.Black
                 }
                 
+                // Increased stroke width for easier tapping
                 val strokeWidth = if (pathData.sectorId == selectedSectorId) {
-                    3f  // Thicker stroke for selected path
+                    6f  // Increased from 3f
                 } else {
-                    2f
+                    4f  // Increased from 2f
                 }
                 
                 drawPath(
