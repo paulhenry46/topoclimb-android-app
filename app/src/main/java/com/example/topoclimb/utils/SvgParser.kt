@@ -65,7 +65,7 @@ object SvgParser {
     private fun extractDimensions(svgElement: Element): SvgDimensions? {
         return try {
             val viewBox = svgElement.getAttribute("viewBox")
-            val parts = viewBox.split(" ").map { it.toFloat() }
+            val parts = viewBox.trim().split(Regex("\\s+")).map { it.toFloat() }
             
             val widthStr = svgElement.getAttribute("width")
             val heightStr = svgElement.getAttribute("height")
