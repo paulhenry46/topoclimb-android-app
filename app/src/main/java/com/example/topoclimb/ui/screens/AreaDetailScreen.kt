@@ -139,9 +139,7 @@ fun AreaDetailScreen(
                         }
                         item {
                             Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(400.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
                                 SvgMapView(
@@ -151,7 +149,7 @@ fun AreaDetailScreen(
                                     onPathTapped = { sectorId ->
                                         viewModel.onSectorTapped(sectorId)
                                     },
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier
                                 )
                             }
                         }
