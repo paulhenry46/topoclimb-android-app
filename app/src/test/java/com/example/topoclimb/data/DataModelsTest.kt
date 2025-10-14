@@ -190,4 +190,37 @@ class DataModelsTest {
         assertEquals("Biographie", response.data[1].name)
         assertEquals("9a+", response.data[1].grade)
     }
+    
+    @Test
+    fun routeResponse_deserializesCorrectly() {
+        val json = """
+            {
+                "data": {
+                    "id": 1,
+                    "name": "La Marie-Rose",
+                    "grade": "7c",
+                    "type": "boulder",
+                    "description": "Classic problem",
+                    "height": 5,
+                    "siteId": 1,
+                    "siteName": "Fontainebleau"
+                }
+            }
+        """.trimIndent()
+        
+        val response = gson.fromJson(json, RouteResponse::class.java)
+        
+        assertNotNull(response)
+        assertNotNull(response.data)
+        
+        val route = response.data
+        assertEquals(1, route.id)
+        assertEquals("La Marie-Rose", route.name)
+        assertEquals("7c", route.grade)
+        assertEquals("boulder", route.type)
+        assertEquals("Classic problem", route.description)
+        assertEquals(5, route.height)
+        assertEquals(1, route.siteId)
+        assertEquals("Fontainebleau", route.siteName)
+    }
 }

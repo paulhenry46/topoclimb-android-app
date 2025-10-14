@@ -6,3 +6,8 @@ data class RoutesResponse(
     @SerializedName("data")
     val data: List<Route>
 )
+
+data class RouteResponse(
+    @SerializedName("data")
+    val data: Route
+)
