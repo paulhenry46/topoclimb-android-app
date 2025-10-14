@@ -56,12 +56,10 @@ fun SvgMapView(
                         val scaleX = canvasWidth / dims.viewBoxWidth
                         val scale = scaleX  // Use full width scaling
                         
-                        val translateX = -dims.viewBoxX * scale
-                        val translateY = -dims.viewBoxY * scale
-                        
                         // Transform tap offset to SVG coordinates
-                        val svgX = (tapOffset.x - translateX) / scale
-                        val svgY = (tapOffset.y - translateY) / scale
+                        // First undo scale, then undo translate
+                        val svgX = tapOffset.x / scale + dims.viewBoxX
+                        val svgY = tapOffset.y / scale + dims.viewBoxY
                         val svgPoint = Offset(svgX, svgY)
                         
                         // Find which path was tapped using bounds checking
@@ -106,12 +104,10 @@ fun SvgMapView(
             val scaleX = canvasWidth / dims.viewBoxWidth
             val scale = scaleX  // Use full width scaling
             
-            // Align to top-left (no centering)
-            val translateX = -dims.viewBoxX * scale
-            val translateY = -dims.viewBoxY * scale
-            
-            translate(translateX, translateY) {
-                scale(scale, scale) {
+            // Apply transformations: scale first, then translate
+            // This aligns the viewBox origin to the canvas origin
+            scale(scale, scale) {
+                translate(-dims.viewBoxX, -dims.viewBoxY) {
                     svgPaths.forEach { pathData ->
                         val color = if (pathData.sectorId == selectedSectorId) {
                             Color.Red
