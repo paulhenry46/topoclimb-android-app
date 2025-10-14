@@ -149,7 +149,7 @@ fun AreaDetailScreen(
                                     onPathTapped = { sectorId ->
                                         viewModel.onSectorTapped(sectorId)
                                     },
-                                    modifier = Modifier
+                                    modifier = Modifier.padding(16.dp)
                                 )
                             }
                         }
