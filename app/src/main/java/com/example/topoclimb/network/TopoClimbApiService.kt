@@ -8,6 +8,7 @@ import com.example.topoclimb.data.ContestsResponse
 import com.example.topoclimb.data.Line
 import com.example.topoclimb.data.LinesResponse
 import com.example.topoclimb.data.Route
+import com.example.topoclimb.data.RouteResponse
 import com.example.topoclimb.data.RoutesResponse
 import com.example.topoclimb.data.Sector
 import com.example.topoclimb.data.SectorsResponse
@@ -34,7 +35,7 @@ interface TopoClimbApiService {
     ): RoutesResponse
     
     @GET("routes/{id}")
-    suspend fun getRoute(@Path("id") id: Int): Route
+    suspend fun getRoute(@Path("id") id: Int): RouteResponse
     
     @GET("areas")
     suspend fun getAreas(): AreasResponse

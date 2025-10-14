@@ -56,10 +56,14 @@ fun SvgMapView(
                         val scaleX = canvasWidth / dims.viewBoxWidth
                         val scale = scaleX  // Use full width scaling
                         
+                        // Calculate translation (same as drawing code)
+                        val translateX = -dims.viewBoxX * scale
+                        val translateY = -dims.viewBoxY * scale
+                        
                         // Transform tap offset to SVG coordinates
-                        // First undo scale, then undo translate
-                        val svgX = tapOffset.x / scale + dims.viewBoxX
-                        val svgY = tapOffset.y / scale + dims.viewBoxY
+                        // Reverse the transformations: first undo translate, then undo scale
+                        val svgX = (tapOffset.x - translateX) / scale
+                        val svgY = (tapOffset.y - translateY) / scale
                         val svgPoint = Offset(svgX, svgY)
                         
                         // Find which path was tapped using bounds checking
@@ -104,10 +108,15 @@ fun SvgMapView(
             val scaleX = canvasWidth / dims.viewBoxWidth
             val scale = scaleX  // Use full width scaling
             
-            // Apply transformations: scale first, then translate
-            // This aligns the viewBox origin to the canvas origin
-            scale(scale, scale) {
-                translate(-dims.viewBoxX, -dims.viewBoxY) {
+            // Calculate translation to align viewBox origin with canvas origin
+            // The translation must be calculated in canvas coordinates (after scaling)
+            val translateX = -dims.viewBoxX * scale
+            val translateY = -dims.viewBoxY * scale
+            
+            // Apply transformations: translate first, then scale
+            // This properly aligns the viewBox to the canvas
+            translate(translateX, translateY) {
+                scale(scale, scale) {
                     svgPaths.forEach { pathData ->
                         val color = if (pathData.sectorId == selectedSectorId) {
                             Color.Red
