@@ -31,7 +31,7 @@ import com.example.topoclimb.utils.SvgPathData
  * - Zoom in/out with pinch gestures
  * - Tap on sectors to select them
  * 
- * The map is aligned to top-left of its container.
+ * The map is initially aligned with its bottom-right corner at the bottom-right of the container.
  */
 @Composable
 fun SvgMapView(
@@ -56,6 +56,9 @@ fun SvgMapView(
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     
+    // Track if initial offset has been set
+    var initialOffsetSet by remember { mutableStateOf(false) }
+    
     // Transformable state for pan and zoom gestures
     val state = rememberTransformableState { zoomChange, panChange, _ ->
         scale = (scale * zoomChange).coerceIn(0.5f, 5f)
@@ -77,7 +80,8 @@ fun SvgMapView(
                 detectTapGestures { tapOffset ->
                     svgDimensions?.let { dims ->
                         // Calculate base scale factor to fit viewBox to canvas width
-                        val baseScale = size.width / dims.viewBoxWidth
+                        // Must match the calculation in the draw scope
+                        val baseScale = size.width / scale / dims.viewBoxWidth
                         
                         // Transform tap position from screen to SVG coordinates
                         // First, undo user pan/zoom transformations
@@ -130,7 +134,19 @@ fun SvgMapView(
                     // Calculate base scale to fit the viewBox width to the canvas width
                     val baseScale = size.width / scale / dims.viewBoxWidth
                     
-                    // Apply transformation to scale the SVG (top-left aligned)
+                    // Set initial offset to align bottom-right on first draw
+                    if (!initialOffsetSet && size.width > 0 && size.height > 0) {
+                        // Calculate the SVG content size in canvas space
+                        val svgCanvasWidth = dims.viewBoxWidth * baseScale
+                        val svgCanvasHeight = dims.viewBoxHeight * baseScale
+                        
+                        // Align bottom-right: offset so that bottom-right of SVG aligns with bottom-right of canvas
+                        offsetX = size.width - svgCanvasWidth * scale
+                        offsetY = size.height - svgCanvasHeight * scale
+                        initialOffsetSet = true
+                    }
+                    
+                    // Apply transformation to scale the SVG (top-left aligned within transformed space)
                     translate(-dims.viewBoxX * baseScale, -dims.viewBoxY * baseScale) {
                         scale(baseScale) {
                             // Now we're in SVG coordinate space, scaled and aligned to top-left
