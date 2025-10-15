@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.Route
-import com.example.topoclimb.ui.components.SvgMapView
+import com.example.topoclimb.ui.components.SvgWebMapView
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,7 +114,7 @@ fun AreaDetailScreen(
                     }
                     
                     // SVG Map section
-                    if (uiState.svgPaths.isNotEmpty()) {
+                    if (uiState.svgMapContent != null) {
                         item {
                             Text(
                                 text = "Topo Map",
@@ -142,11 +142,11 @@ fun AreaDetailScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
-                                SvgMapView(
-                                    svgPaths = uiState.svgPaths,
+                                SvgWebMapView(
+                                    svgContent = uiState.svgMapContent,
                                     svgDimensions = uiState.svgDimensions,
                                     selectedSectorId = uiState.selectedSectorId,
-                                    onPathTapped = { sectorId ->
+                                    onSectorTapped = { sectorId ->
                                         viewModel.onSectorTapped(sectorId)
                                     },
                                     modifier = Modifier
