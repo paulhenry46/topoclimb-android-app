@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import com.example.topoclimb.utils.SvgDimensions
 import com.example.topoclimb.utils.SvgPathData
@@ -32,7 +31,7 @@ import com.example.topoclimb.utils.SvgPathData
  * - Zoom in/out with pinch gestures
  * - Tap on sectors to select them
  * 
- * The map is initially centered in its container.
+ * The map is aligned to top-left of its container.
  */
 @Composable
 fun SvgMapView(
@@ -73,31 +72,21 @@ fun SvgMapView(
         modifier = modifier
             .fillMaxWidth()
             .then(aspectRatioModifier)
-            .graphicsLayer(
-                scaleX = scale,
-                scaleY = scale,
-                translationX = offsetX,
-                translationY = offsetY
-            )
             .transformable(state = state)
             .pointerInput(svgPaths, svgDimensions, scale, offsetX, offsetY) {
                 detectTapGestures { tapOffset ->
                     svgDimensions?.let { dims ->
-                        // Calculate base scale factor to fit viewBox to canvas
-                        val scaleX = size.width / dims.viewBoxWidth
-                        val scaleY = size.height / dims.viewBoxHeight
-                        val baseScale = minOf(scaleX, scaleY)
-                        
-                        // Calculate center offset for initial centering
-                        val centerOffsetX = (size.width - dims.viewBoxWidth * baseScale) / 2f
-                        val centerOffsetY = (size.height - dims.viewBoxHeight * baseScale) / 2f
+                        // Calculate base scale factor to fit viewBox to canvas width
+                        val baseScale = size.width / dims.viewBoxWidth
                         
                         // Transform tap position from screen to SVG coordinates
-                        // Account for: user zoom/pan, centering, base scale, and viewBox origin
+                        // First, undo user pan/zoom transformations
                         val canvasX = (tapOffset.x - offsetX) / scale
                         val canvasY = (tapOffset.y - offsetY) / scale
-                        val svgX = ((canvasX - centerOffsetX) / baseScale) + dims.viewBoxX
-                        val svgY = ((canvasY - centerOffsetY) / baseScale) + dims.viewBoxY
+                        
+                        // Then convert from canvas space to SVG space
+                        val svgX = (canvasX / baseScale) + dims.viewBoxX
+                        val svgY = (canvasY / baseScale) + dims.viewBoxY
                         val svgPoint = Offset(svgX, svgY)
                         
                         // Find which path was tapped using bounds checking in SVG space
@@ -134,58 +123,55 @@ fun SvgMapView(
                 }
             }
     ) {
-        svgDimensions?.let { dims ->
-            // Calculate base scale to fit the viewBox content to the canvas
-            // Use uniform scaling to maintain aspect ratio
-            val scaleX = size.width / dims.viewBoxWidth
-            val scaleY = size.height / dims.viewBoxHeight
-            val baseScale = minOf(scaleX, scaleY)
-            
-            // Calculate offset to center the map in the container
-            val centerOffsetX = (size.width - dims.viewBoxWidth * baseScale) / 2f
-            val centerOffsetY = (size.height - dims.viewBoxHeight * baseScale) / 2f
-            
-            // Apply transformation to center and scale the SVG
-            translate(centerOffsetX, centerOffsetY) {
-                translate(-dims.viewBoxX * baseScale, -dims.viewBoxY * baseScale) {
-                    scale(baseScale) {
-                        // Now we're in SVG coordinate space, scaled and centered
-                        svgPaths.forEach { pathData ->
-                            val color = if (pathData.sectorId == selectedSectorId) {
-                                Color.Red
-                            } else {
-                                Color.Black
+        // Apply user pan/zoom transformations manually in the draw scope
+        translate(offsetX, offsetY) {
+            scale(scale, scale) {
+                svgDimensions?.let { dims ->
+                    // Calculate base scale to fit the viewBox width to the canvas width
+                    val baseScale = size.width / scale / dims.viewBoxWidth
+                    
+                    // Apply transformation to scale the SVG (top-left aligned)
+                    translate(-dims.viewBoxX * baseScale, -dims.viewBoxY * baseScale) {
+                        scale(baseScale) {
+                            // Now we're in SVG coordinate space, scaled and aligned to top-left
+                            svgPaths.forEach { pathData ->
+                                val color = if (pathData.sectorId == selectedSectorId) {
+                                    Color.Red
+                                } else {
+                                    Color.Black
+                                }
+                                
+                                // Increased stroke width for better visibility
+                                val strokeWidth = if (pathData.sectorId == selectedSectorId) {
+                                    10f
+                                } else {
+                                    8f
+                                }
+                                
+                                drawPath(
+                                    path = pathData.path,
+                                    color = color,
+                                    style = Stroke(width = strokeWidth)
+                                )
                             }
-                            
-                            val strokeWidth = if (pathData.sectorId == selectedSectorId) {
-                                6f / baseScale
-                            } else {
-                                4f / baseScale
-                            }
-                            
-                            drawPath(
-                                path = pathData.path,
-                                color = color,
-                                style = Stroke(width = strokeWidth)
-                            )
                         }
                     }
+                } ?: run {
+                    // If no dimensions, just draw the paths as-is
+                    svgPaths.forEach { pathData ->
+                        val color = if (pathData.sectorId == selectedSectorId) {
+                            Color.Red
+                        } else {
+                            Color.Black
+                        }
+                        
+                        drawPath(
+                            path = pathData.path,
+                            color = color,
+                            style = Stroke(width = if (pathData.sectorId == selectedSectorId) 10f else 8f)
+                        )
+                    }
                 }
-            }
-        } ?: run {
-            // If no dimensions, just draw the paths as-is
-            svgPaths.forEach { pathData ->
-                val color = if (pathData.sectorId == selectedSectorId) {
-                    Color.Red
-                } else {
-                    Color.Black
-                }
-                
-                drawPath(
-                    path = pathData.path,
-                    color = color,
-                    style = Stroke(width = if (pathData.sectorId == selectedSectorId) 6f else 4f)
-                )
             }
         }
     }
