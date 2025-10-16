@@ -147,12 +147,12 @@ fun AreaDetailScreen(
                                             addJavascriptInterface(object {
                                                 @JavascriptInterface
                                                 fun onSectorSelected(sectorIdStr: String) {
-                                                    // The SVG path's id is the sector ID
+                                                    // The SVG path's id is in format "sector_X" where X is the sector ID
                                                     if (sectorIdStr.isEmpty()) {
                                                         viewModel.filterRoutesBySector(null)
                                                     } else {
-                                                        // Parse the sector ID from the path's id attribute
-                                                        val sectorId = sectorIdStr.toIntOrNull()
+                                                        // Extract the numeric ID from "sector_X" format
+                                                        val sectorId = sectorIdStr.removePrefix("sector_").toIntOrNull()
                                                         viewModel.filterRoutesBySector(sectorId)
                                                     }
                                                 }

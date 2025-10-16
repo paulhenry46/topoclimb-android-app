@@ -141,18 +141,18 @@ fun filterRoutesBySector(sectorId: Int?) {
 
 #### JavaScript Interface
 
-Updated to directly use the SVG path's `id` attribute as the sector ID:
+Updated to extract the sector ID from the SVG path's `id` attribute (format: "sector_X"):
 
 ```kotlin
 addJavascriptInterface(object {
     @JavascriptInterface
     fun onSectorSelected(sectorIdStr: String) {
-        // The SVG path's id is the sector ID
+        // The SVG path's id is in format "sector_X" where X is the sector ID
         if (sectorIdStr.isEmpty()) {
             viewModel.filterRoutesBySector(null)
         } else {
-            // Parse the sector ID from the path's id attribute
-            val sectorId = sectorIdStr.toIntOrNull()
+            // Extract the numeric ID from "sector_X" format
+            val sectorId = sectorIdStr.removePrefix("sector_").toIntOrNull()
             viewModel.filterRoutesBySector(sectorId)
         }
     }
@@ -214,8 +214,8 @@ svg path:hover {
    - All routes for the area are displayed
    - Sectors are loaded from the API
 2. **User taps a sector on the map**: 
-   - JavaScript identifies the clicked path's ID (which is the sector ID)
-   - The sector ID is parsed and passed to the ViewModel
+   - JavaScript identifies the clicked path's ID (format: "sector_X")
+   - The numeric sector ID is extracted and parsed
    - App fetches lines for that sector
    - For each line, app fetches routes
    - All routes are combined and displayed
@@ -254,16 +254,16 @@ svg path:hover {
 
 ### SVG Map Requirements
 
-SVG paths should have `id` attributes that are the sector IDs (as integers):
+SVG paths should have `id` attributes in the format "sector_X" where X is the sector ID:
 
 ```svg
 <svg>
-  <path id="1" d="M 10 10 L 100 100 ..." />
-  <path id="2" d="M 20 20 L 120 120 ..." />
+  <path id="sector_1" d="M 10 10 L 100 100 ..." />
+  <path id="sector_2" d="M 20 20 L 120 120 ..." />
 </svg>
 ```
 
-The `id` attribute of each SVG path should match the `id` field of the corresponding sector in the API response.
+The numeric part of the `id` attribute (after "sector_") should match the `id` field of the corresponding sector in the API response.
 
 ## Technical Details
 
@@ -272,9 +272,11 @@ The `id` attribute of each SVG path should match the `id` field of the correspon
 ```
 User taps SVG path
   ↓
-JavaScript captures click, gets path.id (sector ID)
+JavaScript captures click, gets path.id (e.g., "sector_1")
   ↓
-window.Android.onSectorSelected(sectorId)
+window.Android.onSectorSelected(sectorIdStr)
+  ↓
+Extract numeric ID from "sector_X" format (removePrefix("sector_"))
   ↓
 Parse sector ID as integer
   ↓
