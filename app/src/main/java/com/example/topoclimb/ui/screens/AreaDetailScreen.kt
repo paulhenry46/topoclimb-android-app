@@ -167,7 +167,7 @@ fun AreaDetailScreen(
                                                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                 <style>
                                                     body {
-                                                        margin: 0;
+                                                        margin: 1em;
                                                         padding: 0;
                                                         display: flex;
                                                         justify-content: center;
@@ -190,7 +190,7 @@ fun AreaDetailScreen(
                                                         fill: none;
                                                         cursor: pointer;
                                                         /* Increased stroke-width for better visibility */
-                                                        stroke-width: 5;
+                                                        stroke-width: 25;
                                                         /* Add invisible wider stroke for easier clicking */
                                                         paint-order: stroke;
                                                     }
@@ -199,7 +199,7 @@ fun AreaDetailScreen(
                                                     }
                                                     svg path.selected {
                                                         stroke: red;
-                                                        stroke-width: 6;
+                                                        stroke-width: 30;
                                                     }
                                                 </style>
                                                 <script>
@@ -211,7 +211,7 @@ fun AreaDetailScreen(
                                                             // Create an invisible wider path for better tap tolerance
                                                             const hitArea = path.cloneNode(true);
                                                             hitArea.setAttribute('stroke', 'transparent');
-                                                            hitArea.setAttribute('stroke-width', '15');
+                                                            hitArea.setAttribute('stroke-width', '45');
                                                             hitArea.setAttribute('fill', 'none');
                                                             hitArea.setAttribute('pointer-events', 'stroke');
                                                             hitArea.removeAttribute('id');
