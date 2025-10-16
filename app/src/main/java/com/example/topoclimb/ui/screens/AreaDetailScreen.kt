@@ -5,17 +5,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.Route
-import com.example.topoclimb.ui.components.SvgWebMapView
+import com.example.topoclimb.ui.components.SimpleSvgView
+import com.example.topoclimb.ui.components.SectorSelector
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,44 +119,56 @@ fun AreaDetailScreen(
                         }
                     }
                     
-                    // SVG Map section
+                    // Sector selector
+                    if (uiState.sectors.isNotEmpty()) {
+                        item {
+                            SectorSelector(
+                                sectors = uiState.sectors,
+                                selectedSectorId = uiState.selectedSectorId,
+                                onSectorSelected = { sectorId ->
+                                    viewModel.onSectorSelected(sectorId)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    
+                    // SVG Map section in collapsible card
                     if (uiState.svgMapContent != null) {
                         item {
-                            Text(
-                                text = "Topo Map",
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                            if (uiState.selectedSectorId != null) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Sector ${uiState.selectedSectorId} selected - Tap to deselect",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Tap on a sector to view its routes",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        item {
+                            var isMapExpanded by remember { mutableStateOf(true) }
+                            
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
-                                SvgWebMapView(
-                                    svgContent = uiState.svgMapContent,
-                                    svgDimensions = uiState.svgDimensions,
-                                    selectedSectorId = uiState.selectedSectorId,
-                                    onSectorTapped = { sectorId ->
-                                        viewModel.onSectorTapped(sectorId)
-                                    },
-                                    modifier = Modifier
-                                )
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Topo Map",
+                                            style = MaterialTheme.typography.titleLarge
+                                        )
+                                        IconButton(onClick = { isMapExpanded = !isMapExpanded }) {
+                                            Icon(
+                                                imageVector = if (isMapExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                                contentDescription = if (isMapExpanded) "Collapse map" else "Expand map"
+                                            )
+                                        }
+                                    }
+                                    
+                                    if (isMapExpanded) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        SimpleSvgView(
+                                            svgContent = uiState.svgMapContent,
+                                            svgDimensions = uiState.svgDimensions,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -158,10 +176,11 @@ fun AreaDetailScreen(
                     // Routes section
                     if (uiState.routes.isNotEmpty()) {
                         item {
-                            val routesTitle = if (uiState.selectedSectorId != null) {
-                                "Routes in Sector ${uiState.selectedSectorId} (${uiState.routes.size})"
+                            val selectedSector = uiState.sectors.find { it.id == uiState.selectedSectorId }
+                            val routesTitle = if (selectedSector != null) {
+                                "Routes in ${selectedSector.name} (${uiState.routes.size})"
                             } else {
-                                "Routes (${uiState.routes.size})"
+                                "All Routes (${uiState.routes.size})"
                             }
                             Text(
                                 text = routesTitle,

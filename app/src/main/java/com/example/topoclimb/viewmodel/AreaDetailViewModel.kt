@@ -108,14 +108,11 @@ class AreaDetailViewModel : ViewModel() {
         }
     }
     
-    fun onSectorTapped(sectorId: Int) {
+    fun onSectorSelected(sectorId: Int?) {
         viewModelScope.launch {
             val currentState = _uiState.value
             
-            // Toggle selection - if same sector is tapped, deselect it
-            val newSelectedSectorId = if (currentState.selectedSectorId == sectorId) null else sectorId
-            
-            if (newSelectedSectorId != null) {
+            if (sectorId != null) {
                 // Fetch lines for this sector
                 val linesResult = repository.getLinesBySector(sectorId)
                 val lines = linesResult.getOrNull() ?: emptyList()
@@ -128,11 +125,11 @@ class AreaDetailViewModel : ViewModel() {
                 }
                 
                 _uiState.value = currentState.copy(
-                    selectedSectorId = newSelectedSectorId,
+                    selectedSectorId = sectorId,
                     routes = routesForSector
                 )
             } else {
-                // Deselect - show all routes for the area
+                // Show all routes for the area
                 val routesResult = repository.getRoutesByArea(currentState.area?.id ?: return@launch)
                 val routes = routesResult.getOrNull() ?: emptyList()
                 
