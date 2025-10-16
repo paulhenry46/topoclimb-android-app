@@ -72,7 +72,12 @@ List all routes with optional filters
     "description": "Classic Font problem",
     "height": 5,
     "siteId": 1,
-    "siteName": "Fontainebleau"
+    "siteName": "Fontainebleau",
+    "thumbnail": "https://example.com/route-thumb.jpg",
+    "color": "#FF5722",
+    "line_local_id": "3B",
+    "sector_local_id": "Sector A",
+    "line_count": 5
   }
 ]
 ```
@@ -90,7 +95,12 @@ Get details of a specific route
   "description": "Classic Font problem",
   "height": 5,
   "siteId": 1,
-  "siteName": "Fontainebleau"
+  "siteName": "Fontainebleau",
+  "thumbnail": "https://example.com/route-thumb.jpg",
+  "color": "#FF5722",
+  "line_local_id": "3B",
+  "sector_local_id": "Sector A",
+  "line_count": 5
 }
 ```
 
@@ -154,7 +164,12 @@ data class Route(
     val description: String?,
     val height: Int?,
     val siteId: Int,
-    val siteName: String?
+    val siteName: String?,
+    val thumbnail: String?,
+    val color: String?,
+    val lineLocalId: String?,
+    val sectorLocalId: String?,
+    val lineCount: Int?
 )
 ```
 
@@ -213,8 +228,8 @@ For testing purposes, you can use the following sample data structure in your AP
 **Sample Routes:**
 ```json
 [
-  {"id": 1, "name": "La Marie-Rose", "grade": "7c", "type": "boulder", "height": 5, "siteId": 1},
-  {"id": 2, "name": "Biographie", "grade": "9a+", "type": "sport", "height": 45, "siteId": 2}
+  {"id": 1, "name": "La Marie-Rose", "grade": "7c", "type": "boulder", "height": 5, "siteId": 1, "thumbnail": "https://example.com/route1.jpg", "color": "#FF5722", "line_local_id": "3B", "sector_local_id": "A", "line_count": 5},
+  {"id": 2, "name": "Biographie", "grade": "9a+", "type": "sport", "height": 45, "siteId": 2, "thumbnail": "https://example.com/route2.jpg", "color": "#2196F3", "line_local_id": "12A", "sector_local_id": "B", "line_count": 8}
 ]
 ```
 
