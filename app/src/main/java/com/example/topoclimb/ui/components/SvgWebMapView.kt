@@ -5,8 +5,10 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.topoclimb.utils.SvgDimensions
 
@@ -71,6 +73,7 @@ fun SvgWebMapView(
         },
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 200.dp)
             .then(aspectRatioModifier)
     )
 }

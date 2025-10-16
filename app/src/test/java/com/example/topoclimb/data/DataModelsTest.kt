@@ -67,6 +67,30 @@ class DataModelsTest {
     }
     
     @Test
+    fun areaResponse_deserializesSvgGraphicCorrectly() {
+        val json = """
+            {
+                "data": {
+                    "id": 1,
+                    "name": "Cuvier",
+                    "description": "Classic sector",
+                    "latitude": 48.4044,
+                    "longitude": 2.6992,
+                    "siteId": 1,
+                    "svg_graphic": "https://example.com/map.svg"
+                }
+            }
+        """.trimIndent()
+        
+        val response = gson.fromJson(json, AreaResponse::class.java)
+        
+        assertNotNull(response)
+        assertNotNull(response.data)
+        assertEquals("Cuvier", response.data.name)
+        assertEquals("https://example.com/map.svg", response.data.svgMap)
+    }
+    
+    @Test
     fun contestsResponse_deserializesCorrectly() {
         val json = """
             {
