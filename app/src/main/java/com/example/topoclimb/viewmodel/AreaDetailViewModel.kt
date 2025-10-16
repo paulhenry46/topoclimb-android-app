@@ -18,6 +18,8 @@ data class AreaDetailUiState(
     val isLoading: Boolean = true,
     val area: Area? = null,
     val routes: List<Route> = emptyList(),
+    val allRoutes: List<Route> = emptyList(),
+    val selectedSectorId: String? = null,
     val error: String? = null,
     val svgMapContent: String? = null
 )
@@ -76,9 +78,24 @@ class AreaDetailViewModel : ViewModel() {
                 isLoading = false,
                 area = area,
                 routes = routes,
+                allRoutes = routes,
                 error = null,
                 svgMapContent = svgContent
             )
         }
+    }
+    
+    fun filterRoutesBySector(sectorId: String?) {
+        val currentState = _uiState.value
+        _uiState.value = currentState.copy(
+            selectedSectorId = sectorId,
+            routes = if (sectorId.isNullOrEmpty()) {
+                currentState.allRoutes
+            } else {
+                currentState.allRoutes.filter { route ->
+                    route.pathId == sectorId
+                }
+            }
+        )
     }
 }

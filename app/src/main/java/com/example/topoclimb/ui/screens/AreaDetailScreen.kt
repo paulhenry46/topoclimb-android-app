@@ -1,5 +1,6 @@
 package com.example.topoclimb.ui.screens
 
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,6 +29,7 @@ fun AreaDetailScreen(
     viewModel: AreaDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     
     LaunchedEffect(areaId) {
         viewModel.loadAreaDetails(areaId)
@@ -127,7 +130,7 @@ fun AreaDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(400.dp),
+                                    .wrapContentHeight(),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
                                 AndroidView(
@@ -139,6 +142,14 @@ fun AreaDetailScreen(
                                             settings.builtInZoomControls = true
                                             settings.displayZoomControls = false
                                             setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                                            
+                                            // Add JavaScript interface for communication
+                                            addJavascriptInterface(object {
+                                                @JavascriptInterface
+                                                fun onSectorSelected(sectorId: String) {
+                                                    viewModel.filterRoutesBySector(sectorId)
+                                                }
+                                            }, "Android")
                                         }
                                     },
                                     update = { webView ->
@@ -153,35 +164,72 @@ fun AreaDetailScreen(
                                                         padding: 0;
                                                         display: flex;
                                                         justify-content: center;
-                                                        align-items: center;
-                                                        min-height: 100vh;
+                                                        align-items: flex-start;
                                                         background: transparent;
+                                                        /* Remove tap highlight */
+                                                        -webkit-tap-highlight-color: transparent;
+                                                        -webkit-touch-callout: none;
+                                                        -webkit-user-select: none;
+                                                        user-select: none;
                                                     }
                                                     svg {
                                                         max-width: 100%;
                                                         height: auto;
                                                         background: transparent;
+                                                        display: block;
                                                     }
                                                     svg path {
                                                         stroke: black;
                                                         fill: none;
                                                         cursor: pointer;
+                                                        /* Increase hit tolerance with stroke-width */
+                                                        stroke-width: 3;
+                                                        /* Add invisible wider stroke for easier clicking */
+                                                        paint-order: stroke;
+                                                    }
+                                                    svg path:hover {
+                                                        stroke: #666;
                                                     }
                                                     svg path.selected {
                                                         stroke: red;
+                                                        stroke-width: 4;
                                                     }
                                                 </style>
                                                 <script>
                                                     document.addEventListener('DOMContentLoaded', function() {
                                                         const paths = document.querySelectorAll('svg path');
-                                                        paths.forEach(function(path) {
-                                                            path.addEventListener('click', function() {
+                                                        
+                                                        // Add padding around paths for easier selection
+                                                        paths.forEach(function(path, index) {
+                                                            // Set or use existing ID
+                                                            if (!path.id) {
+                                                                path.id = 'sector-' + index;
+                                                            }
+                                                            
+                                                            path.addEventListener('click', function(e) {
+                                                                // Prevent default behavior
+                                                                e.preventDefault();
+                                                                
+                                                                const wasSelected = this.classList.contains('selected');
+                                                                
                                                                 // Remove selected class from all paths
                                                                 paths.forEach(function(p) {
                                                                     p.classList.remove('selected');
                                                                 });
-                                                                // Add selected class to clicked path
-                                                                this.classList.add('selected');
+                                                                
+                                                                if (!wasSelected) {
+                                                                    // Add selected class to clicked path
+                                                                    this.classList.add('selected');
+                                                                    // Notify Android app
+                                                                    if (window.Android && window.Android.onSectorSelected) {
+                                                                        window.Android.onSectorSelected(this.id);
+                                                                    }
+                                                                } else {
+                                                                    // Deselected - show all routes
+                                                                    if (window.Android && window.Android.onSectorSelected) {
+                                                                        window.Android.onSectorSelected('');
+                                                                    }
+                                                                }
                                                             });
                                                         });
                                                     });
@@ -193,7 +241,10 @@ fun AreaDetailScreen(
                                             </html>
                                         """.trimIndent()
                                         webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
-                                    }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentHeight()
                                 )
                             }
                         }
@@ -203,7 +254,11 @@ fun AreaDetailScreen(
                     if (uiState.routes.isNotEmpty()) {
                         item {
                             Text(
-                                text = "Routes (${uiState.routes.size})",
+                                text = if (uiState.selectedSectorId.isNullOrEmpty()) {
+                                    "Routes (${uiState.routes.size})"
+                                } else {
+                                    "Routes for selected sector (${uiState.routes.size})"
+                                },
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
@@ -214,7 +269,26 @@ fun AreaDetailScreen(
                     }
                     
                     // Empty routes state
-                    if (uiState.routes.isEmpty()) {
+                    if (uiState.routes.isEmpty() && uiState.allRoutes.isNotEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No routes available for the selected sector.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    } else if (uiState.routes.isEmpty() && uiState.allRoutes.isEmpty()) {
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth()
