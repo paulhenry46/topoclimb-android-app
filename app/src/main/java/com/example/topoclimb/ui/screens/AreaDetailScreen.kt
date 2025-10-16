@@ -146,8 +146,14 @@ fun AreaDetailScreen(
                                             // Add JavaScript interface for communication
                                             addJavascriptInterface(object {
                                                 @JavascriptInterface
-                                                fun onSectorSelected(sectorId: String) {
-                                                    viewModel.filterRoutesBySector(sectorId)
+                                                fun onSectorSelected(pathId: String) {
+                                                    // Find the sector by pathId and get its actual ID
+                                                    if (pathId.isEmpty()) {
+                                                        viewModel.filterRoutesBySector(null)
+                                                    } else {
+                                                        val sector = uiState.sectors.find { it.pathId == pathId }
+                                                        viewModel.filterRoutesBySector(sector?.id)
+                                                    }
                                                 }
                                             }, "Android")
                                         }
@@ -254,7 +260,7 @@ fun AreaDetailScreen(
                     if (uiState.routes.isNotEmpty()) {
                         item {
                             Text(
-                                text = if (uiState.selectedSectorId.isNullOrEmpty()) {
+                                text = if (uiState.selectedSectorId == null) {
                                     "Routes (${uiState.routes.size})"
                                 } else {
                                     "Routes for selected sector (${uiState.routes.size})"
@@ -269,7 +275,7 @@ fun AreaDetailScreen(
                     }
                     
                     // Empty routes state
-                    if (uiState.routes.isEmpty() && uiState.allRoutes.isNotEmpty()) {
+                    if (uiState.routes.isEmpty() && uiState.selectedSectorId != null) {
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth()
@@ -288,7 +294,7 @@ fun AreaDetailScreen(
                                 }
                             }
                         }
-                    } else if (uiState.routes.isEmpty() && uiState.allRoutes.isEmpty()) {
+                    } else if (uiState.routes.isEmpty() && uiState.selectedSectorId == null) {
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth()

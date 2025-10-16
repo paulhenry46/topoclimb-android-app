@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Route
+import com.example.topoclimb.data.Sector
 import com.example.topoclimb.repository.TopoClimbRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,8 +19,8 @@ data class AreaDetailUiState(
     val isLoading: Boolean = true,
     val area: Area? = null,
     val routes: List<Route> = emptyList(),
-    val allRoutes: List<Route> = emptyList(),
-    val selectedSectorId: String? = null,
+    val sectors: List<Sector> = emptyList(),
+    val selectedSectorId: Int? = null,
     val error: String? = null,
     val svgMapContent: String? = null
 )
@@ -48,7 +49,11 @@ class AreaDetailViewModel : ViewModel() {
             
             val area = areaResult.getOrNull()
             
-            // Load routes for the area
+            // Load sectors for the area
+            val sectorsResult = repository.getSectorsByArea(areaId)
+            val sectors = sectorsResult.getOrNull() ?: emptyList()
+            
+            // Load routes for the area (all routes initially)
             val routesResult = repository.getRoutesByArea(areaId)
             val routes = routesResult.getOrNull() ?: emptyList()
             
@@ -78,24 +83,56 @@ class AreaDetailViewModel : ViewModel() {
                 isLoading = false,
                 area = area,
                 routes = routes,
-                allRoutes = routes,
+                sectors = sectors,
                 error = null,
                 svgMapContent = svgContent
             )
         }
     }
     
-    fun filterRoutesBySector(sectorId: String?) {
-        val currentState = _uiState.value
-        _uiState.value = currentState.copy(
-            selectedSectorId = sectorId,
-            routes = if (sectorId.isNullOrEmpty()) {
-                currentState.allRoutes
+    fun filterRoutesBySector(sectorId: Int?) {
+        viewModelScope.launch {
+            if (sectorId == null) {
+                // Deselected - reload all routes for the area
+                val currentState = _uiState.value
+                currentState.area?.let { area ->
+                    val routesResult = repository.getRoutesByArea(area.id)
+                    val routes = routesResult.getOrNull() ?: emptyList()
+                    _uiState.value = currentState.copy(
+                        selectedSectorId = null,
+                        routes = routes
+                    )
+                }
             } else {
-                currentState.allRoutes.filter { route ->
-                    route.pathId == sectorId
+                // Selected - fetch lines for this sector, then routes for each line
+                val currentState = _uiState.value
+                _uiState.value = currentState.copy(selectedSectorId = sectorId)
+                
+                val linesResult = repository.getLinesBySector(sectorId)
+                if (linesResult.isSuccess) {
+                    val lines = linesResult.getOrNull() ?: emptyList()
+                    val allRoutes = mutableListOf<Route>()
+                    
+                    // Fetch routes for each line
+                    for (line in lines) {
+                        val routesResult = repository.getRoutesByLine(line.id)
+                        if (routesResult.isSuccess) {
+                            allRoutes.addAll(routesResult.getOrNull() ?: emptyList())
+                        }
+                    }
+                    
+                    _uiState.value = currentState.copy(
+                        selectedSectorId = sectorId,
+                        routes = allRoutes
+                    )
+                } else {
+                    // Error fetching lines, keep current state but mark sector as selected
+                    _uiState.value = currentState.copy(
+                        selectedSectorId = sectorId,
+                        routes = emptyList()
+                    )
                 }
             }
-        )
+        }
     }
 }

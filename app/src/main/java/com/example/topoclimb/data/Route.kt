@@ -1,7 +1,5 @@
 package com.example.topoclimb.data
 
-import com.google.gson.annotations.SerializedName
-
 data class Route(
     val id: Int,
     val name: String,
@@ -10,6 +8,5 @@ data class Route(
     val description: String?,
     val height: Int?,
     val siteId: Int,
-    val siteName: String?,
-    @SerializedName("path_id") val pathId: String? = null
+    val siteName: String?
 )
