@@ -138,6 +138,7 @@ fun AreaDetailScreen(
                                             settings.useWideViewPort = true
                                             settings.builtInZoomControls = true
                                             settings.displayZoomControls = false
+                                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
                                         }
                                     },
                                     update = { webView ->
@@ -154,12 +155,37 @@ fun AreaDetailScreen(
                                                         justify-content: center;
                                                         align-items: center;
                                                         min-height: 100vh;
+                                                        background: transparent;
                                                     }
                                                     svg {
                                                         max-width: 100%;
                                                         height: auto;
+                                                        background: transparent;
+                                                    }
+                                                    svg path {
+                                                        stroke: black;
+                                                        fill: none;
+                                                        cursor: pointer;
+                                                    }
+                                                    svg path.selected {
+                                                        stroke: red;
                                                     }
                                                 </style>
+                                                <script>
+                                                    document.addEventListener('DOMContentLoaded', function() {
+                                                        const paths = document.querySelectorAll('svg path');
+                                                        paths.forEach(function(path) {
+                                                            path.addEventListener('click', function() {
+                                                                // Remove selected class from all paths
+                                                                paths.forEach(function(p) {
+                                                                    p.classList.remove('selected');
+                                                                });
+                                                                // Add selected class to clicked path
+                                                                this.classList.add('selected');
+                                                            });
+                                                        });
+                                                    });
+                                                </script>
                                             </head>
                                             <body>
                                                 $svgMap
