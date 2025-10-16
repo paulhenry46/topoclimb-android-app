@@ -1,17 +1,26 @@
 package com.example.topoclimb.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.viewmodel.RoutesViewModel
 
@@ -135,56 +144,91 @@ fun RouteItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Thumbnail image (rounded)
+            AsyncImage(
+                model = route.thumbnail,
+                contentDescription = "Route thumbnail",
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Grade badge with route color
+            route.grade?.let { grade ->
+                val gradeColor = parseColor(route.color)
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = gradeColor,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = grade,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        ),
+                        color = Color.White
+                    )
+                }
+            }
+            
+            // Name and local ID section
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = route.name,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
                 )
-                route.grade?.let { grade ->
+                
+                // Show line local_id if sector has more than one line, otherwise show sector local_id
+                val localId = if (route.lineCount == 1) {
+                    route.sectorLocalId
+                } else {
+                    route.lineLocalId
+                }
+                
+                localId?.let { id ->
                     Text(
-                        text = grade,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        text = id,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                route.type?.let { type ->
-                    AssistChip(
-                        onClick = { },
-                        label = { Text(type) }
-                    )
-                }
-                route.height?.let { height ->
-                    AssistChip(
-                        onClick = { },
-                        label = { Text("${height}m") }
-                    )
-                }
-            }
-            
-            route.description?.let { description ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2
-                )
             }
         }
+    }
+}
+
+// Helper function to parse hex color string
+private fun parseColor(colorHex: String?): Color {
+    return try {
+        if (colorHex != null && colorHex.startsWith("#")) {
+            Color(android.graphics.Color.parseColor(colorHex))
+        } else {
+            Color(0xFF6200EE) // Default Material purple
+        }
+    } catch (e: Exception) {
+        Color(0xFF6200EE) // Default Material purple on error
     }
 }
 
