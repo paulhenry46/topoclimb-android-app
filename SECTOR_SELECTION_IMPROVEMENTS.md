@@ -48,12 +48,11 @@ data class Sector(
     val id: Int,
     val name: String,
     val description: String?,
-    val areaId: Int,
-    @SerializedName("path_id") val pathId: String?
+    val areaId: Int
 )
 ```
 
-The `pathId` field maps the sector to the corresponding SVG path element's `id` attribute.
+The sector's `id` field directly corresponds to the SVG path element's `id` attribute.
 
 #### Line Model (`Line.kt`)
 
@@ -142,18 +141,19 @@ fun filterRoutesBySector(sectorId: Int?) {
 
 #### JavaScript Interface
 
-Updated to map SVG path ID to sector ID:
+Updated to directly use the SVG path's `id` attribute as the sector ID:
 
 ```kotlin
 addJavascriptInterface(object {
     @JavascriptInterface
-    fun onSectorSelected(pathId: String) {
-        if (pathId.isEmpty()) {
+    fun onSectorSelected(sectorIdStr: String) {
+        // The SVG path's id is the sector ID
+        if (sectorIdStr.isEmpty()) {
             viewModel.filterRoutesBySector(null)
         } else {
-            // Find sector by pathId and get its actual ID
-            val sector = uiState.sectors.find { it.pathId == pathId }
-            viewModel.filterRoutesBySector(sector?.id)
+            // Parse the sector ID from the path's id attribute
+            val sectorId = sectorIdStr.toIntOrNull()
+            viewModel.filterRoutesBySector(sectorId)
         }
     }
 }, "Android")
@@ -214,8 +214,8 @@ svg path:hover {
    - All routes for the area are displayed
    - Sectors are loaded from the API
 2. **User taps a sector on the map**: 
-   - JavaScript identifies the clicked path's ID
-   - App finds the matching sector by `pathId`
+   - JavaScript identifies the clicked path's ID (which is the sector ID)
+   - The sector ID is parsed and passed to the ViewModel
    - App fetches lines for that sector
    - For each line, app fetches routes
    - All routes are combined and displayed
@@ -237,7 +237,7 @@ svg path:hover {
 1. **Get sectors for an area**:
    ```
    GET /areas/{areaId}/sectors
-   Response: { "data": [{ "id": 1, "name": "Sector A", "areaId": 1, "path_id": "sector-1" }] }
+   Response: { "data": [{ "id": 1, "name": "Sector A", "areaId": 1 }] }
    ```
 
 2. **Get lines for a sector**:
@@ -254,16 +254,16 @@ svg path:hover {
 
 ### SVG Map Requirements
 
-SVG paths should have `id` attributes that match the `path_id` values in sector data:
+SVG paths should have `id` attributes that are the sector IDs (as integers):
 
 ```svg
 <svg>
-  <path id="sector-1" d="M 10 10 L 100 100 ..." />
-  <path id="sector-2" d="M 20 20 L 120 120 ..." />
+  <path id="1" d="M 10 10 L 100 100 ..." />
+  <path id="2" d="M 20 20 L 120 120 ..." />
 </svg>
 ```
 
-If paths don't have IDs, the JavaScript will auto-assign them as `sector-0`, `sector-1`, etc.
+The `id` attribute of each SVG path should match the `id` field of the corresponding sector in the API response.
 
 ## Technical Details
 
@@ -272,13 +272,13 @@ If paths don't have IDs, the JavaScript will auto-assign them as `sector-0`, `se
 ```
 User taps SVG path
   ↓
-JavaScript captures click, gets path.id
+JavaScript captures click, gets path.id (sector ID)
   ↓
-window.Android.onSectorSelected(pathId)
+window.Android.onSectorSelected(sectorId)
   ↓
-Find sector where sector.pathId == pathId
+Parse sector ID as integer
   ↓
-ViewModel.filterRoutesBySector(sector.id)
+ViewModel.filterRoutesBySector(sectorId)
   ↓
 API: GET /sectors/{id}/lines → List<Line>
   ↓

@@ -6,8 +6,7 @@ data class Sector(
     val id: Int,
     val name: String,
     val description: String?,
-    val areaId: Int,
-    @SerializedName("path_id") val pathId: String?
+    val areaId: Int
 )
 
 data class SectorResponse(

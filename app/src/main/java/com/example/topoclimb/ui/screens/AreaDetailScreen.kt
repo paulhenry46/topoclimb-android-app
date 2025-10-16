@@ -146,13 +146,14 @@ fun AreaDetailScreen(
                                             // Add JavaScript interface for communication
                                             addJavascriptInterface(object {
                                                 @JavascriptInterface
-                                                fun onSectorSelected(pathId: String) {
-                                                    // Find the sector by pathId and get its actual ID
-                                                    if (pathId.isEmpty()) {
+                                                fun onSectorSelected(sectorIdStr: String) {
+                                                    // The SVG path's id is the sector ID
+                                                    if (sectorIdStr.isEmpty()) {
                                                         viewModel.filterRoutesBySector(null)
                                                     } else {
-                                                        val sector = uiState.sectors.find { it.pathId == pathId }
-                                                        viewModel.filterRoutesBySector(sector?.id)
+                                                        // Parse the sector ID from the path's id attribute
+                                                        val sectorId = sectorIdStr.toIntOrNull()
+                                                        viewModel.filterRoutesBySector(sectorId)
                                                     }
                                                 }
                                             }, "Android")
@@ -205,13 +206,8 @@ fun AreaDetailScreen(
                                                     document.addEventListener('DOMContentLoaded', function() {
                                                         const paths = document.querySelectorAll('svg path');
                                                         
-                                                        // Add padding around paths for easier selection
-                                                        paths.forEach(function(path, index) {
-                                                            // Set or use existing ID
-                                                            if (!path.id) {
-                                                                path.id = 'sector-' + index;
-                                                            }
-                                                            
+                                                        // SVG paths should have id attributes that are sector IDs
+                                                        paths.forEach(function(path) {
                                                             path.addEventListener('click', function(e) {
                                                                 // Prevent default behavior
                                                                 e.preventDefault();
@@ -226,8 +222,8 @@ fun AreaDetailScreen(
                                                                 if (!wasSelected) {
                                                                     // Add selected class to clicked path
                                                                     this.classList.add('selected');
-                                                                    // Notify Android app
-                                                                    if (window.Android && window.Android.onSectorSelected) {
+                                                                    // Notify Android app with sector ID from path's id attribute
+                                                                    if (window.Android && window.Android.onSectorSelected && this.id) {
                                                                         window.Android.onSectorSelected(this.id);
                                                                     }
                                                                 } else {
