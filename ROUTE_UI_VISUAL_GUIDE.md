@@ -110,7 +110,7 @@ Grade Badge:
 │   (60px)  │    │  Sector A                                 │
 ╰────────────────────────────────────────────────────────────╯
 ```
-Note: Shows "Sector A" because lineCount = 1
+Note: Shows "Sector A" (sectorLocalId) because lineCount = 1, indicating this sector has only one line.
 
 ### Example 3: Route with No Thumbnail
 
