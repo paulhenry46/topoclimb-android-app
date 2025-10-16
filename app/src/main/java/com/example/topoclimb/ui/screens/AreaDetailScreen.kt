@@ -2,9 +2,12 @@ package com.example.topoclimb.ui.screens
 
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -14,10 +17,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
 
@@ -360,52 +369,90 @@ fun AreaDetailScreen(
 fun RouteItem(route: Route) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = route.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                route.grade?.let { grade ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Thumbnail image (rounded)
+            AsyncImage(
+                model = route.thumbnail,
+                contentDescription = "Route thumbnail",
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Grade badge with route color
+            route.grade?.let { grade ->
+                val gradeColor = parseColor(route.color)
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = gradeColor,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
                     Text(
                         text = grade,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        ),
+                        color = Color.White
                     )
                 }
             }
             
-            route.type?.let { type ->
-                Spacer(modifier = Modifier.height(4.dp))
+            // Name and local ID section
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
-                    text = "Type: $type",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
+                    text = route.name,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
                 )
-            }
-            
-            route.height?.let { height ->
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Height: ${height}m",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-            
-            route.description?.let { description ->
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                
+                // Show line local_id if sector has more than one line, otherwise show sector local_id
+                val localId = if (route.lineCount == 1) {
+                    route.sectorLocalId
+                } else {
+                    route.lineLocalId
+                }
+                
+                localId?.let { id ->
+                    Text(
+                        text = id,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
+    }
+}
+
+// Helper function to parse hex color string
+private fun parseColor(colorHex: String?): Color {
+    return try {
+        if (colorHex != null && colorHex.startsWith("#")) {
+            Color(android.graphics.Color.parseColor(colorHex))
+        } else {
+            Color(0xFF6200EE) // Default Material purple
+        }
+    } catch (e: Exception) {
+        Color(0xFF6200EE) // Default Material purple on error
     }
 }
