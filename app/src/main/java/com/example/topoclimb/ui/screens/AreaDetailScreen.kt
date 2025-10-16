@@ -189,8 +189,8 @@ fun AreaDetailScreen(
                                                         stroke: black;
                                                         fill: none;
                                                         cursor: pointer;
-                                                        /* Increase hit tolerance with stroke-width */
-                                                        stroke-width: 3;
+                                                        /* Increased stroke-width for better visibility */
+                                                        stroke-width: 5;
                                                         /* Add invisible wider stroke for easier clicking */
                                                         paint-order: stroke;
                                                     }
@@ -199,7 +199,7 @@ fun AreaDetailScreen(
                                                     }
                                                     svg path.selected {
                                                         stroke: red;
-                                                        stroke-width: 4;
+                                                        stroke-width: 6;
                                                     }
                                                 </style>
                                                 <script>
@@ -208,6 +208,46 @@ fun AreaDetailScreen(
                                                         
                                                         // SVG paths should have id attributes that are sector IDs
                                                         paths.forEach(function(path) {
+                                                            // Create an invisible wider path for better tap tolerance
+                                                            const hitArea = path.cloneNode(true);
+                                                            hitArea.setAttribute('stroke', 'transparent');
+                                                            hitArea.setAttribute('stroke-width', '15');
+                                                            hitArea.setAttribute('fill', 'none');
+                                                            hitArea.setAttribute('pointer-events', 'stroke');
+                                                            hitArea.removeAttribute('id');
+                                                            hitArea.removeAttribute('class');
+                                                            
+                                                            // Insert the hit area before the visible path
+                                                            path.parentNode.insertBefore(hitArea, path);
+                                                            
+                                                            // Add click handler to the hit area
+                                                            hitArea.addEventListener('click', function(e) {
+                                                                // Prevent default behavior
+                                                                e.preventDefault();
+                                                                
+                                                                const wasSelected = path.classList.contains('selected');
+                                                                
+                                                                // Remove selected class from all paths
+                                                                paths.forEach(function(p) {
+                                                                    p.classList.remove('selected');
+                                                                });
+                                                                
+                                                                if (!wasSelected) {
+                                                                    // Add selected class to clicked path
+                                                                    path.classList.add('selected');
+                                                                    // Notify Android app with sector ID from path's id attribute
+                                                                    if (window.Android && window.Android.onSectorSelected && path.id) {
+                                                                        window.Android.onSectorSelected(path.id);
+                                                                    }
+                                                                } else {
+                                                                    // Deselected - show all routes
+                                                                    if (window.Android && window.Android.onSectorSelected) {
+                                                                        window.Android.onSectorSelected('');
+                                                                    }
+                                                                }
+                                                            });
+                                                            
+                                                            // Also keep the click handler on the visible path itself
                                                             path.addEventListener('click', function(e) {
                                                                 // Prevent default behavior
                                                                 e.preventDefault();
