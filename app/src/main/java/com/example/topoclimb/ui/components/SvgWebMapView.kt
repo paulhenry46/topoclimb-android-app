@@ -30,9 +30,10 @@ fun SvgWebMapView(
     if (svgContent == null) return
     
     // Calculate aspect ratio from SVG dimensions
+    // If no dimensions are available, use a default aspect ratio to ensure the WebView is visible
     val aspectRatioModifier = svgDimensions?.let { dims ->
         Modifier.aspectRatio(dims.viewBoxWidth / dims.viewBoxHeight)
-    } ?: Modifier
+    } ?: Modifier.aspectRatio(1f) // Default to square aspect ratio if dimensions not available
     
     // Create HTML content with embedded SVG and JavaScript for interaction
     val htmlContent = remember(svgContent, selectedSectorId) {
