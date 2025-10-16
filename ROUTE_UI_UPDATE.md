@@ -113,7 +113,7 @@ val localId = if (route.lineCount == 1) {
 }
 ```
 
-This ensures that when a sector has only one line, the sector local ID is shown instead of the line local ID, providing clearer context to users.
+**Rationale:** When a sector contains only one line, displaying the sector local ID provides sufficient context since there's no ambiguity about which line is being referenced. When multiple lines exist in a sector, the line local ID is displayed to specifically identify which line the route is on. This approach reduces redundancy while maintaining clarity.
 
 ## API Requirements
 

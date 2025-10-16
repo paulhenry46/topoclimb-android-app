@@ -228,8 +228,32 @@ For testing purposes, you can use the following sample data structure in your AP
 **Sample Routes:**
 ```json
 [
-  {"id": 1, "name": "La Marie-Rose", "grade": "7c", "type": "boulder", "height": 5, "siteId": 1, "thumbnail": "https://example.com/route1.jpg", "color": "#FF5722", "line_local_id": "3B", "sector_local_id": "A", "line_count": 5},
-  {"id": 2, "name": "Biographie", "grade": "9a+", "type": "sport", "height": 45, "siteId": 2, "thumbnail": "https://example.com/route2.jpg", "color": "#2196F3", "line_local_id": "12A", "sector_local_id": "B", "line_count": 8}
+  {
+    "id": 1,
+    "name": "La Marie-Rose",
+    "grade": "7c",
+    "type": "boulder",
+    "height": 5,
+    "siteId": 1,
+    "thumbnail": "https://example.com/route1.jpg",
+    "color": "#FF5722",
+    "line_local_id": "3B",
+    "sector_local_id": "A",
+    "line_count": 5
+  },
+  {
+    "id": 2,
+    "name": "Biographie",
+    "grade": "9a+",
+    "type": "sport",
+    "height": 45,
+    "siteId": 2,
+    "thumbnail": "https://example.com/route2.jpg",
+    "color": "#2196F3",
+    "line_local_id": "12A",
+    "sector_local_id": "B",
+    "line_count": 8
+  }
 ]
 ```
 
