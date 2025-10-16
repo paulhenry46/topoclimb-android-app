@@ -72,13 +72,14 @@ app/src/main/java/com/example/topoclimb/
 ├── ui/
 │   ├── components/
 │   │   ├── SimpleSvgView.kt (NEW)
-│   │   ├── SectorSelector.kt (NEW)
-│   │   └── SvgWebMapView.kt (DEPRECATED - kept for reference)
+│   │   └── SectorSelector.kt (NEW)
 │   └── screens/
 │       └── AreaDetailScreen.kt (MODIFIED)
 └── viewmodel/
     └── AreaDetailViewModel.kt (MODIFIED)
 ```
+
+**Note**: `SvgWebMapView.kt` has been removed as it is no longer used anywhere in the codebase.
 
 ## Technical Details
 
@@ -96,9 +97,9 @@ app/src/main/java/com/example/topoclimb/
 
 ## Migration Notes
 
-- Old `SvgWebMapView` component is still present but unused
-- Can be removed in a future cleanup if no other screens need it
+- Old `SvgWebMapView` component has been completely removed
 - All sector selection now goes through `onSectorSelected()` instead of `onSectorTapped()`
+- No migration needed for existing data or user preferences
 
 ## Testing
 
@@ -109,7 +110,7 @@ app/src/main/java/com/example/topoclimb/
 
 ## Future Considerations
 
-1. Consider removing `SvgWebMapView.kt` entirely if no longer needed
-2. Could add sector filtering/search if sector list becomes large
-3. Could add visual indicators on the static map (e.g., colored overlays) for selected sector
-4. Could make map expansion state persistent across configuration changes
+1. Could add sector filtering/search if sector list becomes large
+2. Could add visual indicators on the static map (e.g., colored overlays) for selected sector
+3. Could make map expansion state persistent across configuration changes
+4. Could add zoom/pan capabilities to the SimpleSvgView if needed in the future
