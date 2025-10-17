@@ -20,7 +20,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,6 +38,10 @@ fun AreaDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val density = LocalDensity.current
+    
+    // Remember the map height once it's been measured
+    var mapHeight by remember { mutableStateOf(0.dp) }
     
     LaunchedEffect(areaId) {
         viewModel.loadAreaDetails(areaId)
@@ -104,7 +110,22 @@ fun AreaDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .wrapContentHeight(),
+                                    .then(
+                                        if (mapHeight > 0.dp) {
+                                            Modifier.heightIn(min = mapHeight)
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                                    .wrapContentHeight()
+                                    .onGloballyPositioned { coordinates ->
+                                        // Capture the actual height when first measured
+                                        if (mapHeight == 0.dp) {
+                                            with(density) {
+                                                mapHeight = coordinates.size.height.toDp()
+                                            }
+                                        }
+                                    },
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
                                 AndroidView(
