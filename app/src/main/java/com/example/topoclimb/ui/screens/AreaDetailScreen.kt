@@ -7,11 +7,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -292,6 +297,24 @@ fun AreaDetailScreen(
                         }
                     }
                     
+                    // Filter section
+                    item {
+                        FilterSection(
+                            searchQuery = uiState.searchQuery,
+                            minGrade = uiState.minGrade,
+                            maxGrade = uiState.maxGrade,
+                            showNewRoutesOnly = uiState.showNewRoutesOnly,
+                            selectedSectorId = uiState.selectedSectorId,
+                            sectors = uiState.sectors,
+                            onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+                            onMinGradeChange = { viewModel.updateMinGrade(it) },
+                            onMaxGradeChange = { viewModel.updateMaxGrade(it) },
+                            onNewRoutesToggle = { viewModel.toggleNewRoutesFilter(it) },
+                            onSectorSelected = { viewModel.filterRoutesBySector(it) },
+                            onClearFilters = { viewModel.clearFilters() }
+                        )
+                    }
+                    
                     // Routes section
                     if (uiState.routes.isNotEmpty()) {
                         item {
@@ -364,6 +387,239 @@ fun AreaDetailScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterSection(
+    searchQuery: String,
+    minGrade: String?,
+    maxGrade: String?,
+    showNewRoutesOnly: Boolean,
+    selectedSectorId: Int?,
+    sectors: List<com.example.topoclimb.data.Sector>,
+    onSearchQueryChange: (String) -> Unit,
+    onMinGradeChange: (String?) -> Unit,
+    onMaxGradeChange: (String?) -> Unit,
+    onNewRoutesToggle: (Boolean) -> Unit,
+    onSectorSelected: (Int?) -> Unit,
+    onClearFilters: () -> Unit
+) {
+    var showFilters by remember { mutableStateOf(false) }
+    val hasActiveFilters = searchQuery.isNotEmpty() || minGrade != null || maxGrade != null || showNewRoutesOnly
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Search bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search routes by name...") },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Toggle filter options
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (showFilters) "Hide filters" else "Show filters",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                TextButton(onClick = { showFilters = !showFilters }) {
+                    Text(if (showFilters) "▲" else "▼")
+                }
+            }
+            
+            // Filter options
+            if (showFilters) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Grade filters
+                Text(
+                    text = "Grade Range",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Min grade dropdown
+                    GradeDropdown(
+                        label = "Min Grade",
+                        selectedGrade = minGrade,
+                        onGradeSelected = onMinGradeChange,
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    // Max grade dropdown
+                    GradeDropdown(
+                        label = "Max Grade",
+                        selectedGrade = maxGrade,
+                        onGradeSelected = onMaxGradeChange,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // New routes filter
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Show only new routes (last week)",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(
+                        checked = showNewRoutesOnly,
+                        onCheckedChange = onNewRoutesToggle
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Sector filter
+                Text(
+                    text = "Filter by Sector",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                var expandedSectorDropdown by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expandedSectorDropdown,
+                    onExpandedChange = { expandedSectorDropdown = it }
+                ) {
+                    OutlinedTextField(
+                        value = sectors.find { it.id == selectedSectorId }?.name ?: "All sectors",
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSectorDropdown) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedSectorDropdown,
+                        onDismissRequest = { expandedSectorDropdown = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("All sectors") },
+                            onClick = {
+                                onSectorSelected(null)
+                                expandedSectorDropdown = false
+                            }
+                        )
+                        sectors.forEach { sector ->
+                            DropdownMenuItem(
+                                text = { Text(sector.name) },
+                                onClick = {
+                                    onSectorSelected(sector.id)
+                                    expandedSectorDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Clear filters button
+                if (hasActiveFilters) {
+                    Button(
+                        onClick = onClearFilters,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Clear all filters")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GradeDropdown(
+    label: String,
+    selectedGrade: String?,
+    onGradeSelected: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val grades = listOf(
+        "3a", "3b", "3c",
+        "4a", "4b", "4c",
+        "5a", "5b", "5c",
+        "6a", "6a+", "6b", "6b+", "6c", "6c+",
+        "7a", "7a+", "7b", "7b+", "7c", "7c+",
+        "8a", "8a+", "8b", "8b+", "8c", "8c+",
+        "9a", "9a+", "9b", "9b+", "9c"
+    )
+    
+    var expanded by remember { mutableStateOf(false) }
+    
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = selectedGrade ?: "Select",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("None") },
+                onClick = {
+                    onGradeSelected(null)
+                    expanded = false
+                }
+            )
+            grades.forEach { grade ->
+                DropdownMenuItem(
+                    text = { Text(grade) },
+                    onClick = {
+                        onGradeSelected(grade)
+                        expanded = false
+                    }
+                )
             }
         }
     }
