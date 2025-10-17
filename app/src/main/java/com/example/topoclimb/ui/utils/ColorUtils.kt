@@ -5,9 +5,9 @@ import com.example.topoclimb.ui.theme.Purple40
 
 /**
  * Parse a hex color string and return a Compose Color
- * Falls back to the app's main color (Purple40) if the color is not in hex format
+ * Falls back to Purple40 (app's main color) for null values, invalid hex format, or parsing errors.
  * 
- * @param colorHex Hex color string (e.g., "#FF5733")
+ * @param colorHex Hex color string (e.g., "#FF5733", "#F00", "#80FF5733")
  * @return Compose Color
  */
 fun parseRouteColor(colorHex: String?): Color {

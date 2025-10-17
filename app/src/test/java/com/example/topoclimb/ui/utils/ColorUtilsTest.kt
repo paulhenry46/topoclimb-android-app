@@ -10,7 +10,8 @@ import org.junit.Assert.*
  * 
  * Note: These tests only cover the fallback scenarios since android.graphics.Color
  * is not available in standard unit tests without Robolectric.
- * The hex color parsing is tested indirectly through UI/integration tests.
+ * Valid hex color parsing is verified through manual testing and will be covered
+ * by instrumented tests in the future.
  */
 class ColorUtilsTest {
     
