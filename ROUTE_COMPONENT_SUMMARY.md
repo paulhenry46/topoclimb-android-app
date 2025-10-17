@@ -6,14 +6,27 @@ This implementation updates the route display component across the TopoClimb And
 ## Changes Made
 
 ### 1. Data Model Updates
+
 **File**: `app/src/main/java/com/example/topoclimb/data/Route.kt`
 
-Added new fields to the `Route` data class to support enhanced UI:
+Added new fields to the `Route` data class:
 - `thumbnail: String?` - URL for route thumbnail image
 - `color: String?` - Hex color code for grade badge (e.g., "#FF5722")
-- `lineLocalId: String?` - Local identifier for the line
-- `sectorLocalId: String?` - Local identifier for the sector
-- `lineCount: Int?` - Number of lines in the sector
+
+**File**: `app/src/main/java/com/example/topoclimb/data/Line.kt`
+
+Added `localId` field to the `Line` data class:
+- `localId: String?` - Local identifier for the line (e.g., "3B")
+
+**File**: `app/src/main/java/com/example/topoclimb/data/Sector.kt`
+
+Added `localId` field to the `Sector` data class:
+- `localId: String?` - Local identifier for the sector (e.g., "A")
+
+**Created `RouteWithMetadata` class** in Route.kt:
+- Enriches routes with line/sector information for display
+- Combines data from Route, Line, and Sector API responses
+- Contains: `lineLocalId`, `sectorLocalId`, `lineCount`
 
 All fields are nullable to ensure backward compatibility with existing API responses.
 
@@ -110,13 +123,24 @@ private fun parseColor(colorHex: String?): Color {
 ```
 
 ### Smart ID Logic
+
+In `AreaDetailScreen`, when routes are filtered by sector, the `AreaDetailViewModel` enriches each route with metadata from the sector and line data:
+
 ```kotlin
-val localId = if (route.lineCount == 1) {
-    route.sectorLocalId
+val localId = if (routeWithMetadata.lineCount == 1) {
+    routeWithMetadata.sectorLocalId
 } else {
-    route.lineLocalId
+    routeWithMetadata.lineLocalId
 }
 ```
+
+**Data Flow:**
+1. User selects sector → `repository.getLinesBySector(sectorId)` retrieves lines
+2. For each line → `repository.getRoutesByLine(lineId)` retrieves routes
+3. Routes are enriched with:
+   - `lineLocalId` from `Line.localId`
+   - `sectorLocalId` from `Sector.localId`
+   - `lineCount` = total lines in sector
 
 This logic ensures:
 - When a sector has only one line → show sector local_id
@@ -197,22 +221,38 @@ All required libraries were already present in the project.
 ## Migration Notes
 
 ### API Changes Required
-The backend API should be updated to return these new fields in route responses:
+The backend API should return `local_id` fields in Line and Sector responses:
+
+**Lines** (`/sectors/{id}/lines`):
+```json
+{
+  "id": 1,
+  "local_id": "3B"
+}
+```
+
+**Sectors** (`/areas/{id}/sectors`):
+```json
+{
+  "id": 1,
+  "local_id": "A"
+}
+```
+
+**Routes** (`/routes`, `/lines/{id}/routes`):
 ```json
 {
   "thumbnail": "https://...",
-  "color": "#FF5722",
-  "line_local_id": "3B",
-  "sector_local_id": "Sector A",
-  "line_count": 5
+  "color": "#FF5722"
 }
 ```
 
 ### Gradual Rollout
 The implementation supports gradual rollout:
-1. App works immediately with existing API (fields optional)
-2. Backend can be updated to add new fields
+1. App works immediately with existing API (all new fields optional)
+2. Backend can be updated to add `thumbnail`, `color`, and `local_id` fields
 3. Users see enhanced UI as data becomes available
+4. Line/sector local IDs only appear when filtering by sector in AreaDetailScreen
 
 ## Future Enhancements
 

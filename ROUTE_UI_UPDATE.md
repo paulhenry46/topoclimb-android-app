@@ -15,11 +15,35 @@ data class Route(
     // ... existing fields
     val thumbnail: String?,        // URL of the route thumbnail
     val color: String?,            // Hex color code for the route (e.g., "#FF5722")
-    val lineLocalId: String?,      // Local ID of the line
-    val sectorLocalId: String?,    // Local ID of the sector
-    val lineCount: Int?            // Number of lines in the sector
 )
 ```
+
+The `Line` and `Sector` data classes now include `localId`:
+
+```kotlin
+data class Line(
+    // ... existing fields
+    val localId: String?           // Local ID of the line (from API)
+)
+
+data class Sector(
+    // ... existing fields
+    val localId: String?           // Local ID of the sector (from API)
+)
+```
+
+A new `RouteWithMetadata` class enriches routes with line/sector information:
+
+```kotlin
+data class RouteWithMetadata(
+    val route: Route,
+    val lineLocalId: String? = null,      // Populated from Line.localId
+    val sectorLocalId: String? = null,    // Populated from Sector.localId
+    val lineCount: Int? = null            // Number of lines in the sector
+)
+```
+
+This approach allows the app to combine data from multiple API calls (sectors → lines → routes) to provide enriched display information.
 
 ### UI Component Updates
 
@@ -105,32 +129,63 @@ A helper function `parseColor()` safely parses hex color strings:
 - Falls back to Material Purple (#6200EE) on error
 
 ### Local ID Logic
+
+In `AreaDetailScreen`, when a sector is selected, the app fetches lines for that sector and then routes for each line. The `AreaDetailViewModel` enriches each route with metadata:
+
 ```kotlin
-val localId = if (route.lineCount == 1) {
-    route.sectorLocalId
+val localId = if (routeWithMetadata.lineCount == 1) {
+    routeWithMetadata.sectorLocalId
 } else {
-    route.lineLocalId
+    routeWithMetadata.lineLocalId
 }
 ```
+
+**Data Flow:**
+1. User selects a sector → `getLinesBySector(sectorId)` is called
+2. For each line → `getRoutesByLine(lineId)` is called
+3. Each route is enriched with:
+   - `lineLocalId` from the Line object's `localId` field
+   - `sectorLocalId` from the Sector object's `localId` field
+   - `lineCount` = total number of lines in the sector
 
 **Rationale:** When a sector contains only one line, displaying the sector local ID provides sufficient context since there's no ambiguity about which line is being referenced. When multiple lines exist in a sector, the line local ID is displayed to specifically identify which line the route is on. This approach reduces redundancy while maintaining clarity.
 
 ## API Requirements
 
-For the route display to work correctly, the API should return routes with these fields:
+For the route display to work correctly, the API should return:
 
+**Routes** with these fields:
 ```json
 {
   "id": 1,
   "name": "La Marie-Rose",
   "grade": "7c",
   "thumbnail": "https://example.com/route-thumb.jpg",
-  "color": "#FF5722",
-  "line_local_id": "3B",
-  "sector_local_id": "Sector A",
-  "line_count": 5
+  "color": "#FF5722"
 }
 ```
+
+**Lines** (from `/sectors/{id}/lines`) with `local_id`:
+```json
+{
+  "id": 1,
+  "name": "Line 3B",
+  "sectorId": 1,
+  "local_id": "3B"
+}
+```
+
+**Sectors** (from `/areas/{id}/sectors`) with `local_id`:
+```json
+{
+  "id": 1,
+  "name": "Sector Alpha",
+  "areaId": 1,
+  "local_id": "A"
+}
+```
+
+The app combines data from these endpoints to enrich routes with line/sector information when displaying filtered routes.
 
 ## Benefits of the New Design
 

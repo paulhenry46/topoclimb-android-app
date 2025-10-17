@@ -12,11 +12,28 @@ data class Route(
     val siteId: Int,
     val siteName: String?,
     val thumbnail: String?, // URL of the route thumbnail
-    val color: String?, // Hex color code for the route
-    @SerializedName("line_local_id")
-    val lineLocalId: String?, // Local ID of the line
-    @SerializedName("sector_local_id")
-    val sectorLocalId: String?, // Local ID of the sector
-    @SerializedName("line_count")
-    val lineCount: Int? // Number of lines in the sector (to determine which ID to show)
+    val color: String? // Hex color code for the route
 )
+
+/**
+ * Route with additional display metadata (line/sector info)
+ * Used when displaying routes that have been filtered by sector/line
+ */
+data class RouteWithMetadata(
+    val route: Route,
+    val lineLocalId: String? = null,
+    val sectorLocalId: String? = null,
+    val lineCount: Int? = null
+) {
+    // Delegate all Route properties for easy access
+    val id: Int get() = route.id
+    val name: String get() = route.name
+    val grade: String? get() = route.grade
+    val type: String? get() = route.type
+    val description: String? get() = route.description
+    val height: Int? get() = route.height
+    val siteId: Int get() = route.siteId
+    val siteName: String? get() = route.siteName
+    val thumbnail: String? get() = route.thumbnail
+    val color: String? get() = route.color
+}

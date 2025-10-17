@@ -186,7 +186,7 @@ fun RouteItem(
                 }
             }
             
-            // Name and local ID section
+            // Name section (no local ID available in RoutesScreen)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -197,23 +197,6 @@ fun RouteItem(
                         fontWeight = FontWeight.SemiBold
                     )
                 )
-                
-                // Show line local_id if sector has more than one line, otherwise show sector local_id
-                val localId = if (route.lineCount == 1) {
-                    route.sectorLocalId
-                } else {
-                    route.lineLocalId
-                }
-                
-                localId?.let { id ->
-                    Text(
-                        text = id,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }

@@ -314,8 +314,8 @@ fun AreaDetailScreen(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
-                        items(uiState.routes) { route ->
-                            RouteItem(route)
+                        items(uiState.routesWithMetadata) { routeWithMetadata ->
+                            RouteItem(routeWithMetadata)
                         }
                     }
                     
@@ -366,7 +366,7 @@ fun AreaDetailScreen(
 }
 
 @Composable
-fun RouteItem(route: Route) {
+fun RouteItem(routeWithMetadata: com.example.topoclimb.data.RouteWithMetadata) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -381,7 +381,7 @@ fun RouteItem(route: Route) {
         ) {
             // Thumbnail image (rounded)
             AsyncImage(
-                model = route.thumbnail,
+                model = routeWithMetadata.thumbnail,
                 contentDescription = "Route thumbnail",
                 modifier = Modifier
                     .size(60.dp)
@@ -390,8 +390,8 @@ fun RouteItem(route: Route) {
             )
             
             // Grade badge with route color
-            route.grade?.let { grade ->
-                val gradeColor = parseColor(route.color)
+            routeWithMetadata.grade?.let { grade ->
+                val gradeColor = parseColor(routeWithMetadata.color)
                 Box(
                     modifier = Modifier
                         .background(
@@ -417,17 +417,17 @@ fun RouteItem(route: Route) {
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = route.name,
+                    text = routeWithMetadata.name,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     )
                 )
                 
                 // Show line local_id if sector has more than one line, otherwise show sector local_id
-                val localId = if (route.lineCount == 1) {
-                    route.sectorLocalId
+                val localId = if (routeWithMetadata.lineCount == 1) {
+                    routeWithMetadata.sectorLocalId
                 } else {
-                    route.lineLocalId
+                    routeWithMetadata.lineLocalId
                 }
                 
                 localId?.let { id ->
