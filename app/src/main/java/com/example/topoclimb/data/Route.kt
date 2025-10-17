@@ -12,7 +12,9 @@ data class Route(
     val siteId: Int,
     val siteName: String?,
     val thumbnail: String?, // URL of the route thumbnail
-    val color: String? // Hex color code for the route
+    val color: String?, // Hex color code for the route
+    @SerializedName("created_at")
+    val createdAt: String? // Format: 2025-10-08T12:18:41.000000Z
 )
 
 /**

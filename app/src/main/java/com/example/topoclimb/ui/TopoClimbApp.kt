@@ -22,7 +22,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.topoclimb.ui.screens.AreaDetailScreen
 import com.example.topoclimb.ui.screens.ProfileScreen
-import com.example.topoclimb.ui.screens.RoutesScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
 import com.example.topoclimb.ui.screens.SitesScreen
 
@@ -145,25 +144,6 @@ fun NavigationGraph(
                 areaId = areaId,
                 onBackClick = {
                     navController.popBackStack()
-                }
-            )
-        }
-        
-        composable(
-            route = "routes/{siteId}",
-            arguments = listOf(
-                navArgument("siteId") {
-                    type = NavType.StringType
-                }
-            )
-        ) { backStackEntry ->
-            val siteIdString = backStackEntry.arguments?.getString("siteId")
-            val siteId = if (siteIdString == "all") null else siteIdString?.toIntOrNull()
-            
-            RoutesScreen(
-                siteId = siteId,
-                onRouteClick = { routeId ->
-                    // Can add route detail screen here in the future
                 }
             )
         }

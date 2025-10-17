@@ -190,4 +190,26 @@ class DataModelsTest {
         assertEquals("Biographie", response.data[1].name)
         assertEquals("9a+", response.data[1].grade)
     }
+    
+    @Test
+    fun route_withCreatedAt_deserializesCorrectly() {
+        val json = """
+            {
+                "id": 1,
+                "name": "New Route",
+                "grade": "6a",
+                "type": "sport",
+                "height": 20,
+                "siteId": 1,
+                "created_at": "2025-10-08T12:18:41.000000Z"
+            }
+        """.trimIndent()
+        
+        val route = gson.fromJson(json, Route::class.java)
+        
+        assertNotNull(route)
+        assertEquals(1, route.id)
+        assertEquals("New Route", route.name)
+        assertEquals("2025-10-08T12:18:41.000000Z", route.createdAt)
+    }
 }
