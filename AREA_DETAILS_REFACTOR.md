@@ -15,7 +15,8 @@ This document describes the refactoring of the Area Details page to improve UI/U
 - Better integration between map and filter components was requested
 
 **Solution Implemented:**
-1. **Removed Area Info Card**: Eliminated the card displaying area name, description, and location (lines 94-123)
+1. **Removed Area Info Card**: Eliminated the card displaying area name, description, and location
+   - The card was removed from the LazyColumn items
    - Area name is already visible in the top app bar
    - Simplifies the page layout
    - Reduces visual clutter
@@ -95,9 +96,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 1. **app/src/main/java/com/example/topoclimb/ui/screens/AreaDetailScreen.kt**
    - Lines 9-12: Added Settings icon import
-   - Lines 94-135: Removed area info card, map moved to top
-   - Lines 136-290: Updated WebView HTML generation with state restoration
-   - Lines 407-451: Refactored filter section with icon button
+   - Removed area info card item from LazyColumn
+   - Updated WebView HTML generation with state restoration
+   - Refactored filter section with icon button
 
 ### Key Changes
 
