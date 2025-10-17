@@ -104,6 +104,7 @@ fun AreaDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(min = 300.dp)
                                     .wrapContentHeight(),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {

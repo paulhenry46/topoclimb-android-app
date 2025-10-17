@@ -59,7 +59,7 @@ fun RouteCard(
         bottomStart = 0.dp
     )
     
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(
@@ -69,16 +69,9 @@ fun RouteCard(
                     Modifier
                 }
             ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(0.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
             // Thumbnail image with route color border
             AsyncImage(
                 model = thumbnail,
@@ -153,4 +146,3 @@ fun RouteCard(
             }
         }
     }
-}
