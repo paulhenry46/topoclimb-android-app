@@ -24,7 +24,12 @@ data class AreaDetailUiState(
     val sectors: List<Sector> = emptyList(),
     val selectedSectorId: Int? = null,
     val error: String? = null,
-    val svgMapContent: String? = null
+    val svgMapContent: String? = null,
+    // Filter state
+    val searchQuery: String = "",
+    val minGrade: String? = null,
+    val maxGrade: String? = null,
+    val showNewRoutesOnly: Boolean = false
 )
 
 class AreaDetailViewModel : ViewModel() {
@@ -33,6 +38,10 @@ class AreaDetailViewModel : ViewModel() {
     
     private val _uiState = MutableStateFlow(AreaDetailUiState())
     val uiState: StateFlow<AreaDetailUiState> = _uiState.asStateFlow()
+    
+    // Store all routes before filtering
+    private var allRoutesCache: List<Route> = emptyList()
+    private var allRoutesWithMetadataCache: List<RouteWithMetadata> = emptyList()
     
     fun loadAreaDetails(areaId: Int) {
         viewModelScope.launch {
@@ -86,6 +95,10 @@ class AreaDetailViewModel : ViewModel() {
                 RouteWithMetadata(route)
             }
             
+            // Cache all routes for filtering
+            allRoutesCache = routes
+            allRoutesWithMetadataCache = routesWithMetadata
+            
             _uiState.value = AreaDetailUiState(
                 isLoading = false,
                 area = area,
@@ -109,11 +122,15 @@ class AreaDetailViewModel : ViewModel() {
                     val routesWithMetadata = routes.map { route ->
                         RouteWithMetadata(route)
                     }
+                    // Update cache
+                    allRoutesCache = routes
+                    allRoutesWithMetadataCache = routesWithMetadata
+                    
                     _uiState.value = currentState.copy(
-                        selectedSectorId = null,
-                        routes = routes,
-                        routesWithMetadata = routesWithMetadata
+                        selectedSectorId = null
                     )
+                    // Apply filters to the new data
+                    applyFilters()
                 }
             } else {
                 // Selected - fetch lines for this sector, then routes for each line
@@ -148,13 +165,19 @@ class AreaDetailViewModel : ViewModel() {
                     
                     val allRoutes = allRoutesWithMetadata.map { it.route }
                     
+                    // Update cache
+                    allRoutesCache = allRoutes
+                    allRoutesWithMetadataCache = allRoutesWithMetadata
+                    
                     _uiState.value = currentState.copy(
-                        selectedSectorId = sectorId,
-                        routes = allRoutes,
-                        routesWithMetadata = allRoutesWithMetadata
+                        selectedSectorId = sectorId
                     )
+                    // Apply filters to the new data
+                    applyFilters()
                 } else {
                     // Error fetching lines, keep current state but mark sector as selected
+                    allRoutesCache = emptyList()
+                    allRoutesWithMetadataCache = emptyList()
                     _uiState.value = currentState.copy(
                         selectedSectorId = sectorId,
                         routes = emptyList(),
@@ -163,5 +186,136 @@ class AreaDetailViewModel : ViewModel() {
                 }
             }
         }
+    }
+    
+    fun updateSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+        applyFilters()
+    }
+    
+    fun updateMinGrade(grade: String?) {
+        _uiState.value = _uiState.value.copy(minGrade = grade)
+        applyFilters()
+    }
+    
+    fun updateMaxGrade(grade: String?) {
+        _uiState.value = _uiState.value.copy(maxGrade = grade)
+        applyFilters()
+    }
+    
+    fun toggleNewRoutesFilter(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(showNewRoutesOnly = enabled)
+        applyFilters()
+    }
+    
+    fun clearFilters() {
+        _uiState.value = _uiState.value.copy(
+            searchQuery = "",
+            minGrade = null,
+            maxGrade = null,
+            showNewRoutesOnly = false
+        )
+        applyFilters()
+    }
+    
+    private fun applyFilters() {
+        val currentState = _uiState.value
+        var filteredRoutes = allRoutesCache
+        var filteredRoutesWithMetadata = allRoutesWithMetadataCache
+        
+        // Apply search filter
+        if (currentState.searchQuery.isNotEmpty()) {
+            filteredRoutes = filteredRoutes.filter { route ->
+                route.name.contains(currentState.searchQuery, ignoreCase = true)
+            }
+            filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                routeWithMetadata.name.contains(currentState.searchQuery, ignoreCase = true)
+            }
+        }
+        
+        // Apply grade filters
+        if (currentState.minGrade != null || currentState.maxGrade != null) {
+            filteredRoutes = filteredRoutes.filter { route ->
+                route.grade?.let { grade ->
+                    matchesGradeRange(grade, currentState.minGrade, currentState.maxGrade)
+                } ?: false
+            }
+            filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                routeWithMetadata.grade?.let { grade ->
+                    matchesGradeRange(grade, currentState.minGrade, currentState.maxGrade)
+                } ?: false
+            }
+        }
+        
+        // Apply new routes filter (routes created within the last week)
+        if (currentState.showNewRoutesOnly) {
+            val oneWeekAgoMillis = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
+            filteredRoutes = filteredRoutes.filter { route ->
+                route.createdAt?.let { createdAtStr ->
+                    try {
+                        // Parse ISO 8601 format: 2025-10-08T12:18:41.000000Z
+                        val cleanedStr = createdAtStr.replace("Z", "+00:00").substringBefore(".")
+                        val format = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                        format.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                        val createdAtMillis = format.parse(cleanedStr)?.time ?: 0L
+                        createdAtMillis > oneWeekAgoMillis
+                    } catch (e: Exception) {
+                        false
+                    }
+                } ?: false
+            }
+            filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                routeWithMetadata.route.createdAt?.let { createdAtStr ->
+                    try {
+                        // Parse ISO 8601 format: 2025-10-08T12:18:41.000000Z
+                        val cleanedStr = createdAtStr.replace("Z", "+00:00").substringBefore(".")
+                        val format = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                        format.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                        val createdAtMillis = format.parse(cleanedStr)?.time ?: 0L
+                        createdAtMillis > oneWeekAgoMillis
+                    } catch (e: Exception) {
+                        false
+                    }
+                } ?: false
+            }
+        }
+        
+        _uiState.value = currentState.copy(
+            routes = filteredRoutes,
+            routesWithMetadata = filteredRoutesWithMetadata
+        )
+    }
+    
+    private fun matchesGradeRange(grade: String, minGrade: String?, maxGrade: String?): Boolean {
+        // Simple grade comparison - this handles common French grades like 5a, 6b, 7c+, etc.
+        val gradeValue = parseGrade(grade)
+        val minValue = minGrade?.let { parseGrade(it) }
+        val maxValue = maxGrade?.let { parseGrade(it) }
+        
+        return when {
+            minValue != null && maxValue != null -> gradeValue in minValue..maxValue
+            minValue != null -> gradeValue >= minValue
+            maxValue != null -> gradeValue <= maxValue
+            else -> true
+        }
+    }
+    
+    private fun parseGrade(grade: String): Int {
+        // Parse French grades: 5a=50, 5b=51, 5c=52, 6a=60, 6b=61, 6c=62, 7a=70, etc.
+        // Handle + and - modifiers
+        val cleanGrade = grade.trim().lowercase()
+        val number = cleanGrade.firstOrNull()?.digitToIntOrNull() ?: return 0
+        val letter = when {
+            cleanGrade.contains("a") -> 0
+            cleanGrade.contains("b") -> 1
+            cleanGrade.contains("c") -> 2
+            else -> 0
+        }
+        val modifier = when {
+            cleanGrade.contains("+") -> 0.5
+            cleanGrade.contains("-") -> -0.5
+            else -> 0.0
+        }
+        return ((number * 10 + letter) * 10 + (modifier * 10).toInt())
     }
 }
