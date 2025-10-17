@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.topoclimb.ui.theme.Purple40
+import com.example.topoclimb.ui.utils.parseRouteColor
 
 /**
  * Shared RouteCard component that displays route information
@@ -41,7 +41,7 @@ fun RouteCard(
     isClimbed: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
-    val routeColor = parseColor(color)
+    val routeColor = parseRouteColor(color)
     
     Card(
         modifier = Modifier
@@ -136,21 +136,5 @@ fun RouteCard(
                 )
             }
         }
-    }
-}
-
-/**
- * Helper function to parse hex color string
- * Falls back to the app's main color (Purple40) if the color is not in hex format
- */
-private fun parseColor(colorHex: String?): Color {
-    return try {
-        if (colorHex != null && colorHex.startsWith("#")) {
-            Color(android.graphics.Color.parseColor(colorHex))
-        } else {
-            Purple40 // Use app's main color as fallback
-        }
-    } catch (e: Exception) {
-        Purple40 // Use app's main color as fallback on error
     }
 }
