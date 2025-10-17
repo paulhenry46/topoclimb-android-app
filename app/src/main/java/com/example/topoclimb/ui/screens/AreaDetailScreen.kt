@@ -306,11 +306,11 @@ fun AreaDetailScreen(
                             )
                         }
                         items(uiState.routesWithMetadata) { routeWithMetadata ->
-                            // Calculate local ID display
+                            // Calculate local ID display with prefix
                             val localId = if (routeWithMetadata.lineCount == 1) {
-                                routeWithMetadata.sectorLocalId
+                                routeWithMetadata.sectorLocalId?.let { "Sector n°$it" }
                             } else {
-                                routeWithMetadata.lineLocalId
+                                routeWithMetadata.lineLocalId?.let { "Line n°$it" }
                             }
                             
                             RouteCard(
