@@ -72,7 +72,9 @@ List all routes with optional filters
     "description": "Classic Font problem",
     "height": 5,
     "siteId": 1,
-    "siteName": "Fontainebleau"
+    "siteName": "Fontainebleau",
+    "thumbnail": "https://example.com/route-thumb.jpg",
+    "color": "#FF5722"
   }
 ]
 ```
@@ -90,7 +92,9 @@ Get details of a specific route
   "description": "Classic Font problem",
   "height": 5,
   "siteId": 1,
-  "siteName": "Fontainebleau"
+  "siteName": "Fontainebleau",
+  "thumbnail": "https://example.com/route-thumb.jpg",
+  "color": "#FF5722"
 }
 ```
 
@@ -154,9 +158,44 @@ data class Route(
     val description: String?,
     val height: Int?,
     val siteId: Int,
-    val siteName: String?
+    val siteName: String?,
+    val thumbnail: String?,
+    val color: String?
 )
 ```
+
+### Line
+```kotlin
+data class Line(
+    val id: Int,
+    val name: String,
+    val description: String?,
+    val sectorId: Int,
+    val localId: String?
+)
+```
+
+### Sector
+```kotlin
+data class Sector(
+    val id: Int,
+    val name: String,
+    val description: String?,
+    val areaId: Int,
+    val localId: String?
+)
+```
+
+### RouteWithMetadata
+```kotlin
+data class RouteWithMetadata(
+    val route: Route,
+    val lineLocalId: String? = null,
+    val sectorLocalId: String? = null,
+    val lineCount: Int? = null
+)
+```
+This class is used to enrich routes with line/sector metadata when displaying filtered routes in AreaDetailScreen.
 
 ### Area
 ```kotlin
@@ -213,8 +252,66 @@ For testing purposes, you can use the following sample data structure in your AP
 **Sample Routes:**
 ```json
 [
-  {"id": 1, "name": "La Marie-Rose", "grade": "7c", "type": "boulder", "height": 5, "siteId": 1},
-  {"id": 2, "name": "Biographie", "grade": "9a+", "type": "sport", "height": 45, "siteId": 2}
+  {
+    "id": 1,
+    "name": "La Marie-Rose",
+    "grade": "7c",
+    "type": "boulder",
+    "height": 5,
+    "siteId": 1,
+    "thumbnail": "https://example.com/route1.jpg",
+    "color": "#FF5722"
+  },
+  {
+    "id": 2,
+    "name": "Biographie",
+    "grade": "9a+",
+    "type": "sport",
+    "height": 45,
+    "siteId": 2,
+    "thumbnail": "https://example.com/route2.jpg",
+    "color": "#2196F3"
+  }
+]
+```
+
+**Sample Lines:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Line 3B",
+    "description": "Central line",
+    "sectorId": 1,
+    "local_id": "3B"
+  },
+  {
+    "id": 2,
+    "name": "Line 12A",
+    "description": "Left side",
+    "sectorId": 2,
+    "local_id": "12A"
+  }
+]
+```
+
+**Sample Sectors:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Sector Alpha",
+    "description": "Main sector",
+    "areaId": 1,
+    "local_id": "A"
+  },
+  {
+    "id": 2,
+    "name": "Sector Beta",
+    "description": "Secondary sector",
+    "areaId": 1,
+    "local_id": "B"
+  }
 ]
 ```
 

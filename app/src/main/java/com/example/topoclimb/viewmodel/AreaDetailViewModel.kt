@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Route
+import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
 import com.example.topoclimb.repository.TopoClimbRepository
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +20,7 @@ data class AreaDetailUiState(
     val isLoading: Boolean = true,
     val area: Area? = null,
     val routes: List<Route> = emptyList(),
+    val routesWithMetadata: List<com.example.topoclimb.data.RouteWithMetadata> = emptyList(),
     val sectors: List<Sector> = emptyList(),
     val selectedSectorId: Int? = null,
     val error: String? = null,
@@ -79,10 +81,16 @@ class AreaDetailViewModel : ViewModel() {
                 }
             }
             
+            // Convert routes to RouteWithMetadata (no metadata for area-level view)
+            val routesWithMetadata = routes.map { route ->
+                RouteWithMetadata(route)
+            }
+            
             _uiState.value = AreaDetailUiState(
                 isLoading = false,
                 area = area,
                 routes = routes,
+                routesWithMetadata = routesWithMetadata,
                 sectors = sectors,
                 error = null,
                 svgMapContent = svgContent
@@ -98,9 +106,13 @@ class AreaDetailViewModel : ViewModel() {
                 currentState.area?.let { area ->
                     val routesResult = repository.getRoutesByArea(area.id)
                     val routes = routesResult.getOrNull() ?: emptyList()
+                    val routesWithMetadata = routes.map { route ->
+                        RouteWithMetadata(route)
+                    }
                     _uiState.value = currentState.copy(
                         selectedSectorId = null,
-                        routes = routes
+                        routes = routes,
+                        routesWithMetadata = routesWithMetadata
                     )
                 }
             } else {
@@ -108,28 +120,45 @@ class AreaDetailViewModel : ViewModel() {
                 val currentState = _uiState.value
                 _uiState.value = currentState.copy(selectedSectorId = sectorId)
                 
+                // Get sector info for localId
+                val sector = currentState.sectors.find { it.id == sectorId }
+                
                 val linesResult = repository.getLinesBySector(sectorId)
                 if (linesResult.isSuccess) {
                     val lines = linesResult.getOrNull() ?: emptyList()
-                    val allRoutes = mutableListOf<Route>()
+                    val allRoutesWithMetadata = mutableListOf<RouteWithMetadata>()
                     
-                    // Fetch routes for each line
+                    // Fetch routes for each line and enrich with metadata
                     for (line in lines) {
                         val routesResult = repository.getRoutesByLine(line.id)
                         if (routesResult.isSuccess) {
-                            allRoutes.addAll(routesResult.getOrNull() ?: emptyList())
+                            val routes = routesResult.getOrNull() ?: emptyList()
+                            routes.forEach { route ->
+                                allRoutesWithMetadata.add(
+                                    RouteWithMetadata(
+                                        route = route,
+                                        lineLocalId = line.localId,
+                                        sectorLocalId = sector?.localId,
+                                        lineCount = lines.size
+                                    )
+                                )
+                            }
                         }
                     }
                     
+                    val allRoutes = allRoutesWithMetadata.map { it.route }
+                    
                     _uiState.value = currentState.copy(
                         selectedSectorId = sectorId,
-                        routes = allRoutes
+                        routes = allRoutes,
+                        routesWithMetadata = allRoutesWithMetadata
                     )
                 } else {
                     // Error fetching lines, keep current state but mark sector as selected
                     _uiState.value = currentState.copy(
                         selectedSectorId = sectorId,
-                        routes = emptyList()
+                        routes = emptyList(),
+                        routesWithMetadata = emptyList()
                     )
                 }
             }
