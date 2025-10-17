@@ -43,6 +43,22 @@ fun RouteCard(
 ) {
     val routeColor = parseRouteColor(color)
     
+    // Shape for thumbnail: rounded on left, square on right for continuity with grade
+    val thumbnailShape = RoundedCornerShape(
+        topStart = 8.dp,
+        topEnd = 0.dp,
+        bottomEnd = 0.dp,
+        bottomStart = 8.dp
+    )
+    
+    // Shape for grade badge: square on left, rounded on right for continuity with thumbnail
+    val gradeBadgeShape = RoundedCornerShape(
+        topStart = 0.dp,
+        topEnd = 8.dp,
+        bottomEnd = 8.dp,
+        bottomStart = 0.dp
+    )
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -72,19 +88,9 @@ fun RouteCard(
                     .border(
                         width = 3.dp,
                         color = routeColor,
-                        shape = RoundedCornerShape(
-                            topStart = 8.dp,
-                            topEnd = 0.dp,
-                            bottomEnd = 0.dp,
-                            bottomStart = 8.dp
-                        )
+                        shape = thumbnailShape
                     )
-                    .clip(RoundedCornerShape(
-                        topStart = 8.dp,
-                        topEnd = 0.dp,
-                        bottomEnd = 0.dp,
-                        bottomStart = 8.dp
-                    )),
+                    .clip(thumbnailShape),
                 contentScale = ContentScale.Crop
             )
             
@@ -95,12 +101,7 @@ fun RouteCard(
                         .size(60.dp)
                         .background(
                             color = routeColor,
-                            shape = RoundedCornerShape(
-                                topStart = 0.dp,
-                                topEnd = 8.dp,
-                                bottomEnd = 8.dp,
-                                bottomStart = 0.dp
-                            )
+                            shape = gradeBadgeShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
