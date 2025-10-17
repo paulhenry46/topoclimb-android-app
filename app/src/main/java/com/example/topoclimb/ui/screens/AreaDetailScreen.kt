@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -90,39 +91,7 @@ fun AreaDetailScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Area info card
-                    item {
-                        uiState.area?.let { area ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = area.name,
-                                        style = MaterialTheme.typography.headlineMedium
-                                    )
-                                    area.description?.let { description ->
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = description,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                    if (area.latitude != null && area.longitude != null) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Location: ${area.latitude}, ${area.longitude}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.secondary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // SVG Map section
+                    // SVG Map section - moved to top for better integration
                     uiState.svgMapContent?.let { svgMap ->
                         item {
                             Text(
@@ -165,6 +134,9 @@ fun AreaDetailScreen(
                                         }
                                     },
                                     update = { webView ->
+                                        // Get the currently selected sector to restore after reload
+                                        val selectedSectorId = uiState.selectedSectorId
+                                        
                                         val htmlContent = """
                                             <!DOCTYPE html>
                                             <html>
@@ -208,8 +180,19 @@ fun AreaDetailScreen(
                                                     }
                                                 </style>
                                                 <script>
+                                                    // Store selected sector ID globally
+                                                    var currentSelectedSectorId = ${if (selectedSectorId != null) "'sector_$selectedSectorId'" else "null"};
+                                                    
                                                     document.addEventListener('DOMContentLoaded', function() {
                                                         const paths = document.querySelectorAll('svg path');
+                                                        
+                                                        // Restore selected state if exists
+                                                        if (currentSelectedSectorId) {
+                                                            const selectedPath = document.getElementById(currentSelectedSectorId);
+                                                            if (selectedPath) {
+                                                                selectedPath.classList.add('selected');
+                                                            }
+                                                        }
                                                         
                                                         // SVG paths should have id attributes that are sector IDs
                                                         paths.forEach(function(path) {
@@ -240,12 +223,14 @@ fun AreaDetailScreen(
                                                                 if (!wasSelected) {
                                                                     // Add selected class to clicked path
                                                                     path.classList.add('selected');
+                                                                    currentSelectedSectorId = path.id;
                                                                     // Notify Android app with sector ID from path's id attribute
                                                                     if (window.Android && window.Android.onSectorSelected && path.id) {
                                                                         window.Android.onSectorSelected(path.id);
                                                                     }
                                                                 } else {
                                                                     // Deselected - show all routes
+                                                                    currentSelectedSectorId = null;
                                                                     if (window.Android && window.Android.onSectorSelected) {
                                                                         window.Android.onSectorSelected('');
                                                                     }
@@ -267,12 +252,14 @@ fun AreaDetailScreen(
                                                                 if (!wasSelected) {
                                                                     // Add selected class to clicked path
                                                                     this.classList.add('selected');
+                                                                    currentSelectedSectorId = this.id;
                                                                     // Notify Android app with sector ID from path's id attribute
                                                                     if (window.Android && window.Android.onSectorSelected && this.id) {
                                                                         window.Android.onSectorSelected(this.id);
                                                                     }
                                                                 } else {
                                                                     // Deselected - show all routes
+                                                                    currentSelectedSectorId = null;
                                                                     if (window.Android && window.Android.onSectorSelected) {
                                                                         window.Android.onSectorSelected('');
                                                                     }
@@ -418,46 +405,54 @@ fun FilterSection(
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Search bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search routes by name...") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                singleLine = true
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Toggle filter options
+            // Search bar with filter toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (showFilters) "Hide filters" else "Show filters",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Search routes...") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                            }
+                        }
+                    },
+                    singleLine = true
                 )
-                TextButton(onClick = { showFilters = !showFilters }) {
-                    Text(if (showFilters) "▲" else "▼")
+                
+                // Filter toggle button
+                IconButton(
+                    onClick = { showFilters = !showFilters },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (showFilters || hasActiveFilters) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = if (showFilters) "Hide filters" else "Show filters",
+                        tint = if (showFilters || hasActiveFilters) 
+                            MaterialTheme.colorScheme.onPrimary 
+                        else 
+                            MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
             
-            // Filter options
+            // Filter options panel
             if (showFilters) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Grade filters
                 Text(
