@@ -72,9 +72,19 @@ fun RouteCard(
                     .border(
                         width = 3.dp,
                         color = routeColor,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(
+                            topStart = 8.dp,
+                            topEnd = 0.dp,
+                            bottomEnd = 0.dp,
+                            bottomStart = 8.dp
+                        )
                     )
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(
+                        topStart = 8.dp,
+                        topEnd = 0.dp,
+                        bottomEnd = 0.dp,
+                        bottomStart = 8.dp
+                    )),
                 contentScale = ContentScale.Crop
             )
             
@@ -85,7 +95,12 @@ fun RouteCard(
                         .size(60.dp)
                         .background(
                             color = routeColor,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(
+                                topStart = 0.dp,
+                                topEnd = 8.dp,
+                                bottomEnd = 8.dp,
+                                bottomStart = 0.dp
+                            )
                         ),
                     contentAlignment = Alignment.Center
                 ) {
