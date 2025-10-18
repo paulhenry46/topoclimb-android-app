@@ -373,7 +373,7 @@ private fun OverviewTab(
                     )
                 )
                 Text(
-                    text = "There are no plans to dismantle this track at this time.",
+                    text = "There are no plans to dismantle this route at this time.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFF2E7D32)
                 )

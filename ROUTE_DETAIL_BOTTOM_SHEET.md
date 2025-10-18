@@ -39,7 +39,7 @@ Displays key route information with icons:
 
 #### E. Dismantling Information Box
 - Green-colored info card with checkbox
-- Message: "There are no plans to dismantle this track at this time."
+- Message: "There are no plans to dismantle this route at this time."
 - Provides climbers with assurance about route availability
 
 ### 3. Empty Logs Tab
