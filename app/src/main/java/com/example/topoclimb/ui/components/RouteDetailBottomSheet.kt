@@ -86,7 +86,7 @@ fun RouteDetailBottomSheet(
                         onSucceededClick = { isSucceeded = !isSucceeded },
                         onFocusToggle = { viewModel.toggleFocusMode() }
                     )
-                    1 -> LogsTab()
+                    1 -> LogsTab(uiState = uiState)
                 }
             }
             
@@ -470,18 +470,359 @@ private fun MetadataRow(
 }
 
 @Composable
-private fun LogsTab() {
-    Box(
+private fun LogsTab(uiState: com.example.topoclimb.viewmodel.RouteDetailUiState) {
+    var showOnlyWithComments by remember { mutableStateOf(false) }
+    
+    // Filter logs based on the toggle state
+    val filteredLogs = remember(uiState.logs, showOnlyWithComments) {
+        if (showOnlyWithComments) {
+            uiState.logs.filter { !it.comments.isNullOrBlank() }
+        } else {
+            uiState.logs
+        }
+    }
+    
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(400.dp)
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .heightIn(min = 400.dp, max = 600.dp)
+    ) {
+        // Filter header
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Filter Logs",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (showOnlyWithComments) "Showing logs with comments" else "Showing all logs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "With Comments",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Switch(
+                        checked = showOnlyWithComments,
+                        onCheckedChange = { showOnlyWithComments = it }
+                    )
+                }
+            }
+        }
+        
+        // Content
+        when {
+            uiState.isLogsLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            uiState.logsError != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Failed to load logs",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = uiState.logsError,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            filteredLogs.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (showOnlyWithComments) "No logs with comments" else "No logs yet",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    filteredLogs.forEach { log ->
+                        LogCard(log = log)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogCard(log: com.example.topoclimb.data.Log) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // User info row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // User avatar
+                    SubcomposeAsyncImage(
+                        model = log.userPpUrl,
+                        contentDescription = "User avatar",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(20.dp)
+                            ),
+                        contentScale = ContentScale.Crop
+                    ) {
+                        val state = painter.state
+                        when (state) {
+                            is AsyncImagePainter.State.Loading -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            is AsyncImagePainter.State.Error -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = log.userName.firstOrNull()?.uppercase() ?: "?",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                            else -> {
+                                Image(
+                                    painter = painter,
+                                    contentDescription = contentDescription,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = contentScale
+                                )
+                            }
+                        }
+                    }
+                    
+                    Column {
+                        Text(
+                            text = log.userName,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = formatLogDate(log.createdAt),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // Verified badge
+                if (log.isVerified) {
+                    Surface(
+                        color = Color(0xFF4CAF50).copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Verified",
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Verified",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Badges row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Type badge
+                LogBadge(
+                    text = log.type.capitalize(),
+                    containerColor = when (log.type.lowercase()) {
+                        "flash" -> Color(0xFFFFB74D)
+                        "redpoint" -> Color(0xFF64B5F6)
+                        "onsight" -> Color(0xFF81C784)
+                        else -> MaterialTheme.colorScheme.secondaryContainer
+                    },
+                    contentColor = when (log.type.lowercase()) {
+                        "flash" -> Color(0xFFE65100)
+                        "redpoint" -> Color(0xFF0D47A1)
+                        "onsight" -> Color(0xFF1B5E20)
+                        else -> MaterialTheme.colorScheme.onSecondaryContainer
+                    }
+                )
+                
+                // Way badge
+                LogBadge(
+                    text = log.way.capitalize(),
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                
+                // Grade badge
+                LogBadge(
+                    text = "Grade: ${log.grade}",
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            
+            // Comments if available
+            if (!log.comments.isNullOrBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Comment",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = log.comments,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogBadge(
+    text: String,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(16.dp)
     ) {
         Text(
-            text = "Logs feature coming soon...",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Medium
+            ),
+            color = contentColor
         )
     }
+}
+
+private fun formatLogDate(dateString: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+        val outputFormat = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.getDefault())
+        val date = inputFormat.parse(dateString)
+        date?.let { outputFormat.format(it) } ?: dateString
+    } catch (e: Exception) {
+        dateString
+    }
+}
+
+private fun String.capitalize(): String {
+    return this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
 }

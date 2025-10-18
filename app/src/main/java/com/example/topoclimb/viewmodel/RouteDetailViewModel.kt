@@ -2,6 +2,7 @@ package com.example.topoclimb.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.topoclimb.data.Log
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.network.RetrofitInstance
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,10 @@ data class RouteDetailUiState(
     val pictureBitmap: ByteArray? = null,
     val circleSvgContent: String? = null,
     val isFocusMode: Boolean = false,
-    val isPictureLoading: Boolean = false
+    val isPictureLoading: Boolean = false,
+    val logs: List<Log> = emptyList(),
+    val isLogsLoading: Boolean = false,
+    val logsError: String? = null
 )
 
 class RouteDetailViewModel : ViewModel() {
@@ -41,6 +45,9 @@ class RouteDetailViewModel : ViewModel() {
                 // Load the picture and circle SVG if available
                 route.picture?.let { loadPicture(it) }
                 route.circle?.let { loadCircleSvg(it) }
+                
+                // Load logs for this route
+                loadRouteLogs(routeId)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -100,5 +107,24 @@ class RouteDetailViewModel : ViewModel() {
     
     fun setPictureLoading(isLoading: Boolean) {
         _uiState.value = _uiState.value.copy(isPictureLoading = isLoading)
+    }
+    
+    fun loadRouteLogs(routeId: Int) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLogsLoading = true, logsError = null)
+            
+            try {
+                val logsResponse = RetrofitInstance.api.getRouteLogs(routeId)
+                _uiState.value = _uiState.value.copy(
+                    logs = logsResponse.data,
+                    isLogsLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLogsLoading = false,
+                    logsError = e.message ?: "Failed to load logs"
+                )
+            }
+        }
     }
 }
