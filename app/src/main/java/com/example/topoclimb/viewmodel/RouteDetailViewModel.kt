@@ -27,7 +27,8 @@ class RouteDetailViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {
-                val route = RetrofitInstance.api.getRoute(routeId)
+                val routeResponse = RetrofitInstance.api.getRoute(routeId)
+                val route = routeResponse.data
                 _uiState.value = _uiState.value.copy(
                     route = route,
                     isLoading = false
