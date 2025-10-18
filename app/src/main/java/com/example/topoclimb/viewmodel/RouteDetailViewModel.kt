@@ -73,13 +73,21 @@ class RouteDetailViewModel : ViewModel() {
                         if (response.isSuccessful) {
                             response.body?.string()
                         } else {
+                            println("RouteDetailViewModel: Failed to load SVG circle - HTTP ${response.code}")
                             null
                         }
                     }
                 }
                 
+                if (svgContent != null) {
+                    println("RouteDetailViewModel: Successfully loaded SVG circle (${svgContent.length} chars)")
+                } else {
+                    println("RouteDetailViewModel: SVG circle content is null")
+                }
+                
                 _uiState.value = _uiState.value.copy(circleSvgContent = svgContent)
             } catch (e: Exception) {
+                println("RouteDetailViewModel: Error loading SVG circle - ${e.message}")
                 e.printStackTrace()
                 // Handle error silently but log it
             }

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImagePainter
@@ -165,25 +166,33 @@ private fun OverviewTab(
             // Circle SVG overlay - only show when not in focus mode
             if (!uiState.isFocusMode) {
                 uiState.circleSvgContent?.let { svgContent ->
+                    println("RouteDetailBottomSheet: Rendering SVG overlay (${svgContent.length} chars)")
                     AndroidView(
                         factory = { context ->
                             WebView(context).apply {
                                 settings.javaScriptEnabled = false
                                 settings.loadWithOverviewMode = true
                                 settings.useWideViewPort = true
-                                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                                // Multiple approaches to ensure transparency
+                                setBackgroundColor(0x00000000)  // Transparent using hex
+                                setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                                // Disable scrollbars
+                                isVerticalScrollBarEnabled = false
+                                isHorizontalScrollBarEnabled = false
                             }
                         },
                         update = { webView ->
                             val htmlContent = """
                                 <!DOCTYPE html>
-                                <html>
+                                <html style="background: transparent;">
                                 <head>
                                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                     <style>
-                                        body {
+                                        html, body {
                                             margin: 0;
                                             padding: 0;
+                                            width: 100%;
+                                            height: 100%;
                                             background: transparent;
                                         }
                                         svg {
@@ -200,11 +209,18 @@ private fun OverviewTab(
                                 </body>
                                 </html>
                             """.trimIndent()
+                            println("RouteDetailBottomSheet: Loading HTML into WebView")
                             webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
                         },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .zIndex(1f)  // Ensure the overlay is on top
                     )
+                } ?: run {
+                    println("RouteDetailBottomSheet: SVG content is null, not showing overlay")
                 }
+            } else {
+                println("RouteDetailBottomSheet: Focus mode is enabled, hiding SVG overlay")
             }
             
             // Focus toggle at bottom-left
