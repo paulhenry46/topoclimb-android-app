@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImagePainter
@@ -30,6 +31,10 @@ import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.viewmodel.RouteDetailViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+
+// Z-index constants for layering
+private const val Z_INDEX_SVG_OVERLAY = 1f
+private const val Z_INDEX_FOCUS_TOGGLE = 2f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,33 +170,44 @@ private fun OverviewTab(
             // Circle SVG overlay - only show when not in focus mode
             if (!uiState.isFocusMode) {
                 uiState.circleSvgContent?.let { svgContent ->
+                    println("RouteDetailBottomSheet: Rendering SVG overlay (${svgContent.length} chars)")
                     AndroidView(
                         factory = { context ->
                             WebView(context).apply {
                                 settings.javaScriptEnabled = false
                                 settings.loadWithOverviewMode = true
                                 settings.useWideViewPort = true
-                                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                                //  Transparent background
+                                setBackgroundColor(0x00000000)
+                                setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                                // Disable scrollbars
+                                isVerticalScrollBarEnabled = false
+                                isHorizontalScrollBarEnabled = false
                             }
                         },
                         update = { webView ->
+                            println("RouteDetailBottomSheet: update block called with SVG length: ${svgContent.length}")
                             val htmlContent = """
                                 <!DOCTYPE html>
                                 <html>
                                 <head>
-                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
                                     <style>
-                                        body {
+                                        * {
                                             margin: 0;
                                             padding: 0;
-                                            background: transparent;
+                                            box-sizing: border-box;
                                         }
-                                        svg {
+                                        html, body {
                                             width: 100%;
                                             height: 100%;
-                                            position: absolute;
-                                            top: 0;
-                                            left: 0;
+                                            background: transparent;
+                                            overflow: hidden;
+                                        }
+                                        svg {
+                                            display: block;
+                                            width: 100%;
+                                            height: 100%;
                                         }
                                     </style>
                                 </head>
@@ -200,17 +216,25 @@ private fun OverviewTab(
                                 </body>
                                 </html>
                             """.trimIndent()
-                            webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+                            println("RouteDetailBottomSheet: Loading HTML into WebView")
+                            webView.loadDataWithBaseURL(null, htmlContent, "text/html; charset=utf-8", "UTF-8", null)
                         },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .zIndex(Z_INDEX_SVG_OVERLAY)  // Ensure the overlay is on top
                     )
+                } ?: run {
+                    println("RouteDetailBottomSheet: SVG content is null, not showing overlay")
                 }
+            } else {
+                println("RouteDetailBottomSheet: Focus mode is enabled, hiding SVG overlay")
             }
             
             // Focus toggle at bottom-left
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
+                    .zIndex(Z_INDEX_FOCUS_TOGGLE)  // Ensure focus toggle is always on top
                     .background(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                         shape = RoundedCornerShape(topEnd = 16.dp)
