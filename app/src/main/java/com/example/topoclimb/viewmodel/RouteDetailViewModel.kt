@@ -4,10 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.network.RetrofitInstance
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Request
 
 data class RouteDetailUiState(
     val route: Route? = null,
@@ -15,7 +18,8 @@ data class RouteDetailUiState(
     val error: String? = null,
     val pictureBitmap: ByteArray? = null,
     val circleSvgContent: String? = null,
-    val isFocusMode: Boolean = false
+    val isFocusMode: Boolean = false,
+    val isPictureLoading: Boolean = false
 )
 
 class RouteDetailViewModel : ViewModel() {
@@ -60,22 +64,33 @@ class RouteDetailViewModel : ViewModel() {
     private fun loadCircleSvg(url: String) {
         viewModelScope.launch {
             try {
-                // Use OkHttp to download the SVG content
-                val client = RetrofitInstance.okHttpClient
-                val request = okhttp3.Request.Builder().url(url).build()
-                val response = client.newCall(request).execute()
-                
-                if (response.isSuccessful) {
-                    val svgContent = response.body?.string()
-                    _uiState.value = _uiState.value.copy(circleSvgContent = svgContent)
+                // Use OkHttp to download the SVG content with IO dispatcher
+                val svgContent = withContext(Dispatchers.IO) {
+                    val client = RetrofitInstance.okHttpClient
+                    val request = Request.Builder().url(url).build()
+                    
+                    client.newCall(request).execute().use { response ->
+                        if (response.isSuccessful) {
+                            response.body?.string()
+                        } else {
+                            null
+                        }
+                    }
                 }
+                
+                _uiState.value = _uiState.value.copy(circleSvgContent = svgContent)
             } catch (e: Exception) {
-                // Handle error silently
+                e.printStackTrace()
+                // Handle error silently but log it
             }
         }
     }
     
     fun toggleFocusMode() {
         _uiState.value = _uiState.value.copy(isFocusMode = !_uiState.value.isFocusMode)
+    }
+    
+    fun setPictureLoading(isLoading: Boolean) {
+        _uiState.value = _uiState.value.copy(isPictureLoading = isLoading)
     }
 }
