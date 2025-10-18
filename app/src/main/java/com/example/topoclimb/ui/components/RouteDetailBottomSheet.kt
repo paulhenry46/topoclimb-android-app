@@ -74,7 +74,7 @@ fun RouteDetailBottomSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .wrapContentHeight()
             ) {
                 when (selectedTab) {
                     0 -> OverviewTab(
@@ -91,10 +91,10 @@ fun RouteDetailBottomSheet(
             }
             
             // Tabs at the bottom
-            TabRow(
+            SecondaryTabRow(
                 selectedTabIndex = selectedTab,
                 modifier = Modifier.fillMaxWidth(),
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
             ) {
                 Tab(
@@ -276,52 +276,54 @@ private fun OverviewTab(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-            // Left: Name and Sector/Line
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = routeWithMetadata.name,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-                
-                // Calculate local ID display
-                val localId = if (routeWithMetadata.lineCount == 1) {
-                    routeWithMetadata.sectorLocalId?.let { "Sector n°$it" }
-                } else {
-                    routeWithMetadata.lineLocalId?.let { "Line n°$it" }
-                }
-                
-                localId?.let {
+                // Left: Name and Sector/Line
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = routeWithMetadata.name,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+
+                    // Calculate local ID display
+                    val localId = if (routeWithMetadata.lineCount == 1) {
+                        routeWithMetadata.sectorLocalId?.let { "Sector n°$it" }
+                    } else {
+                        routeWithMetadata.lineLocalId?.let { "Line n°$it" }
+                    }
+
+                    localId?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            }
-            
-            // Right: Bookmark and Success buttons
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                IconButton(onClick = onBookmarkClick) {
-                    Icon(
-                        imageVector = if (isBookmarked) Icons.Default.Star else Icons.Outlined.Star,
-                        contentDescription = if (isBookmarked) "Remove bookmark" else "Bookmark",
-                        tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                
-                IconButton(onClick = onSucceededClick) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = if (isSucceeded) "Mark as not succeeded" else "Mark as succeeded",
-                        tint = if (isSucceeded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
+
+                // Right: Bookmark and Success buttons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    IconButton(onClick = onBookmarkClick) {
+                        Icon(
+                            imageVector = if (isBookmarked) Icons.Default.Star else Icons.Outlined.Star,
+                            contentDescription = if (isBookmarked) "Remove bookmark" else "Bookmark",
+                            tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    IconButton(onClick = onSucceededClick) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = if (isSucceeded) "Mark as not succeeded" else "Mark as succeeded",
+                            tint = if (isSucceeded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
             
@@ -431,7 +433,6 @@ private fun OverviewTab(
             }
         }
     }
-}
 
 @Composable
 private fun MetadataRow(
