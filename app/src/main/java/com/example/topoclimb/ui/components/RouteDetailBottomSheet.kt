@@ -152,7 +152,7 @@ private fun OverviewTab(
                         }
                     }
                     else -> {
-                        androidx.compose.foundation.Image(
+                        Image(
                             painter = painter,
                             contentDescription = contentDescription,
                             modifier = Modifier.fillMaxSize(),
