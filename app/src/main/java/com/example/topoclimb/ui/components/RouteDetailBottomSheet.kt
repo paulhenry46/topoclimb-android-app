@@ -356,11 +356,13 @@ private fun OverviewTab(
                         
                         // Opener(s)
                         uiState.route?.openers?.let { openers ->
-                            MetadataRow(
-                                icon = Icons.Default.Person,
-                                label = "Opener(s)",
-                                value = openers
-                            )
+                            if (openers.isNotEmpty()) {
+                                MetadataRow(
+                                    icon = Icons.Default.Person,
+                                    label = "Opener(s)",
+                                    value = openers.joinToString(", ")
+                                )
+                            }
                         }
                         
                         // Date of Creation
@@ -391,7 +393,7 @@ private fun OverviewTab(
                                 MetadataRow(
                                     icon = Icons.Default.Info,
                                     label = "Tags",
-                                    value = tags
+                                    value = tags.joinToString(", ")
                                 )
                             }
                         }
