@@ -164,32 +164,26 @@ private fun OverviewTab(
             }
             
             // Focus toggle at bottom-left
-            Box(
+            Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(8.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Switch(
-                    checked = uiState.isFocusMode,
-                    onCheckedChange = { onFocusToggle() },
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .padding(4.dp)
-                )
                 Text(
                     text = "Focus",
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 60.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(start = 8.dp),
                     style = MaterialTheme.typography.bodySmall
+                )
+                Switch(
+                    checked = uiState.isFocusMode,
+                    onCheckedChange = { onFocusToggle() }
                 )
             }
         }
