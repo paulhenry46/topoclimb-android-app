@@ -22,6 +22,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import coil.ImageLoader
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
+import coil.request.CachePolicy
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -170,59 +177,48 @@ private fun OverviewTab(
             // Circle SVG overlay - only show when not in focus mode
             if (!uiState.isFocusMode) {
                 uiState.circleSvgContent?.let { svgContent ->
-                    println("RouteDetailBottomSheet: Rendering SVG overlay (${svgContent.length} chars)")
-                    AndroidView(
-                        factory = { context ->
-                            WebView(context).apply {
-                                settings.javaScriptEnabled = false
-                                settings.loadWithOverviewMode = true
-                                settings.useWideViewPort = true
-                                //  Transparent background
-                                setBackgroundColor(0x00000000)
-                                setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
-                                // Disable scrollbars
-                                isVerticalScrollBarEnabled = false
-                                isHorizontalScrollBarEnabled = false
+                    val context = LocalContext.current
+                    val imageLoader = remember(context) {
+                        ImageLoader.Builder(context)
+                            .components {
+                                add(SvgDecoder.Factory())
                             }
-                        },
-                        update = { webView ->
-                            println("RouteDetailBottomSheet: update block called with SVG length: ${svgContent.length}")
-                            val htmlContent = """
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-                                    <style>
-                                        * {
-                                            margin: 0;
-                                            padding: 0;
-                                            box-sizing: border-box;
-                                        }
-                                        html, body {
-                                            width: 100%;
-                                            height: 100%;
-                                            background: transparent;
-                                            overflow: hidden;
-                                        }
-                                        svg {
-                                            display: block;
-                                            width: 100%;
-                                            height: 100%;
-                                        }
-                                    </style>
-                                </head>
-                                <body>
-                                    $svgContent
-                                </body>
-                                </html>
-                            """.trimIndent()
-                            println("RouteDetailBottomSheet: Loading HTML into WebView")
-                            webView.loadDataWithBaseURL(null, htmlContent, "text/html; charset=utf-8", "UTF-8", null)
-                        },
+                            .build()
+                    }
+
+                    val svgBytes = remember(svgContent) { svgContent.toByteArray(Charsets.UTF_8) }
+                    val request = remember(svgBytes, imageLoader) {
+                        ImageRequest.Builder(context)
+                            .data(svgBytes)
+                            // Désactiver la mise en cache si le SVG change fréquemment
+                            .diskCachePolicy(CachePolicy.DISABLED)
+                            .memoryCachePolicy(CachePolicy.DISABLED)
+                            .build()
+                    }
+
+                    SubcomposeAsyncImage(
+                        model = request,
+                        imageLoader = imageLoader,
+                        contentDescription = "Circle SVG overlay",
                         modifier = Modifier
                             .fillMaxSize()
-                            .zIndex(Z_INDEX_SVG_OVERLAY)  // Ensure the overlay is on top
-                    )
+                            .zIndex(Z_INDEX_SVG_OVERLAY),
+                        contentScale = ContentScale.Crop, // ou ContentScale.Fit si vous voulez contenir sans crop
+                        alignment = Alignment.Center
+                    ) {
+                        when (val state = painter.state) {
+                            is AsyncImagePainter.State.Loading -> {
+                                // Optionnel : afficher rien ou un indicateur léger
+                            }
+                            is AsyncImagePainter.State.Error -> {
+                                // Optionnel : fallback si échec du rendu SVG
+                            }
+                            else -> {
+                                // Affiche le SVG rendu
+                                SubcomposeAsyncImageContent()
+                            }
+                        }
+                    }
                 } ?: run {
                     println("RouteDetailBottomSheet: SVG content is null, not showing overlay")
                 }
