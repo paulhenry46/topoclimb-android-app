@@ -14,7 +14,12 @@ data class Route(
     val thumbnail: String?, // URL of the route thumbnail
     val color: String?, // Hex color code for the route
     @SerializedName("created_at")
-    val createdAt: String? // Format: 2025-10-08T12:18:41.000000Z
+    val createdAt: String?, // Format: 2025-10-08T12:18:41.000000Z
+    val picture: String?, // URL of the full route picture
+    val circle: String?, // URL of the SVG circle overlay
+    val openers: String?, // Names of route openers
+    @SerializedName("filtered_picture")
+    val filteredPicture: String? // URL of the filtered/focused route picture
 )
 
 /**
@@ -38,4 +43,9 @@ data class RouteWithMetadata(
     val siteName: String? get() = route.siteName
     val thumbnail: String? get() = route.thumbnail
     val color: String? get() = route.color
+    val createdAt: String? get() = route.createdAt
+    val picture: String? get() = route.picture
+    val circle: String? get() = route.circle
+    val openers: String? get() = route.openers
+    val filteredPicture: String? get() = route.filteredPicture
 }

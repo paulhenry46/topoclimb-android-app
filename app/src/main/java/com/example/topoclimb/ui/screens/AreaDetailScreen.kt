@@ -43,6 +43,10 @@ fun AreaDetailScreen(
     // Remember the map height once it's been measured
     var mapHeight by remember { mutableStateOf(0.dp) }
     
+    // State for bottom sheet
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var selectedRouteWithMetadata by remember { mutableStateOf<com.example.topoclimb.data.RouteWithMetadata?>(null) }
+    
     LaunchedEffect(areaId) {
         viewModel.loadAreaDetails(areaId)
     }
@@ -349,7 +353,11 @@ fun AreaDetailScreen(
                                 grade = routeWithMetadata.grade,
                                 color = routeWithMetadata.color,
                                 name = routeWithMetadata.name,
-                                localId = localId
+                                localId = localId,
+                                onClick = {
+                                    selectedRouteWithMetadata = routeWithMetadata
+                                    showBottomSheet = true
+                                }
                             )
                         }
                     }
@@ -396,6 +404,14 @@ fun AreaDetailScreen(
                     }
                 }
             }
+        }
+        
+        // Bottom Sheet for Route Details
+        if (showBottomSheet && selectedRouteWithMetadata != null) {
+            com.example.topoclimb.ui.components.RouteDetailBottomSheet(
+                routeWithMetadata = selectedRouteWithMetadata!!,
+                onDismiss = { showBottomSheet = false }
+            )
         }
     }
 }
