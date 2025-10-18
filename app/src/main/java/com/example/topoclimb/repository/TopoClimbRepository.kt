@@ -48,7 +48,8 @@ class TopoClimbRepository {
     
     suspend fun getRoute(id: Int): Result<Route> {
         return try {
-            Result.success(api.getRoute(id))
+            val response = api.getRoute(id)
+            Result.success(response.data)
         } catch (e: Exception) {
             Result.failure(e)
         }
