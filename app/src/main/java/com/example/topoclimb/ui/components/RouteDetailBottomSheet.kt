@@ -173,8 +173,8 @@ private fun OverviewTab(
                                 settings.javaScriptEnabled = false
                                 settings.loadWithOverviewMode = true
                                 settings.useWideViewPort = true
-                                // Multiple approaches to ensure transparency
-                                setBackgroundColor(0x00000000)  // Transparent using hex
+                                //  Transparent background
+                                setBackgroundColor(0x00000000)
                                 setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
                                 // Disable scrollbars
                                 isVerticalScrollBarEnabled = false
@@ -182,25 +182,28 @@ private fun OverviewTab(
                             }
                         },
                         update = { webView ->
+                            println("RouteDetailBottomSheet: update block called with SVG length: ${svgContent.length}")
                             val htmlContent = """
                                 <!DOCTYPE html>
-                                <html style="background: transparent;">
+                                <html>
                                 <head>
-                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
                                     <style>
-                                        html, body {
+                                        * {
                                             margin: 0;
                                             padding: 0;
+                                            box-sizing: border-box;
+                                        }
+                                        html, body {
                                             width: 100%;
                                             height: 100%;
                                             background: transparent;
+                                            overflow: hidden;
                                         }
                                         svg {
+                                            display: block;
                                             width: 100%;
                                             height: 100%;
-                                            position: absolute;
-                                            top: 0;
-                                            left: 0;
                                         }
                                     </style>
                                 </head>
@@ -210,7 +213,7 @@ private fun OverviewTab(
                                 </html>
                             """.trimIndent()
                             println("RouteDetailBottomSheet: Loading HTML into WebView")
-                            webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+                            webView.loadDataWithBaseURL(null, htmlContent, "text/html; charset=utf-8", "UTF-8", null)
                         },
                         modifier = Modifier
                             .fillMaxSize()
