@@ -16,14 +16,14 @@ object RetrofitInstance {
         }
     }
     
-    private val client = OkHttpClient.Builder()
+    val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .build()
     
     val api: TopoClimbApiService by lazy {
         Retrofit.Builder()
             .baseUrl(AppConfig.API_BASE_URL)
-            .client(client)
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(TopoClimbApiService::class.java)
