@@ -21,7 +21,12 @@ This document describes the implementation of the route detail bottom sheet that
 #### B. Focus Toggle
 - Located at the bottom-left of the photo
 - Toggle switch with "Focus" label
-- Controls focus mode state (can be used to highlight/zoom the route)
+- When **enabled**:
+  - Photo switches from `picture` to `filtered_picture` URL
+  - SVG circle overlay is hidden
+- When **disabled**:
+  - Photo displays from `picture` URL
+  - SVG circle overlay is visible
 
 #### C. Route Information Header
 - **Left side**: 
@@ -51,9 +56,10 @@ Displays key route information with icons:
 ### Route Model
 Added new fields to support the bottom sheet:
 ```kotlin
-val picture: String?       // URL of the full route picture
-val circle: String?         // URL of the SVG circle overlay
-val openers: String?        // Names of route openers
+val picture: String?          // URL of the full route picture
+val circle: String?            // URL of the SVG circle overlay
+val openers: String?           // Names of route openers
+val filteredPicture: String?   // URL of the focused/filtered route picture (shown when focus mode is enabled)
 ```
 
 ### RouteWithMetadata
@@ -75,6 +81,15 @@ State includes:
 - `isFocusMode`: Focus mode toggle state
 
 ## Technical Implementation
+
+### Focus Mode Functionality
+- When focus toggle is **OFF** (default):
+  - Displays the regular route photo from `picture` field
+  - Shows the SVG circle overlay from `circle` field
+- When focus toggle is **ON**:
+  - Switches to the filtered/focused photo from `filtered_picture` field
+  - Hides the SVG circle overlay to provide a cleaner view
+  - Falls back to `picture` if `filtered_picture` is not available
 
 ### SVG Rendering
 - Uses Android WebView to render SVG content
@@ -122,11 +137,10 @@ State includes:
 ## Future Enhancements
 
 1. **Logs Tab Implementation**: Add user logs, ascents, and comments
-2. **Focus Mode Functionality**: Implement zoom/highlight when focus is enabled
-3. **Persistent State**: Save bookmark and success status to backend
-4. **Photo Gallery**: Support multiple route photos with swipe navigation
-5. **Share Functionality**: Allow sharing route details with other climbers
-6. **Offline Support**: Cache route details for offline viewing
+2. **Persistent State**: Save bookmark and success status to backend
+3. **Photo Gallery**: Support multiple route photos with swipe navigation
+4. **Share Functionality**: Allow sharing route details with other climbers
+5. **Offline Support**: Cache route details for offline viewing
 
 ## Testing
 
@@ -140,11 +154,13 @@ State includes:
 
 The implementation expects these fields in the route API response:
 - `picture` (optional): Full route photo URL
+- `filtered_picture` (optional): Focused/filtered route photo URL (displayed when focus mode is enabled)
 - `circle` (optional): SVG circle overlay URL
 - `openers` (optional): String with opener names
 - `created_at` (optional): ISO 8601 date string
 
 If these fields are not available in the API response, the UI handles them gracefully:
 - Falls back to thumbnail if picture is missing
+- Falls back to picture if filtered_picture is missing
 - Hides circle overlay if not available
 - Hides metadata sections if data is missing

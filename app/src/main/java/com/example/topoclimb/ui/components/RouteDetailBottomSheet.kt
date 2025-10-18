@@ -111,8 +111,12 @@ private fun OverviewTab(
                 .fillMaxWidth()
                 .height(300.dp)
         ) {
-            // Route photo
-            val pictureUrl = uiState.route?.picture ?: routeWithMetadata.thumbnail
+            // Route photo - use filtered_picture when focus mode is enabled
+            val pictureUrl = if (uiState.isFocusMode) {
+                uiState.route?.filteredPicture ?: uiState.route?.picture ?: routeWithMetadata.thumbnail
+            } else {
+                uiState.route?.picture ?: routeWithMetadata.thumbnail
+            }
             AsyncImage(
                 model = pictureUrl,
                 contentDescription = "Route photo",
@@ -120,47 +124,49 @@ private fun OverviewTab(
                 contentScale = ContentScale.Crop
             )
             
-            // Circle SVG overlay
-            uiState.circleSvgContent?.let { svgContent ->
-                AndroidView(
-                    factory = { context ->
-                        WebView(context).apply {
-                            settings.javaScriptEnabled = false
-                            settings.loadWithOverviewMode = true
-                            settings.useWideViewPort = true
-                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                        }
-                    },
-                    update = { webView ->
-                        val htmlContent = """
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                <style>
-                                    body {
-                                        margin: 0;
-                                        padding: 0;
-                                        background: transparent;
-                                    }
-                                    svg {
-                                        width: 100%;
-                                        height: 100%;
-                                        position: absolute;
-                                        top: 0;
-                                        left: 0;
-                                    }
-                                </style>
-                            </head>
-                            <body>
-                                $svgContent
-                            </body>
-                            </html>
-                        """.trimIndent()
-                        webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+            // Circle SVG overlay - only show when not in focus mode
+            if (!uiState.isFocusMode) {
+                uiState.circleSvgContent?.let { svgContent ->
+                    AndroidView(
+                        factory = { context ->
+                            WebView(context).apply {
+                                settings.javaScriptEnabled = false
+                                settings.loadWithOverviewMode = true
+                                settings.useWideViewPort = true
+                                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                            }
+                        },
+                        update = { webView ->
+                            val htmlContent = """
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                    <style>
+                                        body {
+                                            margin: 0;
+                                            padding: 0;
+                                            background: transparent;
+                                        }
+                                        svg {
+                                            width: 100%;
+                                            height: 100%;
+                                            position: absolute;
+                                            top: 0;
+                                            left: 0;
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    $svgContent
+                                </body>
+                                </html>
+                            """.trimIndent()
+                            webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
             
             // Focus toggle at bottom-left
