@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,42 +62,54 @@ fun RouteDetailBottomSheet(
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp)
         ) {
-            // Secondary Tabs
+            // Tab Content (takes most of the space)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                when (selectedTab) {
+                    0 -> OverviewTab(
+                        routeWithMetadata = routeWithMetadata,
+                        uiState = uiState,
+                        isBookmarked = isBookmarked,
+                        isSucceeded = isSucceeded,
+                        onBookmarkClick = { isBookmarked = !isBookmarked },
+                        onSucceededClick = { isSucceeded = !isSucceeded },
+                        onFocusToggle = { viewModel.toggleFocusMode() }
+                    )
+                    1 -> LogsTab()
+                }
+            }
+            
+            // Tabs at the bottom
             TabRow(
                 selectedTabIndex = selectedTab,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
             ) {
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("Overview") }
+                    text = { Text("Overview") },
+                    selectedContentColor = MaterialTheme.colorScheme.primary,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Logs") }
+                    text = { Text("Logs") },
+                    selectedContentColor = MaterialTheme.colorScheme.primary,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            
-            // Tab Content
-            when (selectedTab) {
-                0 -> OverviewTab(
-                    routeWithMetadata = routeWithMetadata,
-                    uiState = uiState,
-                    isBookmarked = isBookmarked,
-                    isSucceeded = isSucceeded,
-                    onBookmarkClick = { isBookmarked = !isBookmarked },
-                    onSucceededClick = { isSucceeded = !isSucceeded },
-                    onFocusToggle = { viewModel.toggleFocusMode() }
-                )
-                1 -> LogsTab()
             }
         }
     }
@@ -116,10 +129,8 @@ private fun OverviewTab(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Photo with Circle SVG Overlay
+        // Photo with Circle SVG Overlay - Full width at the top
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -232,7 +243,7 @@ private fun OverviewTab(
                     .align(Alignment.BottomStart)
                     .zIndex(Z_INDEX_FOCUS_TOGGLE)  // Ensure focus toggle is always on top
                     .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(topEnd = 16.dp)
                     )
                     .padding(4.dp),
@@ -251,12 +262,19 @@ private fun OverviewTab(
             }
         }
         
-        // Route Name and Actions
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Content with padding
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Route Name and Actions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             // Left: Name and Sector/Line
             Column(
                 modifier = Modifier.weight(1f),
@@ -305,142 +323,144 @@ private fun OverviewTab(
                     )
                 }
             }
-        }
-        
-        // Route Metadata Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Opener(s)
-                uiState.route?.openers?.let { openers ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            
+            // Route Metadata Card
+            Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Openers",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Column {
-                            Text(
-                                text = "Opener(s)",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = openers,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Medium
-                                )
+                        // Grade
+                        routeWithMetadata.grade?.let { grade ->
+                            MetadataRow(
+                                icon = Icons.Default.Info,
+                                label = "Grade",
+                                value = grade
                             )
                         }
-                    }
-                }
-                
-                // Grade
-                routeWithMetadata.grade?.let { grade ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Grade",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Column {
-                            Text(
-                                text = "Grade",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = grade,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Medium
-                                )
+                        
+                        // Height
+                        routeWithMetadata.height?.let { height ->
+                            MetadataRow(
+                                icon = Icons.Default.Info,
+                                label = "Height",
+                                value = "${height}m"
                             )
                         }
-                    }
-                }
-                
-                // Date of Creation
-                uiState.route?.createdAt?.let { createdAt ->
-                    val formattedDate = remember(createdAt) {
-                        try {
-                            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
-                            val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-                            val date = inputFormat.parse(createdAt)
-                            date?.let { outputFormat.format(it) } ?: createdAt
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-                    
-                    formattedDate?.let { dateString ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Date of creation",
-                                tint = MaterialTheme.colorScheme.primary
+                        
+                        // Opener(s)
+                        uiState.route?.openers?.let { openers ->
+                            MetadataRow(
+                                icon = Icons.Default.Person,
+                                label = "Opener(s)",
+                                value = openers
                             )
-                            Column {
-                                Text(
-                                    text = "Date of Creation",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        
+                        // Date of Creation
+                        uiState.route?.createdAt?.let { createdAt ->
+                            val formattedDate = remember(createdAt) {
+                                try {
+                                    val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+                                    val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                                    val date = inputFormat.parse(createdAt)
+                                    date?.let { outputFormat.format(it) } ?: createdAt
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                            
+                            formattedDate?.let { dateString ->
+                                MetadataRow(
+                                    icon = Icons.Default.DateRange,
+                                    label = "Date of Creation",
+                                    value = dateString
                                 )
-                                Text(
-                                    text = dateString,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Medium
-                                    )
+                            }
+                        }
+                        
+                        // Tags
+                        uiState.route?.tags?.let { tags ->
+                            if (tags.isNotEmpty()) {
+                                MetadataRow(
+                                    icon = Icons.Default.Info,
+                                    label = "Tags",
+                                    value = tags
                                 )
                             }
                         }
                     }
                 }
+                
+                // Green Infobox
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = true,
+                            onCheckedChange = null,
+                            enabled = false,
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFF4CAF50),
+                                disabledCheckedColor = Color(0xFF4CAF50)
+                            )
+                        )
+                        Text(
+                            text = "There are no plans to dismantle this route at this time.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
             }
         }
-        
-        // Green Infobox
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f)
-            )
+    }
+}
+
+@Composable
+private fun MetadataRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        Column(
+            modifier = Modifier.weight(1f)
         ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = true,
-                    onCheckedChange = null,
-                    enabled = false,
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = Color(0xFF4CAF50),
-                        disabledCheckedColor = Color(0xFF4CAF50)
-                    )
-                )
-                Text(
-                    text = "There are no plans to dismantle this route at this time.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF2E7D32)
-                )
-            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

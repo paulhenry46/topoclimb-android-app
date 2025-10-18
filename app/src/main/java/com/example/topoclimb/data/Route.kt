@@ -19,7 +19,8 @@ data class Route(
     val circle: String?, // URL of the SVG circle overlay
     val openers: String?, // Names of route openers
     @SerializedName("filtered_picture")
-    val filteredPicture: String? // URL of the filtered/focused route picture
+    val filteredPicture: String?, // URL of the filtered/focused route picture
+    val tags: String? // Comma-separated tags for the route
 )
 
 /**
@@ -48,4 +49,5 @@ data class RouteWithMetadata(
     val circle: String? get() = route.circle
     val openers: String? get() = route.openers
     val filteredPicture: String? get() = route.filteredPicture
+    val tags: String? get() = route.tags
 }
