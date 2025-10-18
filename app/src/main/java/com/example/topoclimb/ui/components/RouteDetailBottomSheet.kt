@@ -32,6 +32,10 @@ import com.example.topoclimb.viewmodel.RouteDetailViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Z-index constants for layering
+private const val Z_INDEX_SVG_OVERLAY = 1f
+private const val Z_INDEX_FOCUS_TOGGLE = 2f
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RouteDetailBottomSheet(
@@ -217,7 +221,7 @@ private fun OverviewTab(
                         },
                         modifier = Modifier
                             .fillMaxSize()
-                            .zIndex(1f)  // Ensure the overlay is on top
+                            .zIndex(Z_INDEX_SVG_OVERLAY)  // Ensure the overlay is on top
                     )
                 } ?: run {
                     println("RouteDetailBottomSheet: SVG content is null, not showing overlay")
@@ -230,7 +234,7 @@ private fun OverviewTab(
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .zIndex(2f)  // Ensure focus toggle is always on top
+                    .zIndex(Z_INDEX_FOCUS_TOGGLE)  // Ensure focus toggle is always on top
                     .background(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                         shape = RoundedCornerShape(topEnd = 16.dp)
