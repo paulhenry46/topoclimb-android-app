@@ -14,6 +14,8 @@ import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -86,7 +88,10 @@ fun RouteDetailBottomSheet(
                         onSucceededClick = { isSucceeded = !isSucceeded },
                         onFocusToggle = { viewModel.toggleFocusMode() }
                     )
-                    1 -> LogsTab(uiState = uiState)
+                    1 -> LogsTab(
+                        uiState = uiState,
+                        routeWithMetadata = routeWithMetadata
+                    )
                 }
             }
             
@@ -470,7 +475,10 @@ private fun MetadataRow(
 }
 
 @Composable
-private fun LogsTab(uiState: com.example.topoclimb.viewmodel.RouteDetailUiState) {
+private fun LogsTab(
+    uiState: com.example.topoclimb.viewmodel.RouteDetailUiState,
+    routeWithMetadata: RouteWithMetadata
+) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
     
     // Filter logs based on the toggle state
@@ -592,7 +600,10 @@ private fun LogsTab(uiState: com.example.topoclimb.viewmodel.RouteDetailUiState)
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     filteredLogs.forEach { log ->
-                        LogCard(log = log)
+                        LogCard(
+                            log = log,
+                            routeGrade = routeWithMetadata.grade
+                        )
                     }
                 }
             }
@@ -601,7 +612,10 @@ private fun LogsTab(uiState: com.example.topoclimb.viewmodel.RouteDetailUiState)
 }
 
 @Composable
-private fun LogCard(log: com.example.topoclimb.data.Log) {
+private fun LogCard(
+    log: com.example.topoclimb.data.Log,
+    routeGrade: String?
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -752,9 +766,29 @@ private fun LogCard(log: com.example.topoclimb.data.Log) {
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 
-                // Grade badge
-                LogBadge(
+                // Grade badge with comparison indicator
+                val gradeComparison = routeGrade?.let { routeGradeStr ->
+                    // Try to extract numeric value from route grade string
+                    val routeGradeInt = routeGradeStr.filter { it.isDigit() }.toIntOrNull()
+                    if (routeGradeInt != null) {
+                        when {
+                            log.grade > routeGradeInt -> GradeComparison.HIGHER
+                            log.grade < routeGradeInt -> GradeComparison.LOWER
+                            else -> GradeComparison.EQUAL
+                        }
+                    } else {
+                        null
+                    }
+                }
+                
+                LogBadgeWithIcon(
                     text = "Grade: ${log.grade}",
+                    icon = when (gradeComparison) {
+                        GradeComparison.HIGHER -> Icons.Default.KeyboardArrowUp
+                        GradeComparison.LOWER -> Icons.Default.KeyboardArrowDown
+                        GradeComparison.EQUAL -> Icons.Default.Check
+                        null -> null
+                    },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -810,6 +844,45 @@ private fun LogBadge(
             color = contentColor
         )
     }
+}
+
+@Composable
+private fun LogBadgeWithIcon(
+    text: String,
+    icon: ImageVector?,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = contentColor
+            )
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = contentColor
+                )
+            }
+        }
+    }
+}
+
+private enum class GradeComparison {
+    HIGHER, LOWER, EQUAL
 }
 
 private fun formatLogDate(dateString: String): String {
