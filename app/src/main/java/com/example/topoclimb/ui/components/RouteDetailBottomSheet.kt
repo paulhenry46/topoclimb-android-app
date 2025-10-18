@@ -230,6 +230,7 @@ private fun OverviewTab(
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
+                    .zIndex(2f)  // Ensure focus toggle is always on top
                     .background(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                         shape = RoundedCornerShape(topEnd = 16.dp)
