@@ -109,7 +109,7 @@ class RouteDetailViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(isPictureLoading = isLoading)
     }
     
-    fun loadRouteLogs(routeId: Int) {
+    private fun loadRouteLogs(routeId: Int) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLogsLoading = true, logsError = null)
             

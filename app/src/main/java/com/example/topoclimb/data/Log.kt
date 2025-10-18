@@ -9,7 +9,7 @@ data class Log(
     val comments: String?,
     val type: String, // e.g., "flash", "redpoint", "onsight"
     val way: String, // e.g., "bouldering", "sport", "trad"
-    val grade: Int, // Grade value (e.g., 600)
+    val grade: Int, // Grade value as numeric (e.g., 600) - format depends on the climbing system
     @SerializedName("created_at")
     val createdAt: String, // Format: 2025-10-03T10:18:24.000000Z
     @SerializedName("is_verified")
