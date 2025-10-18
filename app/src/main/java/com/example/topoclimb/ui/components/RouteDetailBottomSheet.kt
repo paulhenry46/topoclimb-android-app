@@ -173,10 +173,9 @@ private fun OverviewTab(
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(8.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(topEnd = 16.dp)
                     )
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
