@@ -1,6 +1,7 @@
 package com.example.topoclimb.ui.components
 
 import android.webkit.WebView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -23,7 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImagePainter
 import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.viewmodel.RouteDetailViewModel
 import java.text.SimpleDateFormat
@@ -117,12 +119,48 @@ private fun OverviewTab(
             } else {
                 uiState.route?.picture ?: routeWithMetadata.thumbnail
             }
-            AsyncImage(
+            
+            SubcomposeAsyncImage(
                 model = pictureUrl,
                 contentDescription = "Route photo",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
-            )
+            ) {
+                val state = painter.state
+                when (state) {
+                    is AsyncImagePainter.State.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    is AsyncImagePainter.State.Error -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Failed to load image",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    else -> {
+                        Image(
+                            painter = painter,
+                            contentDescription = contentDescription,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = contentScale
+                        )
+                    }
+                }
+            }
             
             // Circle SVG overlay - only show when not in focus mode
             if (!uiState.isFocusMode) {
