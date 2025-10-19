@@ -9,6 +9,7 @@ import com.example.topoclimb.repository.FederatedTopoClimbRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 data class SitesUiState(
@@ -33,16 +34,12 @@ class SitesViewModel(
         loadSites()
         // Listen to backend configuration changes and refresh sites
         viewModelScope.launch {
-            var isFirstEmit = true
-            backendConfigRepository.backends.collect {
-                // Skip the first emission to avoid double loading on init
-                if (isFirstEmit) {
-                    isFirstEmit = false
-                } else {
+            backendConfigRepository.backends
+                .drop(1) // Skip the first emission to avoid double loading on init
+                .collect {
                     // Reload sites when backends change
                     loadSites()
                 }
-            }
         }
     }
     
