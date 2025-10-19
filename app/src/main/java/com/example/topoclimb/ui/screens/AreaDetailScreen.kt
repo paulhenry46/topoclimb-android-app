@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -41,6 +42,7 @@ fun AreaDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val density = LocalDensity.current
+    val primaryColorHex = String.format("#%06X", 0xFFFFFF and MaterialTheme.colorScheme.primary.toArgb())
     
     // Remember the map height once it's been measured
     var mapHeight by remember { mutableStateOf(0.dp) }
@@ -208,7 +210,7 @@ fun AreaDetailScreen(
                                                         stroke: #666;
                                                     }
                                                     svg path.selected {
-                                                        stroke: red;
+                                                        stroke: $primaryColorHex;
                                                         stroke-width: 30;
                                                     }
                                                 </style>
