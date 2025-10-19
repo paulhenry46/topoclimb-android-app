@@ -148,6 +148,12 @@ Example valid URLs:
 - `http://localhost:8000/api/v1/`
 - `https://topoclimb.saux.fr/api/v1/`
 
+Example invalid URLs:
+- `https://api.example.com` (missing trailing slash)
+- `ftp://api.example.com/` (invalid protocol)
+- `api.example.com/` (missing protocol)
+- `` (blank URL)
+
 ## Architecture Benefits
 
 1. **Scalability**: Easy to add new backends without code changes
@@ -160,13 +166,17 @@ Example valid URLs:
 ## Future Enhancements
 
 Potential improvements:
-1. Backend health monitoring
-2. Caching federated data locally
-3. Conflict resolution for duplicate resources
-4. Backend-specific authentication
-5. Sync status indicators
-6. Backend priority/ordering
-7. Custom backend icons/branding
+1. **Backend health monitoring**: Track availability and response times for each backend
+2. **Caching federated data locally**: 
+   - Use Room database for offline support
+   - Implement cache invalidation strategies (time-based, manual refresh)
+   - Handle cache conflicts between backends using timestamp comparison or user preference
+   - Consider per-backend cache expiration policies
+3. **Conflict resolution for duplicate resources**: Handle cases where the same resource exists on multiple backends
+4. **Backend-specific authentication**: Support different authentication mechanisms per backend
+5. **Sync status indicators**: Show real-time sync status for each backend
+6. **Backend priority/ordering**: Allow users to set preference order when duplicates exist
+7. **Custom backend icons/branding**: Display backend-specific icons and colors
 
 ## Testing
 
