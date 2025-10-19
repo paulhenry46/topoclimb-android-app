@@ -63,6 +63,10 @@ fun BottomNavigationBar(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     
+    // Check if current destination is a detail screen (site or area detail)
+    val isOnDetailScreen = currentDestination?.route?.startsWith("site/") == true || 
+                          currentDestination?.route?.startsWith("area/") == true
+    
     NavigationBar {
         items.forEach { item ->
             NavigationBarItem(
@@ -70,16 +74,27 @@ fun BottomNavigationBar(navController: NavHostController) {
                 label = { Text(item.label) },
                 selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
                 onClick = {
-                    navController.navigate(item.route) {
-                        // Pop up to the start destination of the graph to
-                        // avoid building up a large stack of destinations
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+                    // If we're on a detail screen and clicking Sites, pop back to Sites instead of restoring state
+                    if (isOnDetailScreen && item.route == BottomNavItem.Sites.route) {
+                        navController.navigate(item.route) {
+                            // Pop all the way back to the Sites screen
+                            popUpTo(BottomNavItem.Sites.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
                         }
-                        // Avoid multiple copies of the same destination
-                        launchSingleTop = true
-                        // Restore state when reselecting a previously selected item
-                        restoreState = true
+                    } else {
+                        navController.navigate(item.route) {
+                            // Pop up to the start destination of the graph to
+                            // avoid building up a large stack of destinations
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            // Avoid multiple copies of the same destination
+                            launchSingleTop = true
+                            // Restore state when reselecting a previously selected item
+                            restoreState = true
+                        }
                     }
                 }
             )
