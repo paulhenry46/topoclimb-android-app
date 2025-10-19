@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,7 +52,7 @@ fun BackendManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Manage Backends") },
+                title = { Text("Manage TopoClimb Instances") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -61,7 +62,7 @@ fun BackendManagementScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Backend")
+                Icon(Icons.Default.Add, contentDescription = "Add TopoClimb Instance")
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -75,7 +76,7 @@ fun BackendManagementScreen(
         ) {
             item {
                 Text(
-                    text = "Configure backend URLs to fetch climbing data from multiple sources",
+                    text = "Configure TopoClimb instance URLs to fetch climbing data from multiple sources",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -106,7 +107,7 @@ fun BackendManagementScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No backends configured. Add one to get started.",
+                                text = "No TopoClimb instances configured. Add one to get started.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -139,6 +140,12 @@ fun BackendManagementScreen(
                 showEditDialog = false
                 editingBackend = null
             }
+        )
+    }
+    
+    if (uiState.showRestartWarning) {
+        RestartWarningDialog(
+            onDismiss = { viewModel.dismissRestartWarning() }
         )
     }
 }
@@ -216,13 +223,13 @@ fun AddBackendDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Backend") },
+        title = { Text("Add TopoClimb Instance") },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Backend Name") },
+                    label = { Text("Instance Name") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -233,7 +240,7 @@ fun AddBackendDialog(
                         url = it
                         urlError = validateUrl(it)
                     },
-                    label = { Text("Base URL") },
+                    label = { Text("Website URL") },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("https://api.example.com/") },
                     isError = urlError != null,
@@ -275,13 +282,13 @@ fun EditBackendDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Backend") },
+        title = { Text("Edit TopoClimb Instance") },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Backend Name") },
+                    label = { Text("Instance Name") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -292,7 +299,7 @@ fun EditBackendDialog(
                         url = it
                         urlError = validateUrl(it)
                     },
-                    label = { Text("Base URL") },
+                    label = { Text("Website URL") },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("https://api.example.com/") },
                     isError = urlError != null,
@@ -319,6 +326,34 @@ fun EditBackendDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun RestartWarningDialog(
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                Icons.Default.Settings,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        title = { Text("Restart Required") },
+        text = {
+            Text(
+                text = "Please restart the app to see the changes in your TopoClimb instances.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("OK")
             }
         }
     )

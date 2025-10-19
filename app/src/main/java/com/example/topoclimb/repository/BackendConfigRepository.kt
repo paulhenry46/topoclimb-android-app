@@ -71,6 +71,11 @@ class BackendConfigRepository(context: Context) {
                 return Result.failure(IllegalArgumentException("Invalid backend URL"))
             }
             
+            // Check for duplicate URL
+            if (_backends.value.any { it.baseUrl == backend.baseUrl }) {
+                return Result.failure(IllegalArgumentException("A TopoClimb instance with this URL already exists"))
+            }
+            
             val updatedBackends = _backends.value + backend
             _backends.value = updatedBackends
             saveBackends()
@@ -87,6 +92,11 @@ class BackendConfigRepository(context: Context) {
         return try {
             if (!backend.isValid()) {
                 return Result.failure(IllegalArgumentException("Invalid backend URL"))
+            }
+            
+            // Check for duplicate URL (excluding the backend being updated)
+            if (_backends.value.any { it.baseUrl == backend.baseUrl && it.id != backend.id }) {
+                return Result.failure(IllegalArgumentException("A TopoClimb instance with this URL already exists"))
             }
             
             val updatedBackends = _backends.value.map { 
@@ -111,7 +121,7 @@ class BackendConfigRepository(context: Context) {
         return try {
             val updatedBackends = _backends.value.filter { it.id != backendId }
             if (updatedBackends.isEmpty()) {
-                return Result.failure(IllegalStateException("Cannot delete the last backend"))
+                return Result.failure(IllegalStateException("Cannot delete the last TopoClimb instance"))
             }
             _backends.value = updatedBackends
             saveBackends()
@@ -139,7 +149,7 @@ class BackendConfigRepository(context: Context) {
             
             // Ensure at least one backend is enabled
             if (updatedBackends.none { it.enabled }) {
-                return Result.failure(IllegalStateException("At least one backend must be enabled"))
+                return Result.failure(IllegalStateException("At least one TopoClimb instance must be enabled"))
             }
             
             _backends.value = updatedBackends

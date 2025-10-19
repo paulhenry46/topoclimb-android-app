@@ -112,7 +112,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Manage Backends")
+                        Text("Manage TopoClimb Instances")
                     }
                 }
             }
