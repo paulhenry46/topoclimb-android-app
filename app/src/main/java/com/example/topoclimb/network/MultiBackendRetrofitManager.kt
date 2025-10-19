@@ -39,7 +39,6 @@ class MultiBackendRetrofitManager(
         // If URL has changed, remove the old cached instance
         if (cachedUrl != null && cachedUrl != backend.baseUrl) {
             apiInstances.remove(backend.id)
-            backendUrls.remove(backend.id)
         }
         
         // Store the current URL
