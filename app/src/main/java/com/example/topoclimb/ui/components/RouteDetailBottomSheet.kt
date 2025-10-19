@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -16,6 +17,11 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Lens
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -346,7 +352,7 @@ private fun OverviewTab(
                         // Grade
                         routeWithMetadata.grade?.let { grade ->
                             MetadataRow(
-                                icon = Icons.Default.Info,
+                                icon = Icons.Default.Star,
                                 label = "Grade",
                                 value = grade
                             )
@@ -650,7 +656,7 @@ private fun LogCard(
                             .size(40.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(20.dp)
+                                shape = CircleShape
                             ),
                         contentScale = ContentScale.Crop
                     ) {
@@ -742,9 +748,17 @@ private fun LogCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Type badge
-                LogBadge(
+                // Type badge with icon
+                val typeIcon = when (log.type.lowercase()) {
+                    "flash" -> Icons.Filled.FlashOn
+                    "view" -> Icons.Filled.Visibility
+                    "work" -> Icons.Filled.Lens
+                    else -> null
+                }
+                
+                LogBadgeWithIcon(
                     text = log.type.capitalize(),
+                    icon = typeIcon,
                     containerColor = when (log.type.lowercase()) {
                         "flash" -> Color(0xFFFFB74D)
                         "redpoint" -> Color(0xFF64B5F6)
@@ -759,12 +773,21 @@ private fun LogCard(
                     }
                 )
                 
-                // Way badge
-                LogBadge(
-                    text = log.way.capitalize(),
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                )
+                // Way badge with icon (only show if not bouldering)
+                if (log.way.lowercase() != "bouldering") {
+                    val wayIcon = when (log.way.lowercase()) {
+                        "top-rope", "sport" -> Icons.Filled.Lens
+                        "lead" -> Icons.Filled.Flag
+                        else -> null
+                    }
+                    
+                    LogBadgeWithIcon(
+                        text = log.way.capitalize(),
+                        icon = wayIcon,
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
                 
                 // Grade badge with comparison indicator
                 val gradeComparison = routeGrade?.let { routeGradeStr ->
@@ -802,22 +825,34 @@ private fun LogCard(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     )
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Text(
-                            text = "Comment",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Icon(
+                            imageVector = Icons.Filled.ChatBubble,
+                            contentDescription = "Comment",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
-                        Text(
-                            text = log.comments,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Comment",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = log.comments,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
