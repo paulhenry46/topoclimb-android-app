@@ -6,10 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,15 +43,7 @@ fun SitesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") },
-                actions = {
-                    IconButton(onClick = { viewModel.refreshSites() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh"
-                        )
-                    }
-                }
+                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") }
             )
         }
     ) { padding ->
@@ -86,7 +78,9 @@ fun SitesScreen(
                 }
             }
             else -> {
-                Box(
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { viewModel.refreshSites() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
@@ -126,15 +120,6 @@ fun SitesScreen(
                                 )
                             }
                         }
-                    }
-                    
-                    // Show loading indicator when refreshing
-                    if (uiState.isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 8.dp)
-                        )
                     }
                 }
             }

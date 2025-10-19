@@ -7,6 +7,10 @@ import com.example.topoclimb.network.MultiBackendRetrofitManager
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Repository that aggregates data from multiple federated backends
@@ -16,6 +20,18 @@ class FederatedTopoClimbRepository(context: Context) {
     
     private val backendConfigRepository = BackendConfigRepository(context)
     private val retrofitManager = MultiBackendRetrofitManager(AppConfig.ENABLE_LOGGING)
+    // Application-scoped coroutine scope for observing backend changes
+    // Lives for the lifetime of the repository, which is typically application lifetime
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    
+    init {
+        // Clear retrofit cache when backends are updated to ensure URL changes are reflected
+        scope.launch {
+            backendConfigRepository.backends.collect {
+                retrofitManager.clearCache()
+            }
+        }
+    }
     
     /**
      * Get sites from all enabled backends
