@@ -5,7 +5,7 @@ import org.junit.Test
 import org.junit.Assert.*
 
 /**
- * Unit tests for URL uniqueness validation in BackendConfig
+ * Unit tests for URL format validation in BackendConfig
  */
 class BackendConfigRepositoryTest {
     
