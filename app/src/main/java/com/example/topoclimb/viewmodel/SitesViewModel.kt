@@ -33,9 +33,15 @@ class SitesViewModel(
         loadSites()
         // Listen to backend configuration changes and refresh sites
         viewModelScope.launch {
+            var isFirstEmit = true
             backendConfigRepository.backends.collect {
-                // Reload sites when backends change
-                loadSites()
+                // Skip the first emission to avoid double loading on init
+                if (isFirstEmit) {
+                    isFirstEmit = false
+                } else {
+                    // Reload sites when backends change
+                    loadSites()
+                }
             }
         }
     }
