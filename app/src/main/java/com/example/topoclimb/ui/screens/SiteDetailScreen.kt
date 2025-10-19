@@ -19,7 +19,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Contest
-import com.example.topoclimb.data.Federated
 import com.example.topoclimb.viewmodel.SiteDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,7 +146,6 @@ fun SiteDetailScreen(
                         items(uiState.areas) { federatedArea ->
                             SiteAreaItem(
                                 area = federatedArea.data,
-                                backendName = federatedArea.backend.backendName,
                                 onSeeTopoClick = { onAreaClick(federatedArea.backend.backendId, federatedArea.data.id) }
                             )
                         }
@@ -198,7 +196,6 @@ fun SiteDetailScreen(
 @Composable
 fun SiteAreaItem(
     area: Area,
-    backendName: String,
     onSeeTopoClick: () -> Unit = {}
 ) {
     Card(
@@ -209,27 +206,6 @@ fun SiteAreaItem(
             Text(
                 text = area.name,
                 style = MaterialTheme.typography.titleMedium
-            )
-            area.description?.let { description ->
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            if (area.latitude != null && area.longitude != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Location: ${area.latitude}, ${area.longitude}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Source: $backendName",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Button(
