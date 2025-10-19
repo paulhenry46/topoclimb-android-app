@@ -1,24 +1,28 @@
 package com.example.topoclimb.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.topoclimb.data.Federated
 import com.example.topoclimb.data.Site
-import com.example.topoclimb.repository.TopoClimbRepository
+import com.example.topoclimb.repository.FederatedTopoClimbRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class SitesUiState(
-    val sites: List<Site> = emptyList(),
+    val sites: List<Federated<Site>> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val favoriteSiteId: Int? = null
 )
 
 class SitesViewModel(
-    private val repository: TopoClimbRepository = TopoClimbRepository()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
+    
+    private val repository = FederatedTopoClimbRepository(application)
     
     private val _uiState = MutableStateFlow(SitesUiState())
     val uiState: StateFlow<SitesUiState> = _uiState.asStateFlow()
@@ -31,9 +35,9 @@ class SitesViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.getSites()
-                .onSuccess { response ->
+                .onSuccess { sites ->
                     _uiState.value = _uiState.value.copy(
-                        sites = response.data,
+                        sites = sites,
                         isLoading = false
                     )
                 }
