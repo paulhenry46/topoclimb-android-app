@@ -20,6 +20,8 @@ class FederatedTopoClimbRepository(context: Context) {
     
     private val backendConfigRepository = BackendConfigRepository(context)
     private val retrofitManager = MultiBackendRetrofitManager(AppConfig.ENABLE_LOGGING)
+    // Application-scoped coroutine scope for observing backend changes
+    // Lives for the lifetime of the repository, which is typically application lifetime
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     init {
