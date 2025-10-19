@@ -8,10 +8,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -62,14 +62,6 @@ fun AreaDetailScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.refreshAreaDetails() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh"
-                        )
-                    }
                 }
             )
         }
@@ -105,7 +97,9 @@ fun AreaDetailScreen(
                 }
             }
             uiState.area != null -> {
-                Box(
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { viewModel.refreshAreaDetails() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
@@ -416,15 +410,6 @@ fun AreaDetailScreen(
                             }
                         }
                     }
-                    }
-                    
-                    // Show loading indicator when refreshing
-                    if (uiState.isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 8.dp)
-                        )
                     }
                 }
             }
