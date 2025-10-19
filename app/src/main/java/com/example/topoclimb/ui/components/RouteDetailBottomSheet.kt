@@ -26,6 +26,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -654,9 +655,10 @@ private fun LogCard(
                         contentDescription = "User avatar",
                         modifier = Modifier
                             .size(40.dp)
+                            .clip(MaterialTheme.shapes.medium)
                             .background(
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = CircleShape
+                                shape = MaterialTheme.shapes.medium
                             ),
                         contentScale = ContentScale.Crop
                     ) {
