@@ -18,6 +18,7 @@ import okhttp3.Request
 
 data class AreaDetailUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val area: Area? = null,
     val routes: List<Route> = emptyList(),
     val routesWithMetadata: List<com.example.topoclimb.data.RouteWithMetadata> = emptyList(),
@@ -25,6 +26,7 @@ data class AreaDetailUiState(
     val selectedSectorId: Int? = null,
     val error: String? = null,
     val svgMapContent: String? = null,
+    val areaId: Int? = null,
     // Filter state
     val searchQuery: String = "",
     val minGrade: String? = null,
@@ -45,7 +47,7 @@ class AreaDetailViewModel : ViewModel() {
     
     fun loadAreaDetails(areaId: Int) {
         viewModelScope.launch {
-            _uiState.value = AreaDetailUiState(isLoading = true)
+            _uiState.value = AreaDetailUiState(isLoading = true, areaId = areaId)
             
             // Load area details
             val areaResult = repository.getArea(areaId)
@@ -53,7 +55,9 @@ class AreaDetailViewModel : ViewModel() {
             if (areaResult.isFailure) {
                 _uiState.value = AreaDetailUiState(
                     isLoading = false,
-                    error = areaResult.exceptionOrNull()?.message ?: "Failed to load area details"
+                    isRefreshing = false,
+                    error = areaResult.exceptionOrNull()?.message ?: "Failed to load area details",
+                    areaId = areaId
                 )
                 return@launch
             }
@@ -101,6 +105,79 @@ class AreaDetailViewModel : ViewModel() {
             
             _uiState.value = AreaDetailUiState(
                 isLoading = false,
+                isRefreshing = false,
+                area = area,
+                routes = routes,
+                routesWithMetadata = routesWithMetadata,
+                sectors = sectors,
+                error = null,
+                svgMapContent = svgContent,
+                areaId = areaId
+            )
+        }
+    }
+    
+    fun refreshAreaDetails() {
+        val areaId = _uiState.value.areaId ?: return
+        val currentState = _uiState.value
+        
+        viewModelScope.launch {
+            _uiState.value = currentState.copy(isRefreshing = true, error = null)
+            
+            // Load area details
+            val areaResult = repository.getArea(areaId)
+            
+            if (areaResult.isFailure) {
+                _uiState.value = currentState.copy(
+                    isRefreshing = false,
+                    error = areaResult.exceptionOrNull()?.message ?: "Failed to refresh area details"
+                )
+                return@launch
+            }
+            
+            val area = areaResult.getOrNull()
+            
+            // Load sectors for the area
+            val sectorsResult = repository.getSectorsByArea(areaId)
+            val sectors = sectorsResult.getOrNull() ?: emptyList()
+            
+            // Load routes for the area (all routes initially)
+            val routesResult = repository.getRoutesByArea(areaId)
+            val routes = routesResult.getOrNull() ?: emptyList()
+            
+            // Fetch SVG map content from URL if available
+            val svgContent = area?.svgMap?.let { mapUrl ->
+                try {
+                    withContext(Dispatchers.IO) {
+                        val request = Request.Builder()
+                            .url(mapUrl)
+                            .build()
+                        
+                        httpClient.newCall(request).execute().use { response ->
+                            if (response.isSuccessful) {
+                                response.body?.string()
+                            } else {
+                                null
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
+            }
+            
+            // Convert routes to RouteWithMetadata (no metadata for area-level view)
+            val routesWithMetadata = routes.map { route ->
+                RouteWithMetadata(route)
+            }
+            
+            // Cache all routes for filtering
+            allRoutesCache = routes
+            allRoutesWithMetadataCache = routesWithMetadata
+            
+            _uiState.value = currentState.copy(
+                isRefreshing = false,
                 area = area,
                 routes = routes,
                 routesWithMetadata = routesWithMetadata,

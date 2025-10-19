@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
@@ -42,7 +43,15 @@ fun SitesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") }
+                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") },
+                actions = {
+                    IconButton(onClick = { viewModel.refreshSites() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh"
+                        )
+                    }
+                }
             )
         }
     ) { padding ->
@@ -77,42 +86,55 @@ fun SitesScreen(
                 }
             }
             else -> {
-                LazyColumn(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(padding)
                 ) {
-                    if (displaySites.isEmpty() && favoriteOnly) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (displaySites.isEmpty() && favoriteOnly) {
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(
-                                        text = "No favorite site selected. Tap the star on a site card to set it as favorite.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(32.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "No favorite site selected. Tap the star on a site card to set it as favorite.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
+                        } else {
+                            items(displaySites) { federatedSite ->
+                                SiteItem(
+                                    site = federatedSite.data,
+                                    backendName = federatedSite.backend.backendName,
+                                    onClick = { onSiteClick(federatedSite.backend.backendId, federatedSite.data.id) },
+                                    isFavorite = federatedSite.data.id == uiState.favoriteSiteId,
+                                    onFavoriteClick = { viewModel.toggleFavorite(federatedSite.data.id) }
+                                )
+                            }
                         }
-                    } else {
-                        items(displaySites) { federatedSite ->
-                            SiteItem(
-                                site = federatedSite.data,
-                                backendName = federatedSite.backend.backendName,
-                                onClick = { onSiteClick(federatedSite.backend.backendId, federatedSite.data.id) },
-                                isFavorite = federatedSite.data.id == uiState.favoriteSiteId,
-                                onFavoriteClick = { viewModel.toggleFavorite(federatedSite.data.id) }
-                            )
-                        }
+                    }
+                    
+                    // Show loading indicator when refreshing
+                    if (uiState.isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 8.dp)
+                        )
                     }
                 }
             }
