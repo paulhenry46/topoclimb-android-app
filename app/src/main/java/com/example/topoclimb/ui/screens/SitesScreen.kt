@@ -19,13 +19,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.topoclimb.data.Federated
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.viewmodel.SitesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SitesScreen(
-    onSiteClick: (Int) -> Unit,
+    onSiteClick: (String, Int) -> Unit,
     viewModel: SitesViewModel = viewModel(),
     favoriteOnly: Boolean = false
 ) {
@@ -33,7 +34,7 @@ fun SitesScreen(
     
     // Filter sites based on favorite flag
     val displaySites = if (favoriteOnly) {
-        uiState.sites.filter { it.id == uiState.favoriteSiteId }
+        uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
     } else {
         uiState.sites
     }
@@ -103,12 +104,13 @@ fun SitesScreen(
                             }
                         }
                     } else {
-                        items(displaySites) { site ->
+                        items(displaySites) { federatedSite ->
                             SiteItem(
-                                site = site,
-                                onClick = { onSiteClick(site.id) },
-                                isFavorite = site.id == uiState.favoriteSiteId,
-                                onFavoriteClick = { viewModel.toggleFavorite(site.id) }
+                                site = federatedSite.data,
+                                backendName = federatedSite.backend.backendName,
+                                onClick = { onSiteClick(federatedSite.backend.backendId, federatedSite.data.id) },
+                                isFavorite = federatedSite.data.id == uiState.favoriteSiteId,
+                                onFavoriteClick = { viewModel.toggleFavorite(federatedSite.data.id) }
                             )
                         }
                     }
@@ -121,6 +123,7 @@ fun SitesScreen(
 @Composable
 fun SiteItem(
     site: Site,
+    backendName: String,
     onClick: () -> Unit,
     isFavorite: Boolean = false,
     onFavoriteClick: () -> Unit = {}
@@ -205,6 +208,12 @@ fun SiteItem(
                             maxLines = 2
                         )
                     }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Source: $backendName",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

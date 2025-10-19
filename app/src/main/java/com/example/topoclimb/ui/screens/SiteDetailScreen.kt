@@ -18,26 +18,28 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Contest
+import com.example.topoclimb.data.Federated
 import com.example.topoclimb.viewmodel.SiteDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SiteDetailScreen(
+    backendId: String,
     siteId: Int,
     onBackClick: () -> Unit,
-    onAreaClick: (Int) -> Unit = {},
+    onAreaClick: (String, Int) -> Unit = { _, _ -> },
     viewModel: SiteDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    LaunchedEffect(siteId) {
-        viewModel.loadSiteDetails(siteId)
+    LaunchedEffect(backendId, siteId) {
+        viewModel.loadSiteDetails(backendId, siteId)
     }
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.site?.name ?: "Site Details") },
+                title = { Text(uiState.site?.data?.name ?: "Site Details") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -70,7 +72,7 @@ fun SiteDetailScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadSiteDetails(siteId) }) {
+                        Button(onClick = { viewModel.loadSiteDetails(backendId, siteId) }) {
                             Text("Retry")
                         }
                     }
@@ -86,7 +88,8 @@ fun SiteDetailScreen(
                 ) {
                     // Site header with banner
                     item {
-                        uiState.site?.let { site ->
+                        uiState.site?.let { federatedSite ->
+                            val site = federatedSite.data
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -114,6 +117,12 @@ fun SiteDetailScreen(
                                                 style = MaterialTheme.typography.bodyMedium
                                             )
                                         }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Source: ${federatedSite.backend.backendName}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             }
@@ -129,10 +138,11 @@ fun SiteDetailScreen(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
-                        items(uiState.areas) { area ->
+                        items(uiState.areas) { federatedArea ->
                             SiteAreaItem(
-                                area = area,
-                                onSeeTopoClick = { onAreaClick(area.id) }
+                                area = federatedArea.data,
+                                backendName = federatedArea.backend.backendName,
+                                onSeeTopoClick = { onAreaClick(federatedArea.backend.backendId, federatedArea.data.id) }
                             )
                         }
                     }
@@ -146,8 +156,8 @@ fun SiteDetailScreen(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
-                        items(uiState.contests) { contest ->
-                            ContestItem(contest)
+                        items(uiState.contests) { federatedContest ->
+                            ContestItem(federatedContest.data)
                         }
                     }
                     
@@ -181,6 +191,7 @@ fun SiteDetailScreen(
 @Composable
 fun SiteAreaItem(
     area: Area,
+    backendName: String,
     onSeeTopoClick: () -> Unit = {}
 ) {
     Card(
@@ -207,6 +218,12 @@ fun SiteAreaItem(
                     color = MaterialTheme.colorScheme.secondary
                 )
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Source: $backendName",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = onSeeTopoClick,

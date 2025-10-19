@@ -1,23 +1,27 @@
 package com.example.topoclimb.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
-import com.example.topoclimb.repository.TopoClimbRepository
+import com.example.topoclimb.data.Federated
+import com.example.topoclimb.repository.FederatedTopoClimbRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class AreasUiState(
-    val areas: List<Area> = emptyList(),
+    val areas: List<Federated<Area>> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
 class AreasViewModel(
-    private val repository: TopoClimbRepository = TopoClimbRepository()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
+    
+    private val repository = FederatedTopoClimbRepository(application)
     
     private val _uiState = MutableStateFlow(AreasUiState())
     val uiState: StateFlow<AreasUiState> = _uiState.asStateFlow()

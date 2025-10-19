@@ -102,45 +102,55 @@ fun NavigationGraph(
                 navController.getBackStackEntry(navController.graph.findStartDestination().id)
             }
             SitesScreen(
-                onSiteClick = { siteId ->
-                    navController.navigate("site/$siteId")
+                onSiteClick = { backendId, siteId ->
+                    navController.navigate("site/$backendId/$siteId")
                 },
                 viewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         
         composable(
-            route = "site/{siteId}",
+            route = "site/{backendId}/{siteId}",
             arguments = listOf(
+                navArgument("backendId") {
+                    type = NavType.StringType
+                },
                 navArgument("siteId") {
                     type = NavType.IntType
                 }
             )
         ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
             val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
             
             SiteDetailScreen(
+                backendId = backendId,
                 siteId = siteId,
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onAreaClick = { areaId ->
-                    navController.navigate("area/$areaId")
+                onAreaClick = { areaBackendId, areaId ->
+                    navController.navigate("area/$areaBackendId/$areaId")
                 }
             )
         }
         
         composable(
-            route = "area/{areaId}",
+            route = "area/{backendId}/{areaId}",
             arguments = listOf(
+                navArgument("backendId") {
+                    type = NavType.StringType
+                },
                 navArgument("areaId") {
                     type = NavType.IntType
                 }
             )
         ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
             val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
             
             AreaDetailScreen(
+                backendId = backendId,
                 areaId = areaId,
                 onBackClick = {
                     navController.popBackStack()
@@ -153,8 +163,8 @@ fun NavigationGraph(
                 navController.getBackStackEntry(navController.graph.findStartDestination().id)
             }
             SitesScreen(
-                onSiteClick = { siteId ->
-                    navController.navigate("site/$siteId")
+                onSiteClick = { backendId, siteId ->
+                    navController.navigate("site/$backendId/$siteId")
                 },
                 favoriteOnly = true,
                 viewModel = viewModel(viewModelStoreOwner = parentEntry)
@@ -162,7 +172,19 @@ fun NavigationGraph(
         }
         
         composable(BottomNavItem.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(
+                onManageBackendsClick = {
+                    navController.navigate("backends")
+                }
+            )
+        }
+        
+        composable("backends") {
+            com.example.topoclimb.ui.screens.BackendManagementScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }
