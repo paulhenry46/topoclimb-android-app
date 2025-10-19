@@ -14,7 +14,8 @@ data class BackendManagementUiState(
     val backends: List<BackendConfig> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val showRestartWarning: Boolean = false
 )
 
 class BackendManagementViewModel(
@@ -48,13 +49,14 @@ class BackendManagementViewModel(
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        successMessage = "Backend added successfully"
+                        successMessage = "TopoClimb instance added successfully",
+                        showRestartWarning = true
                     )
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = exception.message ?: "Failed to add backend"
+                        error = exception.message ?: "Failed to add TopoClimb instance"
                     )
                 }
         }
@@ -68,13 +70,14 @@ class BackendManagementViewModel(
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        successMessage = "Backend updated successfully"
+                        successMessage = "TopoClimb instance updated successfully",
+                        showRestartWarning = true
                     )
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = exception.message ?: "Failed to update backend"
+                        error = exception.message ?: "Failed to update TopoClimb instance"
                     )
                 }
         }
@@ -88,13 +91,14 @@ class BackendManagementViewModel(
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        successMessage = "Backend deleted successfully"
+                        successMessage = "TopoClimb instance deleted successfully",
+                        showRestartWarning = true
                     )
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = exception.message ?: "Failed to delete backend"
+                        error = exception.message ?: "Failed to delete TopoClimb instance"
                     )
                 }
         }
@@ -107,12 +111,13 @@ class BackendManagementViewModel(
             repository.toggleBackendEnabled(backendId)
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
-                        successMessage = "Backend status updated"
+                        successMessage = "TopoClimb instance status updated",
+                        showRestartWarning = true
                     )
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
-                        error = exception.message ?: "Failed to toggle backend status"
+                        error = exception.message ?: "Failed to toggle TopoClimb instance status"
                     )
                 }
         }
@@ -120,5 +125,9 @@ class BackendManagementViewModel(
     
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(error = null, successMessage = null)
+    }
+    
+    fun dismissRestartWarning() {
+        _uiState.value = _uiState.value.copy(showRestartWarning = false)
     }
 }
