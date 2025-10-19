@@ -13,7 +13,9 @@ class MultiBackendRetrofitManager(
     private val loggingEnabled: Boolean = true
 ) {
     
+    // Cache key combines backend ID and base URL to handle URL changes
     private val apiInstances = mutableMapOf<String, TopoClimbApiService>()
+    private val backendUrls = mutableMapOf<String, String>()
     
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = if (loggingEnabled) {
@@ -29,8 +31,20 @@ class MultiBackendRetrofitManager(
     
     /**
      * Get or create an API service for a specific backend
+     * Automatically detects URL changes and recreates the service
      */
     fun getApiService(backend: BackendConfig): TopoClimbApiService {
+        val cachedUrl = backendUrls[backend.id]
+        
+        // If URL has changed, remove the old cached instance
+        if (cachedUrl != null && cachedUrl != backend.baseUrl) {
+            apiInstances.remove(backend.id)
+            backendUrls.remove(backend.id)
+        }
+        
+        // Store the current URL
+        backendUrls[backend.id] = backend.baseUrl
+        
         return apiInstances.getOrPut(backend.id) {
             createApiService(backend.baseUrl)
         }
@@ -53,6 +67,7 @@ class MultiBackendRetrofitManager(
      */
     fun clearCache() {
         apiInstances.clear()
+        backendUrls.clear()
     }
     
     /**
@@ -60,5 +75,6 @@ class MultiBackendRetrofitManager(
      */
     fun removeBackend(backendId: String) {
         apiInstances.remove(backendId)
+        backendUrls.remove(backendId)
     }
 }
