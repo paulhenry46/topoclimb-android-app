@@ -172,7 +172,19 @@ fun NavigationGraph(
         }
         
         composable(BottomNavItem.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(
+                onManageBackendsClick = {
+                    navController.navigate("backends")
+                }
+            )
+        }
+        
+        composable("backends") {
+            com.example.topoclimb.ui.screens.BackendManagementScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

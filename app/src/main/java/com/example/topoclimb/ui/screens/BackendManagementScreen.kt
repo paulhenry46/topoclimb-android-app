@@ -1,0 +1,336 @@
+package com.example.topoclimb.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topoclimb.data.BackendConfig
+import com.example.topoclimb.viewmodel.BackendManagementViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BackendManagementScreen(
+    onBackClick: () -> Unit,
+    viewModel: BackendManagementViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editingBackend by remember { mutableStateOf<BackendConfig?>(null) }
+    
+    // Show snackbar for messages
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    LaunchedEffect(uiState.error, uiState.successMessage) {
+        uiState.error?.let { error ->
+            snackbarHostState.showSnackbar(
+                message = error,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearMessages()
+        }
+        uiState.successMessage?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearMessages()
+        }
+    }
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Manage Backends") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Backend")
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item {
+                Text(
+                    text = "Configure backend URLs to fetch climbing data from multiple sources",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+            
+            items(uiState.backends) { backend ->
+                BackendItem(
+                    backend = backend,
+                    onToggleEnabled = { viewModel.toggleBackendEnabled(backend.id) },
+                    onEdit = {
+                        editingBackend = backend
+                        showEditDialog = true
+                    },
+                    onDelete = { viewModel.deleteBackend(backend.id) }
+                )
+            }
+            
+            if (uiState.backends.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No backends configured. Add one to get started.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if (showAddDialog) {
+        AddBackendDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { name, url ->
+                viewModel.addBackend(name, url)
+                showAddDialog = false
+            }
+        )
+    }
+    
+    if (showEditDialog && editingBackend != null) {
+        EditBackendDialog(
+            backend = editingBackend!!,
+            onDismiss = {
+                showEditDialog = false
+                editingBackend = null
+            },
+            onSave = { backend ->
+                viewModel.updateBackend(backend)
+                showEditDialog = false
+                editingBackend = null
+            }
+        )
+    }
+}
+
+@Composable
+fun BackendItem(
+    backend: BackendConfig,
+    onToggleEnabled: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = backend.name,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = backend.baseUrl,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Row {
+                    Switch(
+                        checked = backend.enabled,
+                        onCheckedChange = { onToggleEnabled() }
+                    )
+                }
+            }
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Edit")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Delete")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AddBackendDialog(
+    onDismiss: () -> Unit,
+    onAdd: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var urlError by remember { mutableStateOf<String?>(null) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Backend") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Backend Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = {
+                        url = it
+                        urlError = validateUrl(it)
+                    },
+                    label = { Text("Base URL") },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("https://api.example.com/") },
+                    isError = urlError != null,
+                    supportingText = {
+                        if (urlError != null) {
+                            Text(urlError!!, color = MaterialTheme.colorScheme.error)
+                        } else {
+                            Text("Must end with /")
+                        }
+                    }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onAdd(name, url) },
+                enabled = name.isNotBlank() && url.isNotBlank() && urlError == null
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditBackendDialog(
+    backend: BackendConfig,
+    onDismiss: () -> Unit,
+    onSave: (BackendConfig) -> Unit
+) {
+    var name by remember { mutableStateOf(backend.name) }
+    var url by remember { mutableStateOf(backend.baseUrl) }
+    var urlError by remember { mutableStateOf<String?>(null) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Backend") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Backend Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = {
+                        url = it
+                        urlError = validateUrl(it)
+                    },
+                    label = { Text("Base URL") },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("https://api.example.com/") },
+                    isError = urlError != null,
+                    supportingText = {
+                        if (urlError != null) {
+                            Text(urlError!!, color = MaterialTheme.colorScheme.error)
+                        } else {
+                            Text("Must end with /")
+                        }
+                    }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(backend.copy(name = name, baseUrl = url))
+                },
+                enabled = name.isNotBlank() && url.isNotBlank() && urlError == null
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+private fun validateUrl(url: String): String? {
+    return when {
+        url.isBlank() -> null
+        !url.startsWith("http://") && !url.startsWith("https://") -> 
+            "URL must start with http:// or https://"
+        !url.endsWith("/") -> 
+            "URL must end with /"
+        else -> null
+    }
+}

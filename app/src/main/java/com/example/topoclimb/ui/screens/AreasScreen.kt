@@ -13,12 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.Area
+import com.example.topoclimb.data.Federated
 import com.example.topoclimb.viewmodel.AreasViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AreasScreen(
-    onAreaClick: (Int) -> Unit = {},
+    onAreaClick: (String, Int) -> Unit = { _, _ -> },
     viewModel: AreasViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,10 +69,11 @@ fun AreasScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(uiState.areas) { area ->
+                    items(uiState.areas) { federatedArea ->
                         AreaItem(
-                            area = area,
-                            onClick = { onAreaClick(area.id) }
+                            area = federatedArea.data,
+                            backendName = federatedArea.backend.backendName,
+                            onClick = { onAreaClick(federatedArea.backend.backendId, federatedArea.data.id) }
                         )
                     }
                 }
@@ -83,6 +85,7 @@ fun AreasScreen(
 @Composable
 fun AreaItem(
     area: Area,
+    backendName: String,
     onClick: () -> Unit
 ) {
     Card(
@@ -114,6 +117,12 @@ fun AreaItem(
                     color = MaterialTheme.colorScheme.secondary
                 )
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Source: $backendName",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

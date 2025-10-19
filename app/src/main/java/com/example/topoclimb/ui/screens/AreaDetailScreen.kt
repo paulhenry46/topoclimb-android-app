@@ -32,6 +32,7 @@ import com.example.topoclimb.viewmodel.AreaDetailViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AreaDetailScreen(
+    backendId: String,
     areaId: Int,
     onBackClick: () -> Unit,
     viewModel: AreaDetailViewModel = viewModel()
@@ -47,7 +48,8 @@ fun AreaDetailScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedRouteWithMetadata by remember { mutableStateOf<com.example.topoclimb.data.RouteWithMetadata?>(null) }
     
-    LaunchedEffect(areaId) {
+    // TODO: Update AreaDetailViewModel to use backendId for federated data
+    LaunchedEffect(backendId, areaId) {
         viewModel.loadAreaDetails(areaId)
     }
     
