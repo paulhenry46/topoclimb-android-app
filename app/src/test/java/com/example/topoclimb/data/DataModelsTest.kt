@@ -157,6 +157,57 @@ class DataModelsTest {
     }
     
     @Test
+    fun site_withGradingSystem_deserializesCorrectly() {
+        val json = """
+            {
+                "id": 1,
+                "name": "Fontainebleau",
+                "description": "Famous bouldering area",
+                "latitude": 48.4044,
+                "longitude": 2.6992,
+                "imageUrl": "https://example.com/image.jpg",
+                "slug": "fontainebleau",
+                "address": "Forest of Fontainebleau",
+                "profile_picture": "https://example.com/logo.jpg",
+                "banner": "https://example.com/banner.jpg",
+                "default_cotation": true,
+                "grading_system": {
+                    "free": false,
+                    "hint": "System is Fontainebleau scale",
+                    "points": {
+                        "3a": 300,
+                        "3a+": 310,
+                        "4a": 400,
+                        "5a": 500,
+                        "5a+": 510,
+                        "6a": 600,
+                        "6a+": 610,
+                        "7a": 700
+                    }
+                }
+            }
+        """.trimIndent()
+        
+        val site = gson.fromJson(json, Site::class.java)
+        
+        assertNotNull(site)
+        assertEquals(1, site.id)
+        assertEquals("Fontainebleau", site.name)
+        
+        assertNotNull(site.gradingSystem)
+        assertEquals(false, site.gradingSystem?.free)
+        assertEquals("System is Fontainebleau scale", site.gradingSystem?.hint)
+        
+        val points = site.gradingSystem?.points
+        assertNotNull(points)
+        assertEquals(300, points?.get("3a"))
+        assertEquals(310, points?.get("3a+"))
+        assertEquals(500, points?.get("5a"))
+        assertEquals(610, points?.get("6a+"))
+        assertEquals(700, points?.get("7a"))
+    }
+    
+    @Test
     fun routesResponse_deserializesCorrectly() {
         val json = """
             {

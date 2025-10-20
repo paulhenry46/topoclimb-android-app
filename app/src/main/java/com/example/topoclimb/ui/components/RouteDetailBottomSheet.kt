@@ -45,7 +45,9 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImagePainter
+import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.RouteWithMetadata
+import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.viewmodel.RouteDetailViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -59,6 +61,7 @@ private const val Z_INDEX_FOCUS_TOGGLE = 2f
 fun RouteDetailBottomSheet(
     routeWithMetadata: RouteWithMetadata,
     onDismiss: () -> Unit,
+    gradingSystem: GradingSystem? = null,
     viewModel: RouteDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -97,7 +100,8 @@ fun RouteDetailBottomSheet(
                     )
                     1 -> LogsTab(
                         uiState = uiState,
-                        routeWithMetadata = routeWithMetadata
+                        routeWithMetadata = routeWithMetadata,
+                        gradingSystem = gradingSystem
                     )
                 }
             }
@@ -484,7 +488,8 @@ private fun MetadataRow(
 @Composable
 private fun LogsTab(
     uiState: com.example.topoclimb.viewmodel.RouteDetailUiState,
-    routeWithMetadata: RouteWithMetadata
+    routeWithMetadata: RouteWithMetadata,
+    gradingSystem: GradingSystem?
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
     
@@ -609,7 +614,8 @@ private fun LogsTab(
                     filteredLogs.forEach { log ->
                         LogCard(
                             log = log,
-                            routeGrade = routeWithMetadata.grade
+                            routeGrade = routeWithMetadata.grade,
+                            gradingSystem = gradingSystem
                         )
                     }
                 }
@@ -621,7 +627,8 @@ private fun LogsTab(
 @Composable
 private fun LogCard(
     log: com.example.topoclimb.data.Log,
-    routeGrade: String?
+    routeGrade: String?,
+    gradingSystem: GradingSystem?
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -792,22 +799,21 @@ private fun LogCard(
                 }
                 
                 // Grade badge with comparison indicator
+                // Convert log grade points to grade string
+                val logGradeString = GradeUtils.pointsToGrade(log.grade, gradingSystem) ?: log.grade.toString()
+                
                 val gradeComparison = routeGrade?.let { routeGradeStr ->
-                    // Try to extract numeric value from route grade string
-                    val routeGradeInt = routeGradeStr.filter { it.isDigit() }.toIntOrNull()
-                    if (routeGradeInt != null) {
-                        when {
-                            log.grade > routeGradeInt -> GradeComparison.HIGHER
-                            log.grade < routeGradeInt -> GradeComparison.LOWER
-                            else -> GradeComparison.EQUAL
-                        }
-                    } else {
-                        null
+                    // Convert route grade string to points for comparison
+                    val routeGradePoints = GradeUtils.gradeToPoints(routeGradeStr, gradingSystem)
+                    when {
+                        log.grade > routeGradePoints -> GradeComparison.HIGHER
+                        log.grade < routeGradePoints -> GradeComparison.LOWER
+                        else -> GradeComparison.EQUAL
                     }
                 }
                 
                 LogBadgeWithIcon(
-                    text = "Grade: ${log.grade}",
+                    text = "Grade: $logGradeString",
                     icon = when (gradeComparison) {
                         GradeComparison.HIGHER -> Icons.Default.KeyboardArrowUp
                         GradeComparison.LOWER -> Icons.Default.KeyboardArrowDown

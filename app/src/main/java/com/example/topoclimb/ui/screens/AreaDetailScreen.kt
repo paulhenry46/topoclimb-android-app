@@ -423,7 +423,8 @@ fun AreaDetailScreen(
         if (showBottomSheet && selectedRouteWithMetadata != null) {
             com.example.topoclimb.ui.components.RouteDetailBottomSheet(
                 routeWithMetadata = selectedRouteWithMetadata!!,
-                onDismiss = { showBottomSheet = false }
+                onDismiss = { showBottomSheet = false },
+                gradingSystem = uiState.gradingSystem
             )
         }
     }
