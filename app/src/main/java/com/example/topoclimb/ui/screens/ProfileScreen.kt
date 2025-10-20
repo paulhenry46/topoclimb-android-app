@@ -96,12 +96,20 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         user.birthDate?.let { birthDate ->
-                            InfoRow("Birth Date", birthDate.substring(0, 10))
+                            if (birthDate.length >= 10) {
+                                InfoRow("Birth Date", birthDate.substring(0, 10))
+                            }
                         }
                         user.gender?.let { gender ->
-                            InfoRow("Gender", gender.replaceFirstChar { char -> char.uppercase() })
+                            if (gender.isNotEmpty()) {
+                                InfoRow("Gender", gender.replaceFirstChar { char -> 
+                                    if (char.isLowerCase()) char.titlecase() else char.toString() 
+                                })
+                            }
                         }
-                        InfoRow("Member Since", user.createdAt.substring(0, 10))
+                        if (user.createdAt.length >= 10) {
+                            InfoRow("Member Since", user.createdAt.substring(0, 10))
+                        }
                     }
                 }
                 

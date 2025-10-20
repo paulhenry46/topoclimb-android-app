@@ -27,6 +27,15 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    
+    fun validateEmail(email: String): String? {
+        return when {
+            email.isBlank() -> null
+            !email.contains("@") || !email.contains(".") -> "Invalid email format"
+            else -> null
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -56,12 +65,17 @@ fun LoginScreen(
             
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { 
+                    email = it
+                    emailError = validateEmail(it)
+                },
                 label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                enabled = !isLoading
+                enabled = !isLoading,
+                isError = emailError != null,
+                supportingText = emailError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } }
             )
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -99,7 +113,7 @@ fun LoginScreen(
             Button(
                 onClick = { onLoginClick(email, password) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+                enabled = !isLoading && email.isNotBlank() && password.isNotBlank() && emailError == null
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.example.topoclimb.AppConfig
 import com.example.topoclimb.data.BackendConfig
+import com.example.topoclimb.data.User
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -204,7 +205,7 @@ class BackendConfigRepository(context: Context) {
     /**
      * Authenticate a backend with user credentials
      */
-    fun authenticateBackend(backendId: String, authToken: String, user: com.example.topoclimb.data.User): Result<Unit> {
+    fun authenticateBackend(backendId: String, authToken: String, user: User): Result<Unit> {
         return try {
             val updatedBackends = _backends.value.map { 
                 if (it.id == backendId) {

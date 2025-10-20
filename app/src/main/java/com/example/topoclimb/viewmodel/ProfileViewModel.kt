@@ -28,10 +28,6 @@ class ProfileViewModel(
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
     
     init {
-        loadUserProfile()
-    }
-    
-    fun loadUserProfile() {
         viewModelScope.launch {
             repository.backends.collect { backends ->
                 val defaultBackend = repository.getDefaultBackend()
@@ -56,6 +52,7 @@ class ProfileViewModel(
     }
     
     fun refresh() {
-        loadUserProfile()
+        // The flow collection in init already handles updates
+        // This method is kept for potential future use
     }
 }
