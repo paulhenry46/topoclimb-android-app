@@ -3,10 +3,12 @@ package com.example.topoclimb.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
+import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
 import com.example.topoclimb.repository.TopoClimbRepository
+import com.example.topoclimb.utils.GradeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +29,7 @@ data class AreaDetailUiState(
     val error: String? = null,
     val svgMapContent: String? = null,
     val areaId: Int? = null,
+    val gradingSystem: GradingSystem? = null,
     // Filter state
     val searchQuery: String = "",
     val minGrade: String? = null,
@@ -63,6 +66,13 @@ class AreaDetailViewModel : ViewModel() {
             }
             
             val area = areaResult.getOrNull()
+            
+            // Load site to get the grading system
+            var gradingSystem: GradingSystem? = null
+            area?.siteId?.let { siteId ->
+                val siteResult = repository.getSite(siteId)
+                gradingSystem = siteResult.getOrNull()?.gradingSystem
+            }
             
             // Load sectors for the area
             val sectorsResult = repository.getSectorsByArea(areaId)
@@ -112,7 +122,8 @@ class AreaDetailViewModel : ViewModel() {
                 sectors = sectors,
                 error = null,
                 svgMapContent = svgContent,
-                areaId = areaId
+                areaId = areaId,
+                gradingSystem = gradingSystem
             )
         }
     }
@@ -136,6 +147,13 @@ class AreaDetailViewModel : ViewModel() {
             }
             
             val area = areaResult.getOrNull()
+            
+            // Load site to get the grading system
+            var gradingSystem: GradingSystem? = null
+            area?.siteId?.let { siteId ->
+                val siteResult = repository.getSite(siteId)
+                gradingSystem = siteResult.getOrNull()?.gradingSystem
+            }
             
             // Load sectors for the area
             val sectorsResult = repository.getSectorsByArea(areaId)
@@ -183,7 +201,8 @@ class AreaDetailViewModel : ViewModel() {
                 routesWithMetadata = routesWithMetadata,
                 sectors = sectors,
                 error = null,
-                svgMapContent = svgContent
+                svgMapContent = svgContent,
+                gradingSystem = gradingSystem
             )
         }
     }
@@ -364,35 +383,17 @@ class AreaDetailViewModel : ViewModel() {
     }
     
     private fun matchesGradeRange(grade: String, minGrade: String?, maxGrade: String?): Boolean {
-        // Simple grade comparison - this handles common French grades like 5a, 6b, 7c+, etc.
-        val gradeValue = parseGrade(grade)
-        val minValue = minGrade?.let { parseGrade(it) }
-        val maxValue = maxGrade?.let { parseGrade(it) }
-        
-        return when {
-            minValue != null && maxValue != null -> gradeValue in minValue..maxValue
-            minValue != null -> gradeValue >= minValue
-            maxValue != null -> gradeValue <= maxValue
-            else -> true
-        }
+        // Use GradeUtils with the current grading system
+        return GradeUtils.matchesGradeRange(
+            grade = grade,
+            minGrade = minGrade,
+            maxGrade = maxGrade,
+            gradingSystem = _uiState.value.gradingSystem
+        )
     }
     
     private fun parseGrade(grade: String): Int {
-        // Parse French grades: 5a=50, 5b=51, 5c=52, 6a=60, 6b=61, 6c=62, 7a=70, etc.
-        // Handle + and - modifiers
-        val cleanGrade = grade.trim().lowercase()
-        val number = cleanGrade.firstOrNull()?.digitToIntOrNull() ?: return 0
-        val letter = when {
-            cleanGrade.contains("a") -> 0
-            cleanGrade.contains("b") -> 1
-            cleanGrade.contains("c") -> 2
-            else -> 0
-        }
-        val modifier = when {
-            cleanGrade.contains("+") -> 0.5
-            cleanGrade.contains("-") -> -0.5
-            else -> 0.0
-        }
-        return ((number * 10 + letter) * 10 + (modifier * 10).toInt())
+        // Use GradeUtils with the current grading system
+        return GradeUtils.gradeToPoints(grade, _uiState.value.gradingSystem)
     }
 }

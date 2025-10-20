@@ -14,6 +14,7 @@ data class Site(
     @SerializedName("profile_picture") val profilePicture: String?,
     val banner: String?,
     @SerializedName("default_cotation") val defaultCotation: Boolean?,
+    @SerializedName("grading_system") val gradingSystem: GradingSystem?,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("updated_at") val updatedAt: String?
 )

@@ -80,6 +80,7 @@ class FederationTest {
             profilePicture = null,
             banner = null,
             defaultCotation = null,
+            gradingSystem = null,
             createdAt = null,
             updatedAt = null
         )
