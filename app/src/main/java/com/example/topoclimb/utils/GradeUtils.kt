@@ -66,6 +66,62 @@ object GradeUtils {
     }
     
     /**
+     * Converts a grade point value back to a grade string.
+     * Uses the grading system if available, otherwise reconstructs from default parsing logic.
+     *
+     * @param points The numeric grade value (e.g., 610)
+     * @param gradingSystem Optional grading system with points mapping
+     * @return Grade string (e.g., "6a+"), or null if points cannot be converted
+     */
+    fun pointsToGrade(points: Int, gradingSystem: GradingSystem?): String? {
+        // First try to find the grade in the grading system
+        gradingSystem?.points?.entries?.find { it.value == points }?.let {
+            return it.key
+        }
+        
+        // Fall back to reconstructing from default parsing logic
+        return reconstructGradeFromPoints(points)
+    }
+    
+    /**
+     * Reconstructs a grade string from point value using the inverse of default parsing.
+     * 
+     * @param points The numeric grade value
+     * @return Grade string, or null if points are invalid
+     */
+    private fun reconstructGradeFromPoints(points: Int): String? {
+        if (points <= 0) return null
+        
+        // Reverse the formula: points = (number * 10 + letter) * 10 + modifier adjustment
+        val modifierValue = points % 10
+        val baseValue = points / 10
+        
+        val letter = baseValue % 10
+        val number = baseValue / 10
+        
+        // Validate ranges
+        if (number < 3 || number > 9 || letter < 0 || letter > 2) {
+            return null
+        }
+        
+        val letterChar = when (letter) {
+            0 -> "a"
+            1 -> "b"
+            2 -> "c"
+            else -> return null
+        }
+        
+        val modifier = when (modifierValue) {
+            5 -> "+"
+            -5, 995 -> "-" // Handle both positive and wrapped negative values
+            0 -> ""
+            else -> ""
+        }
+        
+        return "$number$letterChar$modifier"
+    }
+    
+    /**
      * Checks if a grade matches the specified range
      *
      * @param grade The grade to check
