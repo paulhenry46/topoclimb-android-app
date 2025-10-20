@@ -52,62 +52,19 @@ class AreaDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = AreaDetailUiState(isLoading = true, areaId = areaId)
             
-            // Load area details
-            val areaResult = repository.getArea(areaId)
+            val result = fetchAreaData(areaId)
             
-            if (areaResult.isFailure) {
+            if (result.isFailure) {
                 _uiState.value = AreaDetailUiState(
                     isLoading = false,
                     isRefreshing = false,
-                    error = areaResult.exceptionOrNull()?.message ?: "Failed to load area details",
+                    error = result.exceptionOrNull()?.message ?: "Failed to load area details",
                     areaId = areaId
                 )
                 return@launch
             }
             
-            val area = areaResult.getOrNull()
-            
-            // Load site to get the grading system
-            var gradingSystem: GradingSystem? = null
-            area?.siteId?.let { siteId ->
-                val siteResult = repository.getSite(siteId)
-                gradingSystem = siteResult.getOrNull()?.gradingSystem
-            }
-            
-            // Load sectors for the area
-            val sectorsResult = repository.getSectorsByArea(areaId)
-            val sectors = sectorsResult.getOrNull() ?: emptyList()
-            
-            // Load routes for the area (all routes initially)
-            val routesResult = repository.getRoutesByArea(areaId)
-            val routes = routesResult.getOrNull() ?: emptyList()
-            
-            // Fetch SVG map content from URL if available
-            val svgContent = area?.svgMap?.let { mapUrl ->
-                try {
-                    withContext(Dispatchers.IO) {
-                        val request = Request.Builder()
-                            .url(mapUrl)
-                            .build()
-                        
-                        httpClient.newCall(request).execute().use { response ->
-                            if (response.isSuccessful) {
-                                response.body?.string()
-                            } else {
-                                null
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
-            }
-            
-            // Convert routes to RouteWithMetadata (no metadata for area-level view)
-            val routesWithMetadata = routes.map { route ->
-                RouteWithMetadata(route)
-            }
+            val (area, gradingSystem, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -135,15 +92,45 @@ class AreaDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = currentState.copy(isRefreshing = true, error = null)
             
-            // Load area details
-            val areaResult = repository.getArea(areaId)
+            val result = fetchAreaData(areaId)
             
-            if (areaResult.isFailure) {
+            if (result.isFailure) {
                 _uiState.value = currentState.copy(
                     isRefreshing = false,
-                    error = areaResult.exceptionOrNull()?.message ?: "Failed to refresh area details"
+                    error = result.exceptionOrNull()?.message ?: "Failed to refresh area details"
                 )
                 return@launch
+            }
+            
+            val (area, gradingSystem, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            
+            // Cache all routes for filtering
+            allRoutesCache = routes
+            allRoutesWithMetadataCache = routesWithMetadata
+            
+            _uiState.value = currentState.copy(
+                isRefreshing = false,
+                area = area,
+                routes = routes,
+                routesWithMetadata = routesWithMetadata,
+                sectors = sectors,
+                error = null,
+                svgMapContent = svgContent,
+                gradingSystem = gradingSystem
+            )
+        }
+    }
+    
+    /**
+     * Helper method to fetch area data including site grading system
+     * Returns a Result containing all area-related data
+     */
+    private suspend fun fetchAreaData(areaId: Int): Result<AreaData> {
+        return try {
+            // Load area details
+            val areaResult = repository.getArea(areaId)
+            if (areaResult.isFailure) {
+                return Result.failure(areaResult.exceptionOrNull() ?: Exception("Failed to load area"))
             }
             
             val area = areaResult.getOrNull()
@@ -159,7 +146,7 @@ class AreaDetailViewModel : ViewModel() {
             val sectorsResult = repository.getSectorsByArea(areaId)
             val sectors = sectorsResult.getOrNull() ?: emptyList()
             
-            // Load routes for the area (all routes initially)
+            // Load routes for the area
             val routesResult = repository.getRoutesByArea(areaId)
             val routes = routesResult.getOrNull() ?: emptyList()
             
@@ -185,27 +172,28 @@ class AreaDetailViewModel : ViewModel() {
                 }
             }
             
-            // Convert routes to RouteWithMetadata (no metadata for area-level view)
+            // Convert routes to RouteWithMetadata
             val routesWithMetadata = routes.map { route ->
                 RouteWithMetadata(route)
             }
             
-            // Cache all routes for filtering
-            allRoutesCache = routes
-            allRoutesWithMetadataCache = routesWithMetadata
-            
-            _uiState.value = currentState.copy(
-                isRefreshing = false,
-                area = area,
-                routes = routes,
-                routesWithMetadata = routesWithMetadata,
-                sectors = sectors,
-                error = null,
-                svgMapContent = svgContent,
-                gradingSystem = gradingSystem
-            )
+            Result.success(AreaData(area, gradingSystem, sectors, routes, routesWithMetadata, svgContent))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
+    
+    /**
+     * Data class to hold all area-related data
+     */
+    private data class AreaData(
+        val area: Area?,
+        val gradingSystem: GradingSystem?,
+        val sectors: List<Sector>,
+        val routes: List<Route>,
+        val routesWithMetadata: List<RouteWithMetadata>,
+        val svgContent: String?
+    )
     
     fun filterRoutesBySector(sectorId: Int?) {
         viewModelScope.launch {

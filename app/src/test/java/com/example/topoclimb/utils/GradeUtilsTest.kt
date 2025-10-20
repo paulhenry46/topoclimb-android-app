@@ -119,4 +119,22 @@ class GradeUtilsTest {
         assertTrue(GradeUtils.matchesGradeRange("3a", null, null, null))
         assertTrue(GradeUtils.matchesGradeRange("9a", null, null, null))
     }
+    
+    @Test
+    fun gradeToPoints_handlesEmptyAndBlankStrings() {
+        // Empty string should return 0
+        assertEquals(0, GradeUtils.gradeToPoints("", null))
+        
+        // Blank string should return 0
+        assertEquals(0, GradeUtils.gradeToPoints("   ", null))
+        
+        // Also with grading system
+        val gradingSystem = GradingSystem(
+            free = false,
+            hint = "Test",
+            points = mapOf("6a" to 600)
+        )
+        assertEquals(0, GradeUtils.gradeToPoints("", gradingSystem))
+        assertEquals(0, GradeUtils.gradeToPoints("  ", gradingSystem))
+    }
 }

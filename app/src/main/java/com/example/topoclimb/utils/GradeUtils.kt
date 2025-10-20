@@ -13,9 +13,14 @@ object GradeUtils {
      *
      * @param grade The grade string (e.g., "6a", "7b+")
      * @param gradingSystem Optional grading system with points mapping
-     * @return Numeric value representing the grade
+     * @return Numeric value representing the grade, or 0 if invalid
      */
     fun gradeToPoints(grade: String, gradingSystem: GradingSystem?): Int {
+        // Validate input
+        if (grade.isBlank()) {
+            return 0
+        }
+        
         // First try to use the grading system if available
         gradingSystem?.points?.get(grade)?.let { return it }
         
