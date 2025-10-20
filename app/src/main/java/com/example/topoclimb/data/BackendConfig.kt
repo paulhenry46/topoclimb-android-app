@@ -14,7 +14,10 @@ data class BackendConfig(
     @SerializedName("created_at")
     val createdAt: Long = System.currentTimeMillis(),
     @SerializedName("updated_at")
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val authToken: String? = null,
+    val user: User? = null,
+    val isDefault: Boolean = false
 ) {
     /**
      * Validates that the base URL is properly formatted
@@ -23,6 +26,13 @@ data class BackendConfig(
         return baseUrl.isNotBlank() && 
                (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) &&
                baseUrl.endsWith("/")
+    }
+    
+    /**
+     * Check if this backend is authenticated
+     */
+    fun isAuthenticated(): Boolean {
+        return authToken != null && user != null
     }
     
     /**

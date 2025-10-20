@@ -7,6 +7,8 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -198,7 +200,50 @@ fun NavigationGraph(
             com.example.topoclimb.ui.screens.BackendManagementScreen(
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onNavigateToLogin = { backendId, backendName ->
+                    navController.navigate("login/$backendId/$backendName")
                 }
+            )
+        }
+        
+        composable(
+            route = "login/{backendId}/{backendName}",
+            arguments = listOf(
+                navArgument("backendId") {
+                    type = NavType.StringType
+                },
+                navArgument("backendName") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val backendName = backStackEntry.arguments?.getString("backendName") ?: return@composable
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("backends")
+            }
+            val viewModel: com.example.topoclimb.viewmodel.BackendManagementViewModel = viewModel(
+                viewModelStoreOwner = parentEntry
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            
+            LaunchedEffect(uiState.successMessage) {
+                if (uiState.successMessage?.contains("logged in") == true) {
+                    navController.popBackStack()
+                }
+            }
+            
+            com.example.topoclimb.ui.screens.LoginScreen(
+                backendName = backendName,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onLoginClick = { email, password ->
+                    viewModel.login(backendId, email, password)
+                },
+                isLoading = uiState.loginInProgress,
+                error = uiState.loginError
             )
         }
     }

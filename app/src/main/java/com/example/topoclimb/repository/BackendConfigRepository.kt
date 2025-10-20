@@ -174,6 +174,83 @@ class BackendConfigRepository(context: Context) {
         return _backends.value.find { it.id == backendId }
     }
     
+    /**
+     * Get the default backend for user profile data
+     */
+    fun getDefaultBackend(): BackendConfig? {
+        return _backends.value.find { it.isDefault } 
+            ?: _backends.value.find { it.isAuthenticated() }
+    }
+    
+    /**
+     * Set a backend as the default for user profile data
+     */
+    fun setDefaultBackend(backendId: String): Result<Unit> {
+        return try {
+            val updatedBackends = _backends.value.map { 
+                it.copy(
+                    isDefault = it.id == backendId,
+                    updatedAt = System.currentTimeMillis()
+                )
+            }
+            _backends.value = updatedBackends
+            saveBackends()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Authenticate a backend with user credentials
+     */
+    fun authenticateBackend(backendId: String, authToken: String, user: com.example.topoclimb.data.User): Result<Unit> {
+        return try {
+            val updatedBackends = _backends.value.map { 
+                if (it.id == backendId) {
+                    it.copy(
+                        authToken = authToken,
+                        user = user,
+                        isDefault = _backends.value.none { b -> b.isDefault },
+                        updatedAt = System.currentTimeMillis()
+                    )
+                } else {
+                    it
+                }
+            }
+            _backends.value = updatedBackends
+            saveBackends()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Log out from a backend
+     */
+    fun logoutBackend(backendId: String): Result<Unit> {
+        return try {
+            val updatedBackends = _backends.value.map { 
+                if (it.id == backendId) {
+                    it.copy(
+                        authToken = null,
+                        user = null,
+                        isDefault = false,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                } else {
+                    it
+                }
+            }
+            _backends.value = updatedBackends
+            saveBackends()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
     companion object {
         private const val PREFS_NAME = "topoclimb_backends"
         private const val KEY_BACKENDS = "backends"

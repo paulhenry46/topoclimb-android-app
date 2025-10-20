@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
@@ -22,6 +23,7 @@ import com.example.topoclimb.viewmodel.BackendManagementViewModel
 @Composable
 fun BackendManagementScreen(
     onBackClick: () -> Unit,
+    onNavigateToLogin: (String, String) -> Unit = { _, _ -> },
     viewModel: BackendManagementViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -91,7 +93,16 @@ fun BackendManagementScreen(
                         editingBackend = backend
                         showEditDialog = true
                     },
-                    onDelete = { viewModel.deleteBackend(backend.id) }
+                    onDelete = { viewModel.deleteBackend(backend.id) },
+                    onLogin = {
+                        onNavigateToLogin(backend.id, backend.name)
+                    },
+                    onLogout = {
+                        viewModel.logout(backend.id)
+                    },
+                    onSetDefault = {
+                        viewModel.setDefaultBackend(backend.id)
+                    }
                 )
             }
             
@@ -155,7 +166,10 @@ fun BackendItem(
     backend: BackendConfig,
     onToggleEnabled: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onLogin: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    onSetDefault: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -170,16 +184,51 @@ fun BackendItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = backend.name,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = backend.name,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        if (backend.isAuthenticated()) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Authenticated",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        if (backend.isDefault) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = "Default",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = backend.baseUrl,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (backend.isAuthenticated() && backend.user != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Logged in as ${backend.user.name}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
                 
                 Row {
@@ -194,18 +243,37 @@ fun BackendItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                TextButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Edit")
+                Row {
+                    if (backend.isAuthenticated()) {
+                        TextButton(onClick = onLogout) {
+                            Text("Logout")
+                        }
+                        if (!backend.isDefault) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(onClick = onSetDefault) {
+                                Text("Set as Default")
+                            }
+                        }
+                    } else {
+                        TextButton(onClick = onLogin) {
+                            Text("Login")
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Delete")
+                Row {
+                    TextButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Edit")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Delete")
+                    }
                 }
             }
         }
