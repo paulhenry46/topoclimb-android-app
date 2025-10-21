@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Lens
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.Dialog
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
@@ -67,7 +69,6 @@ fun RouteDetailBottomSheet(
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     var isBookmarked by remember { mutableStateOf(false) }
-    var isSucceeded by remember { mutableStateOf(false) }
     
     LaunchedEffect(routeWithMetadata.id) {
         viewModel.loadRouteDetails(routeWithMetadata.id)
@@ -93,15 +94,16 @@ fun RouteDetailBottomSheet(
                         routeWithMetadata = routeWithMetadata,
                         uiState = uiState,
                         isBookmarked = isBookmarked,
-                        isSucceeded = isSucceeded,
                         onBookmarkClick = { isBookmarked = !isBookmarked },
-                        onSucceededClick = { isSucceeded = !isSucceeded },
-                        onFocusToggle = { viewModel.toggleFocusMode() }
+                        onFocusToggle = { viewModel.toggleFocusMode() },
+                        viewModel = viewModel,
+                        onLogCreated = { selectedTab = 1 } // Switch to Logs tab after creating a log
                     )
                     1 -> LogsTab(
                         uiState = uiState,
                         routeWithMetadata = routeWithMetadata,
-                        gradingSystem = gradingSystem
+                        gradingSystem = gradingSystem,
+                        viewModel = viewModel
                     )
                 }
             }
@@ -137,10 +139,10 @@ private fun OverviewTab(
     routeWithMetadata: RouteWithMetadata,
     uiState: com.example.topoclimb.viewmodel.RouteDetailUiState,
     isBookmarked: Boolean,
-    isSucceeded: Boolean,
     onBookmarkClick: () -> Unit,
-    onSucceededClick: () -> Unit,
-    onFocusToggle: () -> Unit
+    onFocusToggle: () -> Unit,
+    viewModel: RouteDetailViewModel,
+    onLogCreated: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -333,11 +335,11 @@ private fun OverviewTab(
                         )
                     }
 
-                    IconButton(onClick = onSucceededClick) {
+                    IconButton(onClick = onLogCreated) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = if (isSucceeded) "Mark as not succeeded" else "Mark as succeeded",
-                            tint = if (isSucceeded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            contentDescription = if (uiState.isRouteLogged) "Already logged" else "Log this route",
+                            tint = if (uiState.isRouteLogged) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -489,9 +491,11 @@ private fun MetadataRow(
 private fun LogsTab(
     uiState: com.example.topoclimb.viewmodel.RouteDetailUiState,
     routeWithMetadata: RouteWithMetadata,
-    gradingSystem: GradingSystem?
+    gradingSystem: GradingSystem?,
+    viewModel: RouteDetailViewModel
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
+    var showCreateLogDialog by remember { mutableStateOf(false) }
     
     // Filter logs based on the toggle state
     val filteredLogs = remember(uiState.logs, showOnlyWithComments) {
@@ -507,120 +511,174 @@ private fun LogsTab(
             .fillMaxWidth()
             .heightIn(min = 400.dp, max = 600.dp)
     ) {
-        // Filter header
+        // Filter header with Add Log button
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Filter Logs",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = if (showOnlyWithComments) "Showing logs with comments" else "Showing all logs",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Filter Logs",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (showOnlyWithComments) "Showing logs with comments" else "Showing all logs",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "With Comments",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Switch(
+                            checked = showOnlyWithComments,
+                            onCheckedChange = { showOnlyWithComments = it }
+                        )
+                    }
                 }
                 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Add Log button
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = { showCreateLogDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isCreatingLog
                 ) {
-                    Text(
-                        text = "With Comments",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Switch(
-                        checked = showOnlyWithComments,
-                        onCheckedChange = { showOnlyWithComments = it }
-                    )
+                    if (uiState.isCreatingLog) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Add Log")
+                    }
                 }
             }
         }
         
-        // Content
-        when {
-            uiState.isLogsLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
+        // Content with pull-to-refresh
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshingLogs,
+            onRefresh = { viewModel.refreshLogs(routeWithMetadata.id) },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when {
+                uiState.isLogsLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
-            }
-            uiState.logsError != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                uiState.logsError != null -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Failed to load logs",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = uiState.logsError,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                filteredLogs.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Failed to load logs",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = uiState.logsError,
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = if (showOnlyWithComments) "No logs with comments" else "No logs yet",
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-            }
-            filteredLogs.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (showOnlyWithComments) "No logs with comments" else "No logs yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    filteredLogs.forEach { log ->
-                        LogCard(
-                            log = log,
-                            routeGrade = routeWithMetadata.grade,
-                            gradingSystem = gradingSystem
-                        )
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        filteredLogs.forEach { log ->
+                            LogCard(
+                                log = log,
+                                routeGrade = routeWithMetadata.grade,
+                                gradingSystem = gradingSystem
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+    
+    // Create Log Dialog
+    if (showCreateLogDialog) {
+        CreateLogDialog(
+            routeWithMetadata = routeWithMetadata,
+            gradingSystem = gradingSystem,
+            uiState = uiState,
+            onDismiss = {
+                showCreateLogDialog = false
+                viewModel.resetCreateLogState()
+            },
+            onCreateLog = { grade, type, way, comment, videoUrl ->
+                viewModel.createLog(
+                    routeId = routeWithMetadata.id,
+                    grade = grade,
+                    type = type,
+                    way = way,
+                    comment = comment,
+                    videoUrl = videoUrl,
+                    onSuccess = {
+                        showCreateLogDialog = false
+                    }
+                )
+            }
+        )
     }
 }
 
@@ -941,4 +999,204 @@ private fun formatLogDate(dateString: String): String {
 
 private fun String.capitalize(): String {
     return this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateLogDialog(
+    routeWithMetadata: RouteWithMetadata,
+    gradingSystem: GradingSystem?,
+    uiState: com.example.topoclimb.viewmodel.RouteDetailUiState,
+    onDismiss: () -> Unit,
+    onCreateLog: (grade: Int, type: String, way: String, comment: String?, videoUrl: String?) -> Unit
+) {
+    var selectedGrade by remember { mutableStateOf(routeWithMetadata.grade ?: "") }
+    var selectedType by remember { mutableStateOf("work") }
+    var selectedWay by remember { mutableStateOf("bouldering") }
+    var comment by remember { mutableStateOf("") }
+    var videoUrl by remember { mutableStateOf("") }
+    var showTypeDropdown by remember { mutableStateOf(false) }
+    var showWayDropdown by remember { mutableStateOf(false) }
+    
+    val types = listOf("work", "flash", "view")
+    val ways = listOf("top-rope", "lead", "bouldering")
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Log Route",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                
+                // Show error if any
+                if (uiState.createLogError != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Text(
+                            text = uiState.createLogError,
+                            modifier = Modifier.padding(12.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                
+                // Grade input
+                OutlinedTextField(
+                    value = selectedGrade,
+                    onValueChange = { selectedGrade = it },
+                    label = { Text("Grade") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                
+                // Type dropdown
+                ExposedDropdownMenuBox(
+                    expanded = showTypeDropdown,
+                    onExpandedChange = { showTypeDropdown = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedType.capitalize(),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Type") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTypeDropdown) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showTypeDropdown,
+                        onDismissRequest = { showTypeDropdown = false }
+                    ) {
+                        types.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.capitalize()) },
+                                onClick = {
+                                    selectedType = type
+                                    showTypeDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                // Way dropdown
+                ExposedDropdownMenuBox(
+                    expanded = showWayDropdown,
+                    onExpandedChange = { showWayDropdown = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedWay.capitalize(),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Way") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showWayDropdown) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showWayDropdown,
+                        onDismissRequest = { showWayDropdown = false }
+                    ) {
+                        ways.forEach { way ->
+                            DropdownMenuItem(
+                                text = { Text(way.capitalize()) },
+                                onClick = {
+                                    selectedWay = way
+                                    showWayDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                // Comment input
+                OutlinedTextField(
+                    value = comment,
+                    onValueChange = { if (it.length <= 1000) comment = it },
+                    label = { Text("Comment (optional)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    maxLines = 5,
+                    supportingText = {
+                        Text("${comment.length}/1000")
+                    }
+                )
+                
+                // Video URL input
+                OutlinedTextField(
+                    value = videoUrl,
+                    onValueChange = { if (it.length <= 255) videoUrl = it },
+                    label = { Text("Video URL (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    supportingText = {
+                        Text("${videoUrl.length}/255")
+                    }
+                )
+                
+                // Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        enabled = !uiState.isCreatingLog
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            val gradePoints = GradeUtils.gradeToPoints(selectedGrade, gradingSystem)
+                            if (gradePoints in 300..950) {
+                                onCreateLog(
+                                    gradePoints,
+                                    selectedType,
+                                    selectedWay,
+                                    comment.takeIf { it.isNotBlank() },
+                                    videoUrl.takeIf { it.isNotBlank() }
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = !uiState.isCreatingLog && selectedGrade.isNotBlank()
+                    ) {
+                        if (uiState.isCreatingLog) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Text("Create")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

@@ -41,6 +41,22 @@ sealed class BottomNavItem(
 @Composable
 fun TopoClimbApp() {
     val navController = rememberNavController()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
+    // Load user's logged routes when app starts
+    LaunchedEffect(Unit) {
+        try {
+            val repository = com.example.topoclimb.repository.BackendConfigRepository(context)
+            val authToken = repository.getDefaultBackend()?.authToken
+            if (authToken != null) {
+                val response = com.example.topoclimb.network.RetrofitInstance.api.getUserLogs("Bearer $authToken")
+                com.example.topoclimb.viewmodel.RouteDetailViewModel.updateSharedLoggedRoutes(response.data.toSet())
+            }
+        } catch (e: Exception) {
+            // Silently fail - user might not be authenticated
+            println("Failed to load user logged routes on app start: ${e.message}")
+        }
+    }
     
     Scaffold(
         bottomBar = {

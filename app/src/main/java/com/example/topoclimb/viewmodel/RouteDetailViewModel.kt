@@ -1,10 +1,13 @@
 package com.example.topoclimb.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.topoclimb.data.CreateLogRequest
 import com.example.topoclimb.data.Log
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.network.RetrofitInstance
+import com.example.topoclimb.repository.BackendConfigRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,12 +26,47 @@ data class RouteDetailUiState(
     val isPictureLoading: Boolean = false,
     val logs: List<Log> = emptyList(),
     val isLogsLoading: Boolean = false,
-    val logsError: String? = null
+    val logsError: String? = null,
+    val isCreatingLog: Boolean = false,
+    val createLogError: String? = null,
+    val createLogSuccess: Boolean = false,
+    val isRefreshingLogs: Boolean = false,
+    val isRouteLogged: Boolean = false
 )
 
-class RouteDetailViewModel : ViewModel() {
+class RouteDetailViewModel(
+    application: Application
+) : AndroidViewModel(application) {
+    private val repository = BackendConfigRepository(application)
+    
     private val _uiState = MutableStateFlow(RouteDetailUiState())
     val uiState: StateFlow<RouteDetailUiState> = _uiState.asStateFlow()
+    
+    private val _userLoggedRouteIds = MutableStateFlow<Set<Int>>(emptySet())
+    val userLoggedRouteIds: StateFlow<Set<Int>> = _userLoggedRouteIds.asStateFlow()
+    
+    companion object {
+        // Shared state for logged routes across all ViewModels
+        private val _sharedLoggedRouteIds = MutableStateFlow<Set<Int>>(emptySet())
+        val sharedLoggedRouteIds: StateFlow<Set<Int>> = _sharedLoggedRouteIds.asStateFlow()
+        
+        fun updateSharedLoggedRoutes(routeIds: Set<Int>) {
+            _sharedLoggedRouteIds.value = routeIds
+        }
+        
+        fun addLoggedRoute(routeId: Int) {
+            _sharedLoggedRouteIds.value = _sharedLoggedRouteIds.value + routeId
+        }
+    }
+    
+    init {
+        // Sync local state with shared state
+        viewModelScope.launch {
+            sharedLoggedRouteIds.collect { loggedRouteIds ->
+                _userLoggedRouteIds.value = loggedRouteIds
+            }
+        }
+    }
     
     fun loadRouteDetails(routeId: Int) {
         viewModelScope.launch {
@@ -48,6 +86,9 @@ class RouteDetailViewModel : ViewModel() {
                 
                 // Load logs for this route
                 loadRouteLogs(routeId)
+                
+                // Check if this route is logged by the user
+                updateRouteLoggedState(routeId)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -126,5 +167,118 @@ class RouteDetailViewModel : ViewModel() {
                 )
             }
         }
+    }
+    
+    fun refreshLogs(routeId: Int) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshingLogs = true, logsError = null)
+            
+            try {
+                val logsResponse = RetrofitInstance.api.getRouteLogs(routeId)
+                _uiState.value = _uiState.value.copy(
+                    logs = logsResponse.data,
+                    isRefreshingLogs = false
+                )
+                
+                // Update the logged state after refreshing
+                updateRouteLoggedState(routeId)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isRefreshingLogs = false,
+                    logsError = e.message ?: "Failed to refresh logs"
+                )
+            }
+        }
+    }
+    
+    fun createLog(
+        routeId: Int,
+        grade: Int,
+        type: String,
+        way: String,
+        comment: String?,
+        videoUrl: String?,
+        onSuccess: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isCreatingLog = true,
+                createLogError = null,
+                createLogSuccess = false
+            )
+            
+            try {
+                // Get auth token from repository
+                val authToken = repository.getDefaultBackend()?.authToken
+                if (authToken == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isCreatingLog = false,
+                        createLogError = "Not authenticated. Please log in."
+                    )
+                    return@launch
+                }
+                
+                val request = CreateLogRequest(
+                    grade = grade,
+                    type = type,
+                    way = way,
+                    comment = comment?.takeIf { it.isNotBlank() },
+                    videoUrl = videoUrl?.takeIf { it.isNotBlank() }
+                )
+                
+                val response = RetrofitInstance.api.createRouteLog(
+                    routeId = routeId,
+                    request = request,
+                    authToken = "Bearer $authToken"
+                )
+                
+                // Add the new log to the shared logged routes set
+                addLoggedRoute(routeId)
+                
+                _uiState.value = _uiState.value.copy(
+                    isCreatingLog = false,
+                    createLogSuccess = true,
+                    isRouteLogged = true
+                )
+                
+                // Refresh logs to show the new log
+                refreshLogs(routeId)
+                
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isCreatingLog = false,
+                    createLogError = e.message ?: "Failed to create log"
+                )
+            }
+        }
+    }
+    
+    fun resetCreateLogState() {
+        _uiState.value = _uiState.value.copy(
+            createLogError = null,
+            createLogSuccess = false
+        )
+    }
+    
+    fun loadUserLoggedRoutes() {
+        viewModelScope.launch {
+            try {
+                val authToken = repository.getDefaultBackend()?.authToken
+                if (authToken != null) {
+                    val response = RetrofitInstance.api.getUserLogs("Bearer $authToken")
+                    updateSharedLoggedRoutes(response.data.toSet())
+                }
+            } catch (e: Exception) {
+                // Silently fail - user might not be authenticated
+                println("Failed to load user logged routes: ${e.message}")
+            }
+        }
+    }
+    
+    private fun updateRouteLoggedState(routeId: Int) {
+        _uiState.value = _uiState.value.copy(
+            isRouteLogged = _userLoggedRouteIds.value.contains(routeId)
+        )
     }
 }
