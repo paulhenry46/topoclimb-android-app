@@ -27,6 +27,9 @@ import retrofit2.http.Query
 
 interface TopoClimbApiService {
     
+    @GET("meta")
+    suspend fun getMeta(): com.example.topoclimb.data.InstanceMeta
+    
     @POST("login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
     

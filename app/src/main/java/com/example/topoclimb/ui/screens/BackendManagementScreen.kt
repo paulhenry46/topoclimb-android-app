@@ -14,8 +14,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.topoclimb.data.BackendConfig
 import com.example.topoclimb.viewmodel.BackendManagementViewModel
 
@@ -131,11 +134,16 @@ fun BackendManagementScreen(
     
     if (showAddDialog) {
         AddBackendDialog(
-            onDismiss = { showAddDialog = false },
+            onDismiss = { 
+                viewModel.clearInstanceMeta()
+                showAddDialog = false 
+            },
             onAdd = { name, url ->
                 viewModel.addBackend(name, url)
+                viewModel.clearInstanceMeta()
                 showAddDialog = false
-            }
+            },
+            viewModel = viewModel
         )
     }
     
@@ -283,25 +291,38 @@ fun BackendItem(
 @Composable
 fun AddBackendDialog(
     onDismiss: () -> Unit,
-    onAdd: (String, String) -> Unit
+    onAdd: (String, String) -> Unit,
+    viewModel: BackendManagementViewModel
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     var name by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var urlError by remember { mutableStateOf<String?>(null) }
+    
+    val instanceMeta = uiState.instanceMeta
+    
+    // Trigger meta fetch when URL is valid
+    LaunchedEffect(url, urlError) {
+        if (url.isNotBlank() && urlError == null && validateUrl(url) == null) {
+            kotlinx.coroutines.delay(500) // Debounce
+            viewModel.fetchInstanceMeta(url)
+        } else if (url.isBlank() || urlError != null) {
+            viewModel.clearInstanceMeta()
+        }
+    }
+    
+    // Auto-fill name if meta is loaded and name is empty
+    LaunchedEffect(instanceMeta) {
+        if (instanceMeta != null && name.isBlank()) {
+            name = instanceMeta.name
+        }
+    }
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add TopoClimb Instance") },
         text = {
             Column {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Instance Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = url,
                     onValueChange = {
@@ -319,6 +340,73 @@ fun AddBackendDialog(
                             Text("Must end with /")
                         }
                     }
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Show instance metadata if available
+                if (uiState.metaLoading) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Fetching instance info...", style = MaterialTheme.typography.bodySmall)
+                    }
+                } else if (instanceMeta != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (instanceMeta.pictureUrl != null) {
+                                AsyncImage(
+                                    model = instanceMeta.pictureUrl,
+                                    contentDescription = "Instance logo",
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(MaterialTheme.shapes.small),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = instanceMeta.name,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                )
+                                Text(
+                                    text = instanceMeta.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "Version ${instanceMeta.version}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Instance Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
             }
         },

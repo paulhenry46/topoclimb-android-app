@@ -19,7 +19,9 @@ data class BackendManagementUiState(
     val successMessage: String? = null,
     val showRestartWarning: Boolean = false,
     val loginInProgress: Boolean = false,
-    val loginError: String? = null
+    val loginError: String? = null,
+    val instanceMeta: com.example.topoclimb.data.InstanceMeta? = null,
+    val metaLoading: Boolean = false
 )
 
 class BackendManagementViewModel(
@@ -209,5 +211,35 @@ class BackendManagementViewModel(
                     )
                 }
         }
+    }
+    
+    fun fetchInstanceMeta(baseUrl: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(metaLoading = true, instanceMeta = null)
+            
+            try {
+                val tempBackend = BackendConfig(
+                    name = "Temp",
+                    baseUrl = baseUrl,
+                    enabled = true
+                )
+                val apiService = retrofitManager.getApiService(tempBackend)
+                val meta = apiService.getMeta()
+                
+                _uiState.value = _uiState.value.copy(
+                    instanceMeta = meta,
+                    metaLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    instanceMeta = null,
+                    metaLoading = false
+                )
+            }
+        }
+    }
+    
+    fun clearInstanceMeta() {
+        _uiState.value = _uiState.value.copy(instanceMeta = null, metaLoading = false)
     }
 }
