@@ -80,7 +80,7 @@ interface TopoClimbApiService {
     @GET("routes/{route}/logs")
     suspend fun getRouteLogs(@Path("route") routeId: Int): LogsResponse
     
-    @POST("routes/{route}/logs")
+    @POST("routes/{route}/logs/create")
     suspend fun createRouteLog(
         @Path("route") routeId: Int,
         @Body request: CreateLogRequest,
