@@ -46,6 +46,9 @@ fun AreaDetailScreen(
     val density = LocalDensity.current
     val primaryColorHex = String.format("#%06X", 0xFFFFFF and MaterialTheme.colorScheme.primary.toArgb())
     
+    // Get shared logged routes state
+    val loggedRouteIds by com.example.topoclimb.viewmodel.RouteDetailViewModel.sharedLoggedRouteIds.collectAsState()
+    
     // Remember the map height once it's been measured
     var mapHeight by remember { mutableStateOf(0.dp) }
     
@@ -366,6 +369,7 @@ fun AreaDetailScreen(
                                 color = routeWithMetadata.color,
                                 name = routeWithMetadata.name,
                                 localId = localId,
+                                isClimbed = loggedRouteIds.contains(routeWithMetadata.id),
                                 onClick = {
                                     selectedRouteWithMetadata = routeWithMetadata
                                     showBottomSheet = true

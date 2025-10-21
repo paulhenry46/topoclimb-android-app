@@ -23,3 +23,29 @@ data class Log(
 data class LogsResponse(
     val data: List<Log>
 )
+
+/**
+ * Request body for creating a new log
+ */
+data class CreateLogRequest(
+    val grade: Int, // Difficulty grade value (300-950)
+    val type: String, // Type of ascent: "work", "flash", "view"
+    val way: String, // Climbing style: "top-rope", "lead", "bouldering"
+    val comment: String? = null, // Optional comments (max 1000 chars)
+    @SerializedName("video_url")
+    val videoUrl: String? = null // Optional video URL (max 255 chars)
+)
+
+/**
+ * Response from creating a log
+ */
+data class CreateLogResponse(
+    val data: Log
+)
+
+/**
+ * Response from user/logs endpoint containing route IDs the user has logged
+ */
+data class UserLogsResponse(
+    val data: List<Int> // List of route IDs that the user has logged
+)

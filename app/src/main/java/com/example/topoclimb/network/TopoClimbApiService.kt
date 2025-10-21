@@ -6,6 +6,8 @@ import com.example.topoclimb.data.AreasResponse
 import com.example.topoclimb.data.AuthResponse
 import com.example.topoclimb.data.Contest
 import com.example.topoclimb.data.ContestsResponse
+import com.example.topoclimb.data.CreateLogRequest
+import com.example.topoclimb.data.CreateLogResponse
 import com.example.topoclimb.data.Line
 import com.example.topoclimb.data.LinesResponse
 import com.example.topoclimb.data.Log
@@ -19,8 +21,10 @@ import com.example.topoclimb.data.SectorsResponse
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SiteResponse
 import com.example.topoclimb.data.SitesResponse
+import com.example.topoclimb.data.UserLogsResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -75,5 +79,15 @@ interface TopoClimbApiService {
     
     @GET("routes/{route}/logs")
     suspend fun getRouteLogs(@Path("route") routeId: Int): LogsResponse
+    
+    @POST("routes/{route}/logs/create")
+    suspend fun createRouteLog(
+        @Path("route") routeId: Int,
+        @Body request: CreateLogRequest,
+        @Header("Authorization") authToken: String
+    ): CreateLogResponse
+    
+    @GET("user/logs")
+    suspend fun getUserLogs(@Header("Authorization") authToken: String): UserLogsResponse
 }
 
