@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.BackendConfig
+import com.example.topoclimb.data.LoginRequest
+import com.example.topoclimb.network.MultiBackendRetrofitManager
 import com.example.topoclimb.repository.BackendConfigRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,11 @@ data class BackendManagementUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
-    val showRestartWarning: Boolean = false
+    val showRestartWarning: Boolean = false,
+    val loginInProgress: Boolean = false,
+    val loginError: String? = null,
+    val instanceMeta: com.example.topoclimb.data.InstanceMeta? = null,
+    val metaLoading: Boolean = false
 )
 
 class BackendManagementViewModel(
@@ -23,6 +29,7 @@ class BackendManagementViewModel(
 ) : AndroidViewModel(application) {
     
     private val repository = BackendConfigRepository(application)
+    private val retrofitManager = MultiBackendRetrofitManager()
     
     private val _uiState = MutableStateFlow(BackendManagementUiState())
     val uiState: StateFlow<BackendManagementUiState> = _uiState.asStateFlow()
@@ -124,10 +131,115 @@ class BackendManagementViewModel(
     }
     
     fun clearMessages() {
-        _uiState.value = _uiState.value.copy(error = null, successMessage = null)
+        _uiState.value = _uiState.value.copy(error = null, successMessage = null, loginError = null)
     }
     
     fun dismissRestartWarning() {
         _uiState.value = _uiState.value.copy(showRestartWarning = false)
+    }
+    
+    fun login(backendId: String, email: String, password: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(loginInProgress = true, loginError = null)
+            
+            try {
+                val backend = repository.getBackend(backendId)
+                if (backend == null) {
+                    _uiState.value = _uiState.value.copy(
+                        loginInProgress = false,
+                        loginError = "Backend not found"
+                    )
+                    return@launch
+                }
+                
+                val apiService = retrofitManager.getApiService(backend)
+                val response = apiService.login(LoginRequest(email, password))
+                
+                repository.authenticateBackend(backendId, response.token, response.user)
+                    .onSuccess {
+                        _uiState.value = _uiState.value.copy(
+                            loginInProgress = false,
+                            successMessage = "Successfully logged in as ${response.user.name}"
+                        )
+                    }
+                    .onFailure { exception ->
+                        _uiState.value = _uiState.value.copy(
+                            loginInProgress = false,
+                            loginError = exception.message ?: "Failed to save authentication"
+                        )
+                    }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    loginInProgress = false,
+                    loginError = e.message ?: "Login failed"
+                )
+            }
+        }
+    }
+    
+    fun logout(backendId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(error = null, successMessage = null)
+            
+            repository.logoutBackend(backendId)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        successMessage = "Successfully logged out"
+                    )
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        error = exception.message ?: "Failed to log out"
+                    )
+                }
+        }
+    }
+    
+    fun setDefaultBackend(backendId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(error = null, successMessage = null)
+            
+            repository.setDefaultBackend(backendId)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        successMessage = "Default instance updated"
+                    )
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        error = exception.message ?: "Failed to set default instance"
+                    )
+                }
+        }
+    }
+    
+    fun fetchInstanceMeta(baseUrl: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(metaLoading = true, instanceMeta = null)
+            
+            try {
+                val tempBackend = BackendConfig(
+                    name = "Temp",
+                    baseUrl = baseUrl,
+                    enabled = true
+                )
+                val apiService = retrofitManager.getApiService(tempBackend)
+                val meta = apiService.getMeta()
+                
+                _uiState.value = _uiState.value.copy(
+                    instanceMeta = meta,
+                    metaLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    instanceMeta = null,
+                    metaLoading = false
+                )
+            }
+        }
+    }
+    
+    fun clearInstanceMeta() {
+        _uiState.value = _uiState.value.copy(instanceMeta = null, metaLoading = false)
     }
 }
