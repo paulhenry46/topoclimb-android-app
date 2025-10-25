@@ -244,6 +244,14 @@ fun NavigationGraph(
             )
             val uiState by viewModel.uiState.collectAsState()
             
+            // Fetch instance metadata for logo
+            LaunchedEffect(backendId) {
+                val backend = uiState.backends.find { it.id == backendId }
+                backend?.let {
+                    viewModel.fetchInstanceMeta(it.baseUrl)
+                }
+            }
+            
             LaunchedEffect(uiState.successMessage) {
                 if (uiState.successMessage?.contains("logged in") == true) {
                     navController.popBackStack()
@@ -259,7 +267,8 @@ fun NavigationGraph(
                     viewModel.login(backendId, email, password)
                 },
                 isLoading = uiState.loginInProgress,
-                error = uiState.loginError
+                error = uiState.loginError,
+                logoUrl = uiState.instanceMeta?.pictureUrl
             )
         }
     }

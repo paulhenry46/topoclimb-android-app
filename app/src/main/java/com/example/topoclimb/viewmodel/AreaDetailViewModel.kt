@@ -34,8 +34,15 @@ data class AreaDetailUiState(
     val searchQuery: String = "",
     val minGrade: String? = null,
     val maxGrade: String? = null,
-    val showNewRoutesOnly: Boolean = false
+    val showNewRoutesOnly: Boolean = false,
+    val climbedFilter: ClimbedFilter = ClimbedFilter.ALL
 )
+
+enum class ClimbedFilter {
+    ALL,        // Show all routes
+    CLIMBED,    // Show only climbed routes
+    NOT_CLIMBED // Show only not climbed routes
+}
 
 class AreaDetailViewModel : ViewModel() {
     private val repository = TopoClimbRepository()
@@ -47,6 +54,9 @@ class AreaDetailViewModel : ViewModel() {
     // Store all routes before filtering
     private var allRoutesCache: List<Route> = emptyList()
     private var allRoutesWithMetadataCache: List<RouteWithMetadata> = emptyList()
+    
+    // Get logged routes from shared state
+    private val loggedRouteIds: StateFlow<Set<Int>> = RouteDetailViewModel.sharedLoggedRouteIds
     
     fun loadAreaDetails(areaId: Int) {
         viewModelScope.launch {
@@ -292,12 +302,18 @@ class AreaDetailViewModel : ViewModel() {
         applyFilters()
     }
     
+    fun setClimbedFilter(filter: ClimbedFilter) {
+        _uiState.value = _uiState.value.copy(climbedFilter = filter)
+        applyFilters()
+    }
+    
     fun clearFilters() {
         _uiState.value = _uiState.value.copy(
             searchQuery = "",
             minGrade = null,
             maxGrade = null,
-            showNewRoutesOnly = false
+            showNewRoutesOnly = false,
+            climbedFilter = ClimbedFilter.ALL
         )
         applyFilters()
     }
@@ -361,6 +377,30 @@ class AreaDetailViewModel : ViewModel() {
                         false
                     }
                 } ?: false
+            }
+        }
+        
+        // Apply climbed filter
+        val currentLoggedRoutes = loggedRouteIds.value
+        when (currentState.climbedFilter) {
+            ClimbedFilter.CLIMBED -> {
+                filteredRoutes = filteredRoutes.filter { route ->
+                    currentLoggedRoutes.contains(route.id)
+                }
+                filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                    currentLoggedRoutes.contains(routeWithMetadata.id)
+                }
+            }
+            ClimbedFilter.NOT_CLIMBED -> {
+                filteredRoutes = filteredRoutes.filter { route ->
+                    !currentLoggedRoutes.contains(route.id)
+                }
+                filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                    !currentLoggedRoutes.contains(routeWithMetadata.id)
+                }
+            }
+            ClimbedFilter.ALL -> {
+                // No filtering needed
             }
         }
         

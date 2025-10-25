@@ -8,5 +8,6 @@ data class Area(
     val latitude: Double?,
     val longitude: Double?,
     val siteId: Int,
-    @SerializedName("svg_schema") val svgMap: String?
+    @SerializedName("svg_schema") val svgMap: String?,
+    val type: String? // "bouldering" or "traditional"
 )

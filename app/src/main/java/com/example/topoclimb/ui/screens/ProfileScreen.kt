@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -25,6 +26,16 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val user = uiState.user
+    
+    // Refresh profile when the screen is displayed and periodically check for updates
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+        // Continue to check for updates every second while screen is visible
+        while (true) {
+            kotlinx.coroutines.delay(1000)
+            viewModel.refresh()
+        }
+    }
     
     Scaffold(
         topBar = {

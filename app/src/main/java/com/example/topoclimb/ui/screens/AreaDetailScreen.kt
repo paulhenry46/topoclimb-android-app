@@ -333,11 +333,13 @@ fun AreaDetailScreen(
                             showNewRoutesOnly = uiState.showNewRoutesOnly,
                             selectedSectorId = uiState.selectedSectorId,
                             sectors = uiState.sectors,
+                            climbedFilter = uiState.climbedFilter,
                             onSearchQueryChange = { viewModel.updateSearchQuery(it) },
                             onMinGradeChange = { viewModel.updateMinGrade(it) },
                             onMaxGradeChange = { viewModel.updateMaxGrade(it) },
                             onNewRoutesToggle = { viewModel.toggleNewRoutesFilter(it) },
                             onSectorSelected = { viewModel.filterRoutesBySector(it) },
+                            onClimbedFilterChange = { viewModel.setClimbedFilter(it) },
                             onClearFilters = { viewModel.clearFilters() }
                         )
                     }
@@ -443,15 +445,17 @@ fun FilterSection(
     showNewRoutesOnly: Boolean,
     selectedSectorId: Int?,
     sectors: List<com.example.topoclimb.data.Sector>,
+    climbedFilter: com.example.topoclimb.viewmodel.ClimbedFilter,
     onSearchQueryChange: (String) -> Unit,
     onMinGradeChange: (String?) -> Unit,
     onMaxGradeChange: (String?) -> Unit,
     onNewRoutesToggle: (Boolean) -> Unit,
     onSectorSelected: (Int?) -> Unit,
+    onClimbedFilterChange: (com.example.topoclimb.viewmodel.ClimbedFilter) -> Unit,
     onClearFilters: () -> Unit
 ) {
     var showFilters by remember { mutableStateOf(false) }
-    val hasActiveFilters = searchQuery.isNotEmpty() || minGrade != null || maxGrade != null || showNewRoutesOnly
+    val hasActiveFilters = searchQuery.isNotEmpty() || minGrade != null || maxGrade != null || showNewRoutesOnly || climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -551,6 +555,38 @@ fun FilterSection(
                     Switch(
                         checked = showNewRoutesOnly,
                         onCheckedChange = onNewRoutesToggle
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Climbed filter
+                Text(
+                    text = "Climbed Status",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL,
+                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.ALL) },
+                        label = { Text("All") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED,
+                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) },
+                        label = { Text("Climbed") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
+                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) },
+                        label = { Text("Not Climbed") },
+                        modifier = Modifier.weight(1f)
                     )
                 }
                 
