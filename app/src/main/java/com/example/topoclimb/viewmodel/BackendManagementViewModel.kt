@@ -161,6 +161,14 @@ class BackendManagementViewModel(
                             loginInProgress = false,
                             successMessage = "Successfully logged in as ${response.user.name}"
                         )
+                        // Load user's logged routes after successful login
+                        try {
+                            val userLogsResponse = apiService.getUserLogs("Bearer ${response.token}")
+                            RouteDetailViewModel.updateSharedLoggedRoutes(userLogsResponse.data.toSet())
+                        } catch (e: Exception) {
+                            // Silently fail if we can't load logs
+                            println("Failed to load user logs after login: ${e.message}")
+                        }
                     }
                     .onFailure { exception ->
                         _uiState.value = _uiState.value.copy(

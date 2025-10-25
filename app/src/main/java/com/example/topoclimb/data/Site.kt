@@ -16,5 +16,9 @@ data class Site(
     @SerializedName("default_cotation") val defaultCotation: Boolean?,
     @SerializedName("grading_system") val gradingSystem: GradingSystem?,
     @SerializedName("created_at") val createdAt: String?,
-    @SerializedName("updated_at") val updatedAt: String?
+    @SerializedName("updated_at") val updatedAt: String?,
+    val email: String?,
+    val phone: String?,
+    val website: String?,
+    val coordinates: String?
 )
