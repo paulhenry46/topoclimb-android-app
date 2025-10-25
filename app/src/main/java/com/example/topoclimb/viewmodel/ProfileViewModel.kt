@@ -30,29 +30,33 @@ class ProfileViewModel(
     init {
         viewModelScope.launch {
             repository.backends.collect { backends ->
-                val defaultBackend = repository.getDefaultBackend()
-                
-                if (defaultBackend != null && defaultBackend.isAuthenticated()) {
-                    _uiState.value = ProfileUiState(
-                        user = defaultBackend.user,
-                        isAuthenticated = true,
-                        instanceName = defaultBackend.name,
-                        isLoading = false
-                    )
-                } else {
-                    _uiState.value = ProfileUiState(
-                        user = null,
-                        isAuthenticated = false,
-                        instanceName = null,
-                        isLoading = false
-                    )
-                }
+                updateProfile()
             }
         }
     }
     
+    private fun updateProfile() {
+        val defaultBackend = repository.getDefaultBackend()
+        
+        if (defaultBackend != null && defaultBackend.isAuthenticated()) {
+            _uiState.value = ProfileUiState(
+                user = defaultBackend.user,
+                isAuthenticated = true,
+                instanceName = defaultBackend.name,
+                isLoading = false
+            )
+        } else {
+            _uiState.value = ProfileUiState(
+                user = null,
+                isAuthenticated = false,
+                instanceName = null,
+                isLoading = false
+            )
+        }
+    }
+    
     fun refresh() {
-        // The flow collection in init already handles updates
-        // This method is kept for potential future use
+        // Force update profile from current backend state
+        updateProfile()
     }
 }

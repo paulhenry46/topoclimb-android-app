@@ -1,6 +1,8 @@
 package com.example.topoclimb.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -145,55 +150,73 @@ fun SiteDetailScreen(
                                                 site.coordinates != null
                             
                             if (hasContactInfo) {
+                                var isExpanded by remember { mutableStateOf(false) }
+                                
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp)) {
-                                        Text(
-                                            text = "Contact Information",
-                                            style = MaterialTheme.typography.titleLarge,
-                                            modifier = Modifier.padding(bottom = 12.dp)
-                                        )
-                                        
-                                        site.email?.let { email ->
-                                            ContactInfoRow(
-                                                icon = Icons.Default.Email,
-                                                label = "Email",
-                                                value = email
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { isExpanded = !isExpanded },
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Contact Information",
+                                                style = MaterialTheme.typography.titleLarge
+                                            )
+                                            Icon(
+                                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                                tint = MaterialTheme.colorScheme.primary
                                             )
                                         }
                                         
-                                        site.phone?.let { phone ->
-                                            ContactInfoRow(
-                                                icon = Icons.Default.Phone,
-                                                label = "Phone",
-                                                value = phone
-                                            )
-                                        }
-                                        
-                                        site.website?.let { website ->
-                                            ContactInfoRow(
-                                                icon = Icons.Default.Language,
-                                                label = "Website",
-                                                value = website
-                                            )
-                                        }
-                                        
-                                        site.address?.let { address ->
-                                            ContactInfoRow(
-                                                icon = Icons.Default.LocationOn,
-                                                label = "Address",
-                                                value = address
-                                            )
-                                        }
-                                        
-                                        site.coordinates?.let { coordinates ->
-                                            ContactInfoRow(
-                                                icon = Icons.Default.Place,
-                                                label = "Coordinates",
-                                                value = coordinates
-                                            )
+                                        AnimatedVisibility(visible = isExpanded) {
+                                            Column(modifier = Modifier.padding(top = 12.dp)) {
+                                                site.email?.let { email ->
+                                                    ContactInfoRow(
+                                                        icon = Icons.Default.Email,
+                                                        label = "Email",
+                                                        value = email
+                                                    )
+                                                }
+                                                
+                                                site.phone?.let { phone ->
+                                                    ContactInfoRow(
+                                                        icon = Icons.Default.Phone,
+                                                        label = "Phone",
+                                                        value = phone
+                                                    )
+                                                }
+                                                
+                                                site.website?.let { website ->
+                                                    ContactInfoRow(
+                                                        icon = Icons.Default.Language,
+                                                        label = "Website",
+                                                        value = website
+                                                    )
+                                                }
+                                                
+                                                site.address?.let { address ->
+                                                    ContactInfoRow(
+                                                        icon = Icons.Default.LocationOn,
+                                                        label = "Address",
+                                                        value = address
+                                                    )
+                                                }
+                                                
+                                                site.coordinates?.let { coordinates ->
+                                                    ContactInfoRow(
+                                                        icon = Icons.Default.Place,
+                                                        label = "Coordinates",
+                                                        value = coordinates
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
