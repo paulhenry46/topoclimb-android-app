@@ -82,7 +82,11 @@ class FederationTest {
             defaultCotation = null,
             gradingSystem = null,
             createdAt = null,
-            updatedAt = null
+            updatedAt = null,
+            email = null,
+            phone = null,
+            website = null,
+            coordinates = null
         )
         
         val federatedSite = Federated(
@@ -122,7 +126,8 @@ class FederationTest {
             latitude = 48.0,
             longitude = 2.0,
             siteId = 1,
-            svgMap = null
+            svgMap = null,
+            type = null
         )
         
         val federated = Federated(
