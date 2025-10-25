@@ -27,9 +27,14 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val user = uiState.user
     
-    // Refresh profile when the screen is displayed
+    // Refresh profile when the screen is displayed and periodically check for updates
     LaunchedEffect(Unit) {
         viewModel.refresh()
+        // Continue to check for updates every second while screen is visible
+        while (true) {
+            kotlinx.coroutines.delay(1000)
+            viewModel.refresh()
+        }
     }
     
     Scaffold(
