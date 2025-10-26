@@ -3,6 +3,8 @@ package com.example.topoclimb.ui.components
 import android.webkit.WebView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -496,6 +498,7 @@ private fun LogsTab(
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
     var showCreateLogDialog by remember { mutableStateOf(false) }
+    var showHeroMoment by remember { mutableStateOf(false) }
     
     // Filter logs based on the toggle state
     val filteredLogs = remember(uiState.logs, showOnlyWithComments) {
@@ -675,9 +678,21 @@ private fun LogsTab(
                     videoUrl = videoUrl,
                     onSuccess = {
                         showCreateLogDialog = false
+                        showHeroMoment = true
                     }
                 )
             }
+        )
+    }
+    
+    // Hero Moment Screen
+    if (showHeroMoment) {
+        HeroMomentScreen(
+            onDismiss = {
+                showHeroMoment = false
+                viewModel.resetCreateLogState()
+            },
+            routeName = routeWithMetadata.name
         )
     }
 }
@@ -688,8 +703,37 @@ private fun LogCard(
     routeGrade: String?,
     gradingSystem: GradingSystem?
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    // Calculate badge data
+    val typeIcon = when (log.type.lowercase()) {
+        "flash" -> Icons.Filled.FlashOn
+        "view" -> Icons.Filled.Visibility
+        "work" -> Icons.Filled.Lens
+        else -> null
+    }
+    
+    val wayIcon = when (log.way.lowercase()) {
+        "top-rope", "sport" -> Icons.Filled.Lens
+        "lead" -> Icons.Filled.Flag
+        else -> null
+    }
+    
+    val logGradeString = GradeUtils.pointsToGrade(log.grade, gradingSystem) ?: log.grade.toString()
+    
+    val gradeComparison = routeGrade?.let { routeGradeStr ->
+        val routeGradePoints = GradeUtils.gradeToPoints(routeGradeStr, gradingSystem)
+        when {
+            log.grade > routeGradePoints -> GradeComparison.HIGHER
+            log.grade < routeGradePoints -> GradeComparison.LOWER
+            else -> GradeComparison.EQUAL
+        }
+    }
+    
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickableWithoutRipple { isExpanded = !isExpanded },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -767,13 +811,71 @@ private fun LogCard(
                     }
                     
                     Column {
-                        Text(
-                            text = log.userName,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = log.userName,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            
+                            // Compact badges next to username (shown when collapsed)
+                            androidx.compose.animation.AnimatedVisibility(
+                                visible = !isExpanded,
+                                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandHorizontally(),
+                                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkHorizontally()
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Type icon only
+                                    typeIcon?.let { icon ->
+                                        CompactBadge(
+                                            icon = icon,
+                                            containerColor = when (log.type.lowercase()) {
+                                                "flash" -> Color(0xFFFFB74D)
+                                                "redpoint" -> Color(0xFF64B5F6)
+                                                "onsight" -> Color(0xFF81C784)
+                                                else -> MaterialTheme.colorScheme.secondaryContainer
+                                            },
+                                            contentColor = when (log.type.lowercase()) {
+                                                "flash" -> Color(0xFFE65100)
+                                                "redpoint" -> Color(0xFF0D47A1)
+                                                "onsight" -> Color(0xFF1B5E20)
+                                                else -> MaterialTheme.colorScheme.onSecondaryContainer
+                                            }
+                                        )
+                                    }
+                                    
+                                    // Way icon only (only show if not bouldering)
+                                    if (log.way.lowercase() != "bouldering" && wayIcon != null) {
+                                        CompactBadge(
+                                            icon = wayIcon,
+                                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                    }
+                                    
+                                    // Grade value only (without "Grade:" text)
+                                    CompactBadgeWithText(
+                                        text = logGradeString,
+                                        icon = when (gradeComparison) {
+                                            GradeComparison.HIGHER -> Icons.Default.KeyboardArrowUp
+                                            GradeComparison.LOWER -> Icons.Default.KeyboardArrowDown
+                                            GradeComparison.EQUAL -> Icons.Default.Check
+                                            null -> null
+                                        },
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
                         Text(
                             text = formatLogDate(log.createdAt),
                             style = MaterialTheme.typography.bodySmall,
@@ -809,78 +911,58 @@ private fun LogCard(
                 }
             }
             
-            // Badges row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Full badges row (shown when expanded)
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isExpanded,
+                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()
             ) {
-                // Type badge with icon
-                val typeIcon = when (log.type.lowercase()) {
-                    "flash" -> Icons.Filled.FlashOn
-                    "view" -> Icons.Filled.Visibility
-                    "work" -> Icons.Filled.Lens
-                    else -> null
-                }
-                
-                LogBadgeWithIcon(
-                    text = log.type.capitalize(),
-                    icon = typeIcon,
-                    containerColor = when (log.type.lowercase()) {
-                        "flash" -> Color(0xFFFFB74D)
-                        "redpoint" -> Color(0xFF64B5F6)
-                        "onsight" -> Color(0xFF81C784)
-                        else -> MaterialTheme.colorScheme.secondaryContainer
-                    },
-                    contentColor = when (log.type.lowercase()) {
-                        "flash" -> Color(0xFFE65100)
-                        "redpoint" -> Color(0xFF0D47A1)
-                        "onsight" -> Color(0xFF1B5E20)
-                        else -> MaterialTheme.colorScheme.onSecondaryContainer
-                    }
-                )
-                
-                // Way badge with icon (only show if not bouldering)
-                if (log.way.lowercase() != "bouldering") {
-                    val wayIcon = when (log.way.lowercase()) {
-                        "top-rope", "sport" -> Icons.Filled.Lens
-                        "lead" -> Icons.Filled.Flag
-                        else -> null
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Type badge with icon
+                    LogBadgeWithIcon(
+                        text = log.type.capitalize(),
+                        icon = typeIcon,
+                        containerColor = when (log.type.lowercase()) {
+                            "flash" -> Color(0xFFFFB74D)
+                            "redpoint" -> Color(0xFF64B5F6)
+                            "onsight" -> Color(0xFF81C784)
+                            else -> MaterialTheme.colorScheme.secondaryContainer
+                        },
+                        contentColor = when (log.type.lowercase()) {
+                            "flash" -> Color(0xFFE65100)
+                            "redpoint" -> Color(0xFF0D47A1)
+                            "onsight" -> Color(0xFF1B5E20)
+                            else -> MaterialTheme.colorScheme.onSecondaryContainer
+                        }
+                    )
+                    
+                    // Way badge with icon (only show if not bouldering)
+                    if (log.way.lowercase() != "bouldering") {
+                        LogBadgeWithIcon(
+                            text = log.way.capitalize(),
+                            icon = wayIcon,
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
                     }
                     
+                    // Grade badge with comparison indicator
                     LogBadgeWithIcon(
-                        text = log.way.capitalize(),
-                        icon = wayIcon,
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        text = "Grade: $logGradeString",
+                        icon = when (gradeComparison) {
+                            GradeComparison.HIGHER -> Icons.Default.KeyboardArrowUp
+                            GradeComparison.LOWER -> Icons.Default.KeyboardArrowDown
+                            GradeComparison.EQUAL -> Icons.Default.Check
+                            null -> null
+                        },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                
-                // Grade badge with comparison indicator
-                // Convert log grade points to grade string
-                val logGradeString = GradeUtils.pointsToGrade(log.grade, gradingSystem) ?: log.grade.toString()
-                
-                val gradeComparison = routeGrade?.let { routeGradeStr ->
-                    // Convert route grade string to points for comparison
-                    val routeGradePoints = GradeUtils.gradeToPoints(routeGradeStr, gradingSystem)
-                    when {
-                        log.grade > routeGradePoints -> GradeComparison.HIGHER
-                        log.grade < routeGradePoints -> GradeComparison.LOWER
-                        else -> GradeComparison.EQUAL
-                    }
-                }
-                
-                LogBadgeWithIcon(
-                    text = "Grade: $logGradeString",
-                    icon = when (gradeComparison) {
-                        GradeComparison.HIGHER -> Icons.Default.KeyboardArrowUp
-                        GradeComparison.LOWER -> Icons.Default.KeyboardArrowDown
-                        GradeComparison.EQUAL -> Icons.Default.Check
-                        null -> null
-                    },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
             }
             
             // Comments if available
@@ -980,6 +1062,76 @@ private fun LogBadgeWithIcon(
             }
         }
     }
+}
+
+@Composable
+private fun CompactBadge(
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        color = containerColor,
+        shape = CircleShape
+    ) {
+        Box(
+            modifier = Modifier.padding(4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactBadgeWithText(
+    text: String,
+    icon: ImageVector?,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 11.sp
+                ),
+                color = contentColor
+            )
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = contentColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Modifier.clickableWithoutRipple(onClick: () -> Unit): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return this.clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        onClick = onClick
+    )
 }
 
 private enum class GradeComparison {
