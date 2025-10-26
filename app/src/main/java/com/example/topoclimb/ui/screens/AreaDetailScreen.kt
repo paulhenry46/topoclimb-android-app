@@ -32,6 +32,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.ui.components.RouteCard
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
 
+// Constants for grouping labels
+private const val UNKNOWN_GRADE_LABEL = "Unknown"
+private const val UNKNOWN_SECTOR_LABEL = "Unknown Sector"
+
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -351,14 +355,14 @@ fun AreaDetailScreen(
                         // Group routes if grouping is enabled
                         val groupedRoutes = when (uiState.groupingOption) {
                             com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE -> {
-                                uiState.routesWithMetadata.groupBy { it.grade ?: "Unknown" }
+                                uiState.routesWithMetadata.groupBy { it.grade ?: UNKNOWN_GRADE_LABEL }
                             }
                             com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR -> {
                                 uiState.routesWithMetadata.groupBy { routeWithMetadata ->
                                     // Get sector name from sectors list
                                     routeWithMetadata.sectorLocalId?.let { sectorLocalId ->
                                         uiState.sectors.find { it.localId == sectorLocalId }?.name
-                                    } ?: "Unknown Sector"
+                                    } ?: UNKNOWN_SECTOR_LABEL
                                 }
                             }
                             com.example.topoclimb.viewmodel.GroupingOption.NONE -> {

@@ -326,7 +326,8 @@ class AreaDetailViewModel : ViewModel() {
             minGrade = null,
             maxGrade = null,
             showNewRoutesOnly = false,
-            climbedFilter = ClimbedFilter.ALL
+            climbedFilter = ClimbedFilter.ALL,
+            groupingOption = GroupingOption.NONE
         )
         applyFilters()
     }

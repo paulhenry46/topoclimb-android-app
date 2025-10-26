@@ -8,6 +8,13 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 
+// Constants for color generation
+private const val SECONDARY_COLOR_BLEND_RATIO = 0.5f
+private const val SECONDARY_BLEND_COLOR = 0xFF888888.toInt() // Gray color for blending
+private const val TERTIARY_HUE_ROTATION_DEGREES = 30f
+private const val CONTAINER_BRIGHTNESS_FACTOR_DARK = 0.3f
+private const val CONTAINER_BRIGHTNESS_FACTOR_LIGHT = 1.5f
+
 /**
  * Generates a Material3 ColorScheme from a hex color string.
  * The primary color is derived from the input, and other colors are computed
@@ -42,9 +49,9 @@ fun generateColorSchemeFromColor(primaryColor: Color, isDark: Boolean = false): 
     
     // Create a lighter/darker version for containers
     val primaryContainer = if (isDark) {
-        adjustBrightness(primaryColor, 0.3f)
+        adjustBrightness(primaryColor, CONTAINER_BRIGHTNESS_FACTOR_DARK)
     } else {
-        adjustBrightness(primaryColor, 1.5f)
+        adjustBrightness(primaryColor, CONTAINER_BRIGHTNESS_FACTOR_LIGHT)
     }
     
     val onPrimaryContainer = if (primaryContainer.luminance() > 0.5f) {
@@ -54,15 +61,15 @@ fun generateColorSchemeFromColor(primaryColor: Color, isDark: Boolean = false): 
     }
     
     // Generate secondary color (complementary hue shift)
-    val secondaryArgb = ColorUtils.blendARGB(primaryArgb, 0xFF888888.toInt(), 0.5f)
+    val secondaryArgb = ColorUtils.blendARGB(primaryArgb, SECONDARY_BLEND_COLOR, SECONDARY_COLOR_BLEND_RATIO)
     val secondary = Color(secondaryArgb)
     
     val onSecondary = if (secondary.luminance() > 0.5f) Color.Black else Color.White
     
     val secondaryContainer = if (isDark) {
-        adjustBrightness(secondary, 0.3f)
+        adjustBrightness(secondary, CONTAINER_BRIGHTNESS_FACTOR_DARK)
     } else {
-        adjustBrightness(secondary, 1.5f)
+        adjustBrightness(secondary, CONTAINER_BRIGHTNESS_FACTOR_LIGHT)
     }
     
     val onSecondaryContainer = if (secondaryContainer.luminance() > 0.5f) {
@@ -72,15 +79,15 @@ fun generateColorSchemeFromColor(primaryColor: Color, isDark: Boolean = false): 
     }
     
     // Generate tertiary color (analogous hue shift)
-    val tertiaryArgb = rotateHue(primaryArgb, 30f)
+    val tertiaryArgb = rotateHue(primaryArgb, TERTIARY_HUE_ROTATION_DEGREES)
     val tertiary = Color(tertiaryArgb)
     
     val onTertiary = if (tertiary.luminance() > 0.5f) Color.Black else Color.White
     
     val tertiaryContainer = if (isDark) {
-        adjustBrightness(tertiary, 0.3f)
+        adjustBrightness(tertiary, CONTAINER_BRIGHTNESS_FACTOR_DARK)
     } else {
-        adjustBrightness(tertiary, 1.5f)
+        adjustBrightness(tertiary, CONTAINER_BRIGHTNESS_FACTOR_LIGHT)
     }
     
     val onTertiaryContainer = if (tertiaryContainer.luminance() > 0.5f) {
