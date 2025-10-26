@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.filled.Info
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lens
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -339,7 +341,7 @@ private fun OverviewTab(
 
                     IconButton(onClick = onLogCreated) {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = Icons.Default.CheckCircle,
                             contentDescription = if (uiState.isRouteLogged) "Already logged" else "Log this route",
                             tint = if (uiState.isRouteLogged) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                         )
@@ -392,7 +394,7 @@ private fun OverviewTab(
                             val formattedDate = remember(createdAt) {
                                 try {
                                     val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
-                                    val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                                    val outputFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                                     val date = inputFormat.parse(createdAt)
                                     date?.let { outputFormat.format(it) } ?: createdAt
                                 } catch (e: Exception) {
@@ -413,7 +415,7 @@ private fun OverviewTab(
                         uiState.route?.tags?.let { tags ->
                             if (tags.isNotEmpty()) {
                                 MetadataRow(
-                                    icon = Icons.Default.Info,
+                                    icon = Icons.Default.Sell,
                                     label = "Tags",
                                     value = tags.joinToString(", ")
                                 )
