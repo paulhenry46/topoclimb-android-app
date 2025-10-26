@@ -3,6 +3,7 @@ package com.example.topoclimb.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -84,11 +85,14 @@ fun HeroMomentScreen(
         onDismiss()
     }
     
+    // Detect system dark mode
+    val isDarkTheme = isSystemInDarkTheme()
+    
     // Generate dynamic color scheme from route color
-    val dynamicColorScheme = remember(routeColor) {
+    val dynamicColorScheme = remember(routeColor, isDarkTheme) {
         com.example.topoclimb.ui.utils.generateColorSchemeFromHex(
             routeColor,
-            isDark = false
+            isDark = isDarkTheme
         )
     }
     
