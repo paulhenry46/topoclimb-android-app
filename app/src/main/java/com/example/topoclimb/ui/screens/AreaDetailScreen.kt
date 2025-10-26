@@ -334,49 +334,86 @@ fun AreaDetailScreen(
                             selectedSectorId = uiState.selectedSectorId,
                             sectors = uiState.sectors,
                             climbedFilter = uiState.climbedFilter,
+                            groupingOption = uiState.groupingOption,
                             onSearchQueryChange = { viewModel.updateSearchQuery(it) },
                             onMinGradeChange = { viewModel.updateMinGrade(it) },
                             onMaxGradeChange = { viewModel.updateMaxGrade(it) },
                             onNewRoutesToggle = { viewModel.toggleNewRoutesFilter(it) },
                             onSectorSelected = { viewModel.filterRoutesBySector(it) },
                             onClimbedFilterChange = { viewModel.setClimbedFilter(it) },
+                            onGroupingOptionChange = { viewModel.setGroupingOption(it) },
                             onClearFilters = { viewModel.clearFilters() }
                         )
                     }
                     
                     // Routes section
                     if (uiState.routes.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = if (uiState.selectedSectorId == null) {
-                                    "Routes (${uiState.routes.size})"
-                                } else {
-                                    "Routes for selected sector (${uiState.routes.size})"
-                                },
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
+                        // Group routes if grouping is enabled
+                        val groupedRoutes = when (uiState.groupingOption) {
+                            com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE -> {
+                                uiState.routesWithMetadata.groupBy { it.grade ?: "Unknown" }
+                            }
+                            com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR -> {
+                                uiState.routesWithMetadata.groupBy { routeWithMetadata ->
+                                    // Get sector name from sectors list
+                                    routeWithMetadata.sectorLocalId?.let { sectorLocalId ->
+                                        uiState.sectors.find { it.localId == sectorLocalId }?.name
+                                    } ?: "Unknown Sector"
+                                }
+                            }
+                            com.example.topoclimb.viewmodel.GroupingOption.NONE -> {
+                                mapOf("" to uiState.routesWithMetadata)
+                            }
                         }
-                        items(uiState.routesWithMetadata) { routeWithMetadata ->
-                            // Calculate local ID display with prefix
-                            val localId = if (routeWithMetadata.lineCount == 1) {
-                                routeWithMetadata.sectorLocalId?.let { "Sector n°$it" }
+                        
+                        groupedRoutes.forEach { (groupKey, routesInGroup) ->
+                            // Show group header if grouping is enabled
+                            if (uiState.groupingOption != com.example.topoclimb.viewmodel.GroupingOption.NONE) {
+                                item {
+                                    Text(
+                                        text = "$groupKey (${routesInGroup.size})",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                }
                             } else {
-                                routeWithMetadata.lineLocalId?.let { "Line n°$it" }
+                                // No grouping - show general header
+                                item {
+                                    Text(
+                                        text = if (uiState.selectedSectorId == null) {
+                                            "Routes (${uiState.routes.size})"
+                                        } else {
+                                            "Routes for selected sector (${uiState.routes.size})"
+                                        },
+                                        style = MaterialTheme.typography.titleLarge,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                }
                             }
                             
-                            RouteCard(
-                                thumbnail = routeWithMetadata.thumbnail,
-                                grade = routeWithMetadata.grade,
-                                color = routeWithMetadata.color,
-                                name = routeWithMetadata.name,
-                                localId = localId,
-                                isClimbed = loggedRouteIds.contains(routeWithMetadata.id),
-                                onClick = {
-                                    selectedRouteWithMetadata = routeWithMetadata
-                                    showBottomSheet = true
+                            items(routesInGroup) { routeWithMetadata ->
+                                // Calculate local ID display with prefix
+                                val localId = if (routeWithMetadata.lineCount == 1) {
+                                    routeWithMetadata.sectorLocalId?.let { "Sector n°$it" }
+                                } else {
+                                    routeWithMetadata.lineLocalId?.let { "Line n°$it" }
                                 }
-                            )
+                                
+                                RouteCard(
+                                    thumbnail = routeWithMetadata.thumbnail,
+                                    grade = routeWithMetadata.grade,
+                                    color = routeWithMetadata.color,
+                                    name = routeWithMetadata.name,
+                                    localId = localId,
+                                    isClimbed = loggedRouteIds.contains(routeWithMetadata.id),
+                                    numberLogs = routeWithMetadata.numberLogs,
+                                    numberComments = routeWithMetadata.numberComments,
+                                    onClick = {
+                                        selectedRouteWithMetadata = routeWithMetadata
+                                        showBottomSheet = true
+                                    }
+                                )
+                            }
                         }
                     }
                     
@@ -446,12 +483,14 @@ fun FilterSection(
     selectedSectorId: Int?,
     sectors: List<com.example.topoclimb.data.Sector>,
     climbedFilter: com.example.topoclimb.viewmodel.ClimbedFilter,
+    groupingOption: com.example.topoclimb.viewmodel.GroupingOption,
     onSearchQueryChange: (String) -> Unit,
     onMinGradeChange: (String?) -> Unit,
     onMaxGradeChange: (String?) -> Unit,
     onNewRoutesToggle: (Boolean) -> Unit,
     onSectorSelected: (Int?) -> Unit,
     onClimbedFilterChange: (com.example.topoclimb.viewmodel.ClimbedFilter) -> Unit,
+    onGroupingOptionChange: (com.example.topoclimb.viewmodel.GroupingOption) -> Unit,
     onClearFilters: () -> Unit
 ) {
     var showFilters by remember { mutableStateOf(false) }
@@ -586,6 +625,38 @@ fun FilterSection(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
                         onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) },
                         label = { Text("Not Climbed") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Grouping options
+                Text(
+                    text = "Group Routes By",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.NONE,
+                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.NONE) },
+                        label = { Text("None") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE,
+                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) },
+                        label = { Text("Grade") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR,
+                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) },
+                        label = { Text("Sector") },
                         modifier = Modifier.weight(1f)
                     )
                 }

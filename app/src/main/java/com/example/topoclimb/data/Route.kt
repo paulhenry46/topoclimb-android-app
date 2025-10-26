@@ -20,7 +20,11 @@ data class Route(
     val openers: List<String>?, // Names of route openers
     @SerializedName("filtered_picture")
     val filteredPicture: String?, // URL of the filtered/focused route picture
-    val tags: List<String>? // Tags for the route
+    val tags: List<String>?, // Tags for the route
+    @SerializedName("number_logs")
+    val numberLogs: Int? = 0, // Number of logs for this route
+    @SerializedName("number_comments")
+    val numberComments: Int? = 0 // Number of comments on this route
 )
 
 /**
@@ -50,4 +54,6 @@ data class RouteWithMetadata(
     val openers: List<String>? get() = route.openers
     val filteredPicture: String? get() = route.filteredPicture
     val tags: List<String>? get() = route.tags
+    val numberLogs: Int? get() = route.numberLogs
+    val numberComments: Int? get() = route.numberComments
 }

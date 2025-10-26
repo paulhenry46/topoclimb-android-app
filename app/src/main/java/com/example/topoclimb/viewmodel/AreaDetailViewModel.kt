@@ -35,13 +35,21 @@ data class AreaDetailUiState(
     val minGrade: String? = null,
     val maxGrade: String? = null,
     val showNewRoutesOnly: Boolean = false,
-    val climbedFilter: ClimbedFilter = ClimbedFilter.ALL
+    val climbedFilter: ClimbedFilter = ClimbedFilter.ALL,
+    // Grouping state
+    val groupingOption: GroupingOption = GroupingOption.NONE
 )
 
 enum class ClimbedFilter {
     ALL,        // Show all routes
     CLIMBED,    // Show only climbed routes
     NOT_CLIMBED // Show only not climbed routes
+}
+
+enum class GroupingOption {
+    NONE,       // No grouping
+    BY_GRADE,   // Group by grade
+    BY_SECTOR   // Group by sector
 }
 
 class AreaDetailViewModel : ViewModel() {
@@ -304,6 +312,11 @@ class AreaDetailViewModel : ViewModel() {
     
     fun setClimbedFilter(filter: ClimbedFilter) {
         _uiState.value = _uiState.value.copy(climbedFilter = filter)
+        applyFilters()
+    }
+    
+    fun setGroupingOption(option: GroupingOption) {
+        _uiState.value = _uiState.value.copy(groupingOption = option)
         applyFilters()
     }
     

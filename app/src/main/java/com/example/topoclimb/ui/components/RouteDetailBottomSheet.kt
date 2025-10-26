@@ -78,15 +78,24 @@ fun RouteDetailBottomSheet(
         viewModel.loadRouteDetails(routeWithMetadata.id)
     }
     
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
+    // Generate dynamic color scheme from route color
+    val dynamicColorScheme = remember(routeWithMetadata.color) {
+        com.example.topoclimb.ui.utils.generateColorSchemeFromHex(
+            routeWithMetadata.color,
+            isDark = false // You can add dark mode detection here if needed
+        )
+    }
+    
+    MaterialTheme(colorScheme = dynamicColorScheme) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
             // Tab Content (takes most of the space)
             Box(
                 modifier = Modifier
@@ -129,12 +138,29 @@ fun RouteDetailBottomSheet(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Logs") },
+                    text = { 
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Logs")
+                            // Badge showing number of logs
+                            if (uiState.logs.isNotEmpty()) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ) {
+                                    Text(uiState.logs.size.toString())
+                                }
+                            }
+                        }
+                    },
                     selectedContentColor = MaterialTheme.colorScheme.primary,
                     unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
+    }
     }
 }
 
@@ -694,7 +720,8 @@ private fun LogsTab(
                 showHeroMoment = false
                 viewModel.resetCreateLogState()
             },
-            routeName = routeWithMetadata.name
+            routeName = routeWithMetadata.name,
+            routeColor = routeWithMetadata.color
         )
     }
 }

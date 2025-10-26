@@ -34,7 +34,8 @@ data class Particle(
 @Composable
 fun HeroMomentScreen(
     onDismiss: () -> Unit,
-    routeName: String = "Route"
+    routeName: String = "Route",
+    routeColor: String? = null
 ) {
     var particles by remember { mutableStateOf<List<Particle>>(emptyList()) }
     val infiniteTransition = rememberInfiniteTransition(label = "particles")
@@ -83,14 +84,23 @@ fun HeroMomentScreen(
         onDismiss()
     }
     
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false
+    // Generate dynamic color scheme from route color
+    val dynamicColorScheme = remember(routeColor) {
+        com.example.topoclimb.ui.utils.generateColorSchemeFromHex(
+            routeColor,
+            isDark = false
         )
-    ) {
+    }
+    
+    MaterialTheme(colorScheme = dynamicColorScheme) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+                usePlatformDefaultWidth = false
+            )
+        ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -158,6 +168,7 @@ fun HeroMomentScreen(
                 }
             }
         }
+    }
     }
 }
 

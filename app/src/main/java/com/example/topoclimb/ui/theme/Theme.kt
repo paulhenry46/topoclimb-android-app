@@ -9,28 +9,61 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = LightBlue80,
+    onPrimary = DarkGray,
+    primaryContainer = LightBlue60,
+    onPrimaryContainer = Black,
+    secondary = Gray80,
+    onSecondary = DarkGray,
+    secondaryContainer = Gray60,
+    onSecondaryContainer = White,
+    tertiary = LightBlue60,
+    onTertiary = DarkGray,
+    tertiaryContainer = Gray60,
+    onTertiaryContainer = White,
+    background = DarkGray,
+    onBackground = White,
+    surface = Color(0xFF1C1C1C),
+    onSurface = White,
+    surfaceVariant = Gray40,
+    onSurfaceVariant = Gray80,
+    error = Color(0xFFCF6679),
+    onError = Black,
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
+    outline = Gray60,
+    outlineVariant = Gray40
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = LightBlue40,
+    onPrimary = White,
+    primaryContainer = LightBlue80,
+    onPrimaryContainer = DarkGray,
+    secondary = Gray60,
+    onSecondary = White,
+    secondaryContainer = Gray80,
+    onSecondaryContainer = DarkGray,
+    tertiary = LightBlue60,
+    onTertiary = White,
+    tertiaryContainer = LightBlue80,
+    onTertiaryContainer = DarkGray,
+    background = LightGray,
+    onBackground = DarkGray,
+    surface = White,
+    onSurface = DarkGray,
+    surfaceVariant = Gray80,
+    onSurfaceVariant = Gray40,
+    error = Color(0xFFB3261E),
+    onError = White,
+    errorContainer = Color(0xFFF9DEDC),
+    onErrorContainer = Color(0xFF410E0B),
+    outline = Gray60,
+    outlineVariant = Gray80
 )
 
 @Composable
