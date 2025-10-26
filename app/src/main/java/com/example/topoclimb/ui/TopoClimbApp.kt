@@ -10,7 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -244,6 +246,9 @@ fun NavigationGraph(
             )
             val uiState by viewModel.uiState.collectAsState()
             
+            var showLoginSuccess by remember { mutableStateOf(false) }
+            var loggedInUserName by remember { mutableStateOf("") }
+            
             // Fetch instance metadata for logo
             LaunchedEffect(backendId) {
                 val backend = uiState.backends.find { it.id == backendId }
@@ -254,7 +259,10 @@ fun NavigationGraph(
             
             LaunchedEffect(uiState.successMessage) {
                 if (uiState.successMessage?.contains("logged in") == true) {
-                    navController.popBackStack()
+                    // Extract user name from success message
+                    val userName = uiState.successMessage?.substringAfter("as ")?.trim() ?: "User"
+                    loggedInUserName = userName
+                    showLoginSuccess = true
                 }
             }
             
@@ -270,6 +278,17 @@ fun NavigationGraph(
                 error = uiState.loginError,
                 logoUrl = uiState.instanceMeta?.pictureUrl
             )
+            
+            // Show login success screen
+            if (showLoginSuccess) {
+                com.example.topoclimb.ui.components.LoginSuccessScreen(
+                    onDismiss = {
+                        showLoginSuccess = false
+                        navController.popBackStack()
+                    },
+                    userName = loggedInUserName
+                )
+            }
         }
     }
 }
