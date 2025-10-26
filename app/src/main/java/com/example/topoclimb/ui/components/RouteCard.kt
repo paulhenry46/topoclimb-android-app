@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +34,8 @@ import com.example.topoclimb.ui.utils.parseRouteColor
  * @param name Name of the route
  * @param localId Optional local ID to display
  * @param isClimbed Whether the route has been climbed (shows check icon)
+ * @param numberLogs Number of logs for this route
+ * @param numberComments Number of comments on this route
  * @param onClick Callback when the card is clicked
  */
 @Composable
@@ -42,6 +46,8 @@ fun RouteCard(
     name: String,
     localId: String? = null,
     isClimbed: Boolean = false,
+    numberLogs: Int? = null,
+    numberComments: Int? = null,
     onClick: (() -> Unit)? = null
 ) {
     val routeColor = parseRouteColor(color)
@@ -138,14 +144,60 @@ fun RouteCard(
                 }
             }
             
-            // Check icon for climbed routes (right-aligned)
-            if (isClimbed) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Climbed",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
+            // Logs and comments indicators
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Number of logs indicator
+                if (numberLogs != null && numberLogs > 0) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.List,
+                            contentDescription = "Logs",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = numberLogs.toString(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // Number of comments indicator
+                if (numberComments != null && numberComments > 0) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChatBubble,
+                            contentDescription = "Comments",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = numberComments.toString(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // Check icon for climbed routes (right-aligned)
+                if (isClimbed) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Climbed",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
     }

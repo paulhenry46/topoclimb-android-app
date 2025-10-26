@@ -3,6 +3,7 @@ package com.example.topoclimb.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -34,7 +35,8 @@ data class Particle(
 @Composable
 fun HeroMomentScreen(
     onDismiss: () -> Unit,
-    routeName: String = "Route"
+    routeName: String = "Route",
+    routeColor: String? = null
 ) {
     var particles by remember { mutableStateOf<List<Particle>>(emptyList()) }
     val infiniteTransition = rememberInfiniteTransition(label = "particles")
@@ -83,14 +85,26 @@ fun HeroMomentScreen(
         onDismiss()
     }
     
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false
+    // Detect system dark mode
+    val isDarkTheme = isSystemInDarkTheme()
+    
+    // Generate dynamic color scheme from route color
+    val dynamicColorScheme = remember(routeColor, isDarkTheme) {
+        com.example.topoclimb.ui.utils.generateColorSchemeFromHex(
+            routeColor,
+            isDark = isDarkTheme
         )
-    ) {
+    }
+    
+    MaterialTheme(colorScheme = dynamicColorScheme) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+                usePlatformDefaultWidth = false
+            )
+        ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -158,6 +172,7 @@ fun HeroMomentScreen(
                 }
             }
         }
+    }
     }
 }
 

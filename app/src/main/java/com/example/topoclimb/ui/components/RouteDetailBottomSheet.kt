@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -78,15 +79,27 @@ fun RouteDetailBottomSheet(
         viewModel.loadRouteDetails(routeWithMetadata.id)
     }
     
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
+    // Detect system dark mode
+    val isDarkTheme = isSystemInDarkTheme()
+    
+    // Generate dynamic color scheme from route color
+    val dynamicColorScheme = remember(routeWithMetadata.color, isDarkTheme) {
+        com.example.topoclimb.ui.utils.generateColorSchemeFromHex(
+            routeWithMetadata.color,
+            isDark = isDarkTheme
+        )
+    }
+    
+    MaterialTheme(colorScheme = dynamicColorScheme) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
             // Tab Content (takes most of the space)
             Box(
                 modifier = Modifier
@@ -129,12 +142,29 @@ fun RouteDetailBottomSheet(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Logs") },
+                    text = { 
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Logs")
+                            // Badge showing number of logs
+                            if (uiState.logs.isNotEmpty()) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ) {
+                                    Text(uiState.logs.size.toString())
+                                }
+                            }
+                        }
+                    },
                     selectedContentColor = MaterialTheme.colorScheme.primary,
                     unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
+    }
     }
 }
 
@@ -694,7 +724,8 @@ private fun LogsTab(
                 showHeroMoment = false
                 viewModel.resetCreateLogState()
             },
-            routeName = routeWithMetadata.name
+            routeName = routeWithMetadata.name,
+            routeColor = routeWithMetadata.color
         )
     }
 }
