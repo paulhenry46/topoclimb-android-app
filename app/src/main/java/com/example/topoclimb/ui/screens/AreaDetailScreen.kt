@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.ui.components.RouteCard
+import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
 
 // Constants for grouping labels
@@ -43,6 +45,7 @@ fun AreaDetailScreen(
     backendId: String,
     areaId: Int,
     onBackClick: () -> Unit,
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
     viewModel: AreaDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -355,7 +358,11 @@ fun AreaDetailScreen(
                         // Group routes if grouping is enabled
                         val groupedRoutes = when (uiState.groupingOption) {
                             com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE -> {
-                                uiState.routesWithMetadata.groupBy { it.grade ?: UNKNOWN_GRADE_LABEL }
+                                uiState.routesWithMetadata.groupBy { 
+                                    it.grade?.let { gradeInt -> 
+                                        GradeUtils.pointsToGrade(gradeInt, uiState.gradingSystem) 
+                                    } ?: UNKNOWN_GRADE_LABEL 
+                                }
                             }
                             com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR -> {
                                 uiState.routesWithMetadata.groupBy { routeWithMetadata ->
@@ -405,7 +412,7 @@ fun AreaDetailScreen(
                                 
                                 RouteCard(
                                     thumbnail = routeWithMetadata.thumbnail,
-                                    grade = routeWithMetadata.grade,
+                                    grade = routeWithMetadata.grade?.let { GradeUtils.pointsToGrade(it, uiState.gradingSystem) },
                                     color = routeWithMetadata.color,
                                     name = routeWithMetadata.name,
                                     localId = localId,
@@ -471,7 +478,14 @@ fun AreaDetailScreen(
             com.example.topoclimb.ui.components.RouteDetailBottomSheet(
                 routeWithMetadata = selectedRouteWithMetadata!!,
                 onDismiss = { showBottomSheet = false },
-                gradingSystem = uiState.gradingSystem
+                gradingSystem = uiState.gradingSystem,
+                onStartLogging = if (onStartLogging != null) {
+                    { routeId, routeName, routeGrade, _ ->
+                        // Pass the area type from uiState
+                        onStartLogging(routeId, routeName, routeGrade, uiState.area?.type)
+                        showBottomSheet = false // Close the bottom sheet when logging starts
+                    }
+                } else null
             )
         }
     }
@@ -562,26 +576,15 @@ fun FilterSection(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Min grade dropdown
-                    GradeDropdown(
-                        label = "Min Grade",
-                        selectedGrade = minGrade,
-                        onGradeSelected = onMinGradeChange,
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    // Max grade dropdown
-                    GradeDropdown(
-                        label = "Max Grade",
-                        selectedGrade = maxGrade,
-                        onGradeSelected = onMaxGradeChange,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                
+                // Grade range slider
+                GradeRangeSlider(
+                    minGrade = minGrade,
+                    maxGrade = maxGrade,
+                    onMinGradeChange = onMinGradeChange,
+                    onMaxGradeChange = onMaxGradeChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
@@ -617,18 +620,27 @@ fun FilterSection(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL,
                         onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.ALL) },
                         label = { Text("All") },
+                        leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL) {
+                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                        } else null,
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED,
                         onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) },
                         label = { Text("Climbed") },
+                        leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) {
+                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                        } else null,
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
                         onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) },
                         label = { Text("Not Climbed") },
+                        leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) {
+                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                        } else null,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -649,18 +661,27 @@ fun FilterSection(
                         selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.NONE,
                         onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.NONE) },
                         label = { Text("None") },
+                        leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.NONE) {
+                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                        } else null,
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
                         selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE,
                         onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) },
                         label = { Text("Grade") },
+                        leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) {
+                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                        } else null,
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
                         selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR,
                         onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) },
                         label = { Text("Sector") },
+                        leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) {
+                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                        } else null,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -724,6 +745,60 @@ fun FilterSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun GradeRangeSlider(
+    minGrade: String?,
+    maxGrade: String?,
+    onMinGradeChange: (String?) -> Unit,
+    onMaxGradeChange: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val grades = listOf(
+        "3a", "3b", "3c",
+        "4a", "4b", "4c",
+        "5a", "5b", "5c",
+        "6a", "6a+", "6b", "6b+", "6c", "6c+",
+        "7a", "7a+", "7b", "7b+", "7c", "7c+",
+        "8a", "8a+", "8b", "8b+", "8c", "8c+",
+        "9a", "9a+", "9b", "9b+", "9c"
+    )
+    
+    // Convert grade strings to slider indices
+    val minIndex = minGrade?.let { grades.indexOf(it) } ?: 0
+    val maxIndex = maxGrade?.let { grades.indexOf(it) } ?: (grades.size - 1)
+    
+    // State for slider values
+    var sliderRange by remember(minIndex, maxIndex) { 
+        mutableStateOf(minIndex.toFloat()..maxIndex.toFloat()) 
+    }
+    
+    Column(modifier = modifier) {
+        // Display selected range
+        Text(
+            text = "${minGrade ?: grades.first()} - ${maxGrade ?: grades.last()}",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        // Range slider
+        RangeSlider(
+            value = sliderRange,
+            onValueChange = { range ->
+                sliderRange = range
+            },
+            onValueChangeFinished = {
+                val newMinIndex = sliderRange.start.toInt()
+                val newMaxIndex = sliderRange.endInclusive.toInt()
+                onMinGradeChange(grades[newMinIndex])
+                onMaxGradeChange(grades[newMaxIndex])
+            },
+            valueRange = 0f..(grades.size - 1).toFloat(),
+            steps = grades.size - 2, // steps between start and end
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

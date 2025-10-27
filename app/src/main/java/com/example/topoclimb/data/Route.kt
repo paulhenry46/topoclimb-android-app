@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class Route(
     val id: Int,
     val name: String,
-    val grade: String?,
+    val grade: Int?, // Grade as integer (300-950)
     val type: String?, // e.g., "sport", "trad", "boulder"
     val description: String?,
     val height: Int?,
@@ -40,7 +40,7 @@ data class RouteWithMetadata(
     // Delegate all Route properties for easy access
     val id: Int get() = route.id
     val name: String get() = route.name
-    val grade: String? get() = route.grade
+    val grade: Int? get() = route.grade
     val type: String? get() = route.type
     val description: String? get() = route.description
     val height: Int? get() = route.height

@@ -69,6 +69,7 @@ fun RouteDetailBottomSheet(
     routeWithMetadata: RouteWithMetadata,
     onDismiss: () -> Unit,
     gradingSystem: GradingSystem? = null,
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
     viewModel: RouteDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -114,13 +115,16 @@ fun RouteDetailBottomSheet(
                         onBookmarkClick = { isBookmarked = !isBookmarked },
                         onFocusToggle = { viewModel.toggleFocusMode() },
                         viewModel = viewModel,
-                        onLogCreated = { selectedTab = 1 } // Switch to Logs tab after creating a log
+                        onLogCreated = { selectedTab = 1 }, // Switch to Logs tab after creating a log
+                        onStartLogging = onStartLogging,
+                        gradingSystem = gradingSystem
                     )
                     1 -> LogsTab(
                         uiState = uiState,
                         routeWithMetadata = routeWithMetadata,
                         gradingSystem = gradingSystem,
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        onStartLogging = onStartLogging
                     )
                 }
             }
@@ -176,7 +180,9 @@ private fun OverviewTab(
     onBookmarkClick: () -> Unit,
     onFocusToggle: () -> Unit,
     viewModel: RouteDetailViewModel,
-    onLogCreated: () -> Unit
+    onLogCreated: () -> Unit,
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
+    gradingSystem: GradingSystem? = null
 ) {
     Column(
         modifier = Modifier
@@ -369,7 +375,15 @@ private fun OverviewTab(
                         )
                     }
 
-                    IconButton(onClick = onLogCreated) {
+                    IconButton(onClick = {
+                        if (onStartLogging != null) {
+                            // Use new 3-step flow
+                            onStartLogging(routeWithMetadata.id, routeWithMetadata.name, routeWithMetadata.grade, null)
+                        } else {
+                            // Fallback to old flow
+                            onLogCreated()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = if (uiState.isRouteLogged) "Already logged" else "Log this route",
@@ -391,11 +405,12 @@ private fun OverviewTab(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Grade
-                        routeWithMetadata.grade?.let { grade ->
+                        routeWithMetadata.grade?.let { gradeInt ->
+                            val gradeStr = GradeUtils.pointsToGrade(gradeInt, gradingSystem) ?: gradeInt.toString()
                             MetadataRow(
                                 icon = Icons.Default.Star,
                                 label = "Grade",
-                                value = grade
+                                value = gradeStr
                             )
                         }
                         
@@ -526,11 +541,10 @@ private fun LogsTab(
     uiState: com.example.topoclimb.viewmodel.RouteDetailUiState,
     routeWithMetadata: RouteWithMetadata,
     gradingSystem: GradingSystem?,
-    viewModel: RouteDetailViewModel
+    viewModel: RouteDetailViewModel,
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
-    var showCreateLogDialog by remember { mutableStateOf(false) }
-    var showHeroMoment by remember { mutableStateOf(false) }
     
     // Filter logs based on the toggle state
     val filteredLogs = remember(uiState.logs, showOnlyWithComments) {
@@ -595,19 +609,17 @@ private fun LogsTab(
                 // Add Log button
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    onClick = { showCreateLogDialog = true },
+                    onClick = {
+                        if (onStartLogging != null) {
+                            // Use new 3-step flow
+                            onStartLogging(routeWithMetadata.id, routeWithMetadata.name, routeWithMetadata.grade, null)
+                        }
+                        // If onStartLogging is null, do nothing (old behavior would have shown dialog)
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isCreatingLog
+                    enabled = onStartLogging != null // Only enable if we have the callback
                 ) {
-                    if (uiState.isCreatingLog) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text("Add Log")
-                    }
+                    Text("Add Log")
                 }
             }
         }
@@ -689,51 +701,12 @@ private fun LogsTab(
             }
         }
     }
-    
-    // Create Log Dialog
-    if (showCreateLogDialog) {
-        CreateLogDialog(
-            routeWithMetadata = routeWithMetadata,
-            gradingSystem = gradingSystem,
-            uiState = uiState,
-            onDismiss = {
-                showCreateLogDialog = false
-                viewModel.resetCreateLogState()
-            },
-            onCreateLog = { grade, type, way, comment, videoUrl ->
-                viewModel.createLog(
-                    routeId = routeWithMetadata.id,
-                    grade = grade,
-                    type = type,
-                    way = way,
-                    comment = comment,
-                    videoUrl = videoUrl,
-                    onSuccess = {
-                        showCreateLogDialog = false
-                        showHeroMoment = true
-                    }
-                )
-            }
-        )
-    }
-    
-    // Hero Moment Screen
-    if (showHeroMoment) {
-        HeroMomentScreen(
-            onDismiss = {
-                showHeroMoment = false
-                viewModel.resetCreateLogState()
-            },
-            routeName = routeWithMetadata.name,
-            routeColor = routeWithMetadata.color
-        )
-    }
 }
 
 @Composable
 private fun LogCard(
     log: com.example.topoclimb.data.Log,
-    routeGrade: String?,
+    routeGrade: Int?,
     gradingSystem: GradingSystem?
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -754,11 +727,10 @@ private fun LogCard(
     
     val logGradeString = GradeUtils.pointsToGrade(log.grade, gradingSystem) ?: log.grade.toString()
     
-    val gradeComparison = routeGrade?.let { routeGradeStr ->
-        val routeGradePoints = GradeUtils.gradeToPoints(routeGradeStr, gradingSystem)
+    val gradeComparison = routeGrade?.let { routeGradeInt ->
         when {
-            log.grade > routeGradePoints -> GradeComparison.HIGHER
-            log.grade < routeGradePoints -> GradeComparison.LOWER
+            log.grade > routeGradeInt -> GradeComparison.HIGHER
+            log.grade < routeGradeInt -> GradeComparison.LOWER
             else -> GradeComparison.EQUAL
         }
     }
@@ -1195,7 +1167,11 @@ private fun CreateLogDialog(
     onDismiss: () -> Unit,
     onCreateLog: (grade: Int, type: String, way: String, comment: String?, videoUrl: String?) -> Unit
 ) {
-    var selectedGrade by remember { mutableStateOf(routeWithMetadata.grade ?: "") }
+    var selectedGrade by remember { 
+        mutableStateOf(
+            routeWithMetadata.grade?.let { GradeUtils.pointsToGrade(it, gradingSystem) } ?: ""
+        ) 
+    }
     var selectedType by remember { mutableStateOf("work") }
     var selectedWay by remember { mutableStateOf("bouldering") }
     var comment by remember { mutableStateOf("") }
