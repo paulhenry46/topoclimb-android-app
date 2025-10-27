@@ -304,15 +304,29 @@ fun NavigationGraph(
             
             val context = androidx.compose.ui.platform.LocalContext.current
             val repository = remember { com.example.topoclimb.repository.BackendConfigRepository(context) }
+            val topoClimbRepository = remember { com.example.topoclimb.repository.TopoClimbRepository() }
             val coroutineScope = rememberCoroutineScope()
             var isLoading by remember { mutableStateOf(false) }
             var error by remember { mutableStateOf<String?>(null) }
             var showHeroMoment by remember { mutableStateOf(false) }
+            var gradingSystem by remember { mutableStateOf<com.example.topoclimb.data.GradingSystem?>(null) }
+            
+            // Fetch grading system for the route
+            LaunchedEffect(routeId) {
+                try {
+                    val routeResponse = com.example.topoclimb.network.RetrofitInstance.api.getRoute(routeId)
+                    val route = routeResponse.data
+                    val siteResult = topoClimbRepository.getSite(route.siteId)
+                    gradingSystem = siteResult.getOrNull()?.gradingSystem
+                } catch (e: Exception) {
+                    // Silently fail - grading system is optional
+                }
+            }
             
             LogRouteStep3Screen(
                 routeName = routeName,
                 routeGrade = routeGrade,
-                gradingSystem = null, // Will use default grade parsing
+                gradingSystem = gradingSystem,
                 onBackClick = { navController.popBackStack() },
                 onSubmit = { grade, comment, videoUrl ->
                     isLoading = true
