@@ -7,6 +7,10 @@ import com.example.topoclimb.data.GradingSystem
  */
 object GradeUtils {
     
+    // Grade validation constants
+    const val MIN_GRADE_POINTS = 300
+    const val MAX_GRADE_POINTS = 950
+    
     /**
      * Converts a grade string to a numeric value using the provided grading system.
      * Falls back to the default grade parsing if grading system is not available.

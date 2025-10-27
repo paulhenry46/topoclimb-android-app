@@ -13,10 +13,6 @@ import androidx.compose.ui.unit.dp
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.utils.GradeUtils
 
-// Constants for grade validation
-private const val MIN_GRADE_POINTS = 300
-private const val MAX_GRADE_POINTS = 950
-
 /**
  * Step 3: Enter grade, comment, and optional video URL
  */
@@ -138,7 +134,7 @@ fun LogRouteStep3Screen(
             
             // Validate grade
             val gradePoints = GradeUtils.gradeToPoints(selectedGrade, gradingSystem)
-            val isValidGrade = gradePoints in MIN_GRADE_POINTS..MAX_GRADE_POINTS
+            val isValidGrade = gradePoints in GradeUtils.MIN_GRADE_POINTS..GradeUtils.MAX_GRADE_POINTS
             val canSubmit = !isLoading && selectedGrade.isNotBlank() && isValidGrade
             
             // Show validation error for invalid grade
