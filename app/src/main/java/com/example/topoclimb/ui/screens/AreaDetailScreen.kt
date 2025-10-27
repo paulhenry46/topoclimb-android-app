@@ -24,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -771,34 +773,47 @@ fun GradeRangeSlider(
         "9a", "9a+", "9b", "9b+", "9c"
     )
     val grades = gradingSystem?.points?.keys?.toList() ?: gradesFallback
-    
-    // Convert grade strings to slider indices
+
     val minIndex = minGrade?.let { grades.indexOf(it) } ?: 0
     val maxIndex = maxGrade?.let { grades.indexOf(it) } ?: (grades.size - 1)
-    
-    // State for slider values
-    var sliderRange by remember(minIndex, maxIndex) { 
-        mutableStateOf(minIndex.toFloat()..maxIndex.toFloat()) 
+
+    var sliderRange by remember(minIndex, maxIndex) {
+        mutableStateOf(minIndex.toFloat()..maxIndex.toFloat())
     }
 
-    // Keep local slider in sync when incoming props change
     LaunchedEffect(minIndex, maxIndex) {
         sliderRange = minIndex.toFloat()..maxIndex.toFloat()
     }
-    
+
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(view) {
+        onDispose { view.parent?.requestDisallowInterceptTouchEvent(false) }
+    }
+
+    // NestedScrollConnection qui consomme la composante verticale
+    val nestedScrollConnection = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                return if (available.y != 0f) androidx.compose.ui.geometry.Offset(0f, available.y) else androidx.compose.ui.geometry.Offset.Zero
+            }
+            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                return if (available.y != 0f) androidx.compose.ui.unit.Velocity(0f, available.y) else androidx.compose.ui.unit.Velocity.Zero
+            }
+        }
+    }
+
     Column(modifier = modifier) {
         val currentMinIndex = sliderRange.start.toInt().coerceIn(0, grades.lastIndex)
         val currentMaxIndex = sliderRange.endInclusive.toInt().coerceIn(0, grades.lastIndex)
         val currentMinLabel = grades[currentMinIndex]
         val currentMaxLabel = grades[currentMaxIndex]
-        // Display selected range
+
         Text(
             text = "$currentMinLabel - $currentMaxLabel",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
-        // Range slider
+
         RangeSlider(
             value = sliderRange,
             onValueChange = { range ->
@@ -815,9 +830,24 @@ fun GradeRangeSlider(
                 onMaxGradeChange(grades[newMaxIndex])
             },
             valueRange = 0f..(grades.size - 1).toFloat(),
-            steps = grades.size - 2, // steps between start and end
-            modifier = Modifier.fillMaxWidth()
+            steps = (grades.size - 2).coerceAtLeast(0),
+            modifier = Modifier
+                .fillMaxWidth()
+                .nestedScroll(nestedScrollConnection)
+                .pointerInput(view) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val anyPressed = event.changes.any { it.pressed }
+                            if (anyPressed) {
+                                view.parent?.requestDisallowInterceptTouchEvent(true)
+                            } else {
+                                view.parent?.requestDisallowInterceptTouchEvent(false)
+                            }
+                            // Ne pas consommer : laisser RangeSlider gérer le geste
+                        }
+                    }
+                }
         )
     }
 }
-

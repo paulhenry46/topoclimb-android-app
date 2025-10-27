@@ -406,7 +406,8 @@ private fun OverviewTab(
                     ) {
                         // Grade
                         routeWithMetadata.grade?.let { gradeInt ->
-                            val gradeStr = GradeUtils.pointsToGrade(gradeInt, gradingSystem) ?: gradeInt.toString()
+                            val gradeStr = GradeUtils.pointsToGrade(gradeInt, gradingSystem)
+
                             MetadataRow(
                                 icon = Icons.Default.Star,
                                 label = "Grade",

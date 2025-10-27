@@ -46,9 +46,11 @@ object GradeUtils {
      */
     fun pointsToGrade(points: Int, gradingSystem: GradingSystem?): String {
         // First try to find the grade in the grading system
+        println("pointsToGrade - gradingSystem: $gradingSystem")
         gradingSystem?.points?.entries?.find { it.value == points }?.let {
             return it.key
         }
+
         return points.toString()
     }
     /**
