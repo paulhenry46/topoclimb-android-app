@@ -7,8 +7,16 @@ import com.example.topoclimb.data.GradingSystem
  */
 object GradeUtils {
     
-    // Grade validation constants
+    /**
+     * Minimum valid grade point value.
+     * Corresponds to approximately grade 3a in the French grading system.
+     */
     const val MIN_GRADE_POINTS = 300
+    
+    /**
+     * Maximum valid grade point value.
+     * Corresponds to approximately grade 9c in the French grading system.
+     */
     const val MAX_GRADE_POINTS = 950
     
     /**
