@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -31,6 +32,7 @@ import com.example.topoclimb.ui.screens.LogRouteStep3Screen
 import com.example.topoclimb.ui.screens.ProfileScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
 import com.example.topoclimb.ui.screens.SitesScreen
+import kotlinx.coroutines.launch
 
 sealed class BottomNavItem(
     val route: String,
@@ -302,6 +304,7 @@ fun NavigationGraph(
             
             val context = androidx.compose.ui.platform.LocalContext.current
             val repository = remember { com.example.topoclimb.repository.BackendConfigRepository(context) }
+            val coroutineScope = rememberCoroutineScope()
             var isLoading by remember { mutableStateOf(false) }
             var error by remember { mutableStateOf<String?>(null) }
             var showHeroMoment by remember { mutableStateOf(false) }
@@ -316,7 +319,7 @@ fun NavigationGraph(
                     error = null
                     
                     // Create the log
-                    kotlinx.coroutines.GlobalScope.launch {
+                    coroutineScope.launch {
                         try {
                             val backend = repository.getDefaultBackend()
                             if (backend?.authToken != null) {
@@ -327,10 +330,10 @@ fun NavigationGraph(
                                     comment = comment,
                                     videoUrl = videoUrl
                                 )
-                                com.example.topoclimb.network.RetrofitInstance.api.createLog(
+                                com.example.topoclimb.network.RetrofitInstance.api.createRouteLog(
                                     routeId = routeId,
-                                    authToken = "Bearer ${backend.authToken}",
-                                    request = request
+                                    request = request,
+                                    authToken = "Bearer ${backend.authToken}"
                                 )
                                 
                                 // Update shared logged routes
@@ -338,21 +341,15 @@ fun NavigationGraph(
                                 com.example.topoclimb.viewmodel.RouteDetailViewModel.updateSharedLoggedRoutes(response.data.toSet())
                                 
                                 // Show hero moment and navigate back
-                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                    isLoading = false
-                                    showHeroMoment = true
-                                }
+                                isLoading = false
+                                showHeroMoment = true
                             } else {
-                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                    isLoading = false
-                                    error = "Not authenticated"
-                                }
+                                isLoading = false
+                                error = "Not authenticated"
                             }
                         } catch (e: Exception) {
-                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                isLoading = false
-                                error = e.message ?: "Failed to create log"
-                            }
+                            isLoading = false
+                            error = e.message ?: "Failed to create log"
                         }
                     }
                 },
