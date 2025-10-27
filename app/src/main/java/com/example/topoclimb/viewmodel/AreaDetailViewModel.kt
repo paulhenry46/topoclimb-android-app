@@ -28,6 +28,8 @@ data class AreaDetailUiState(
     val selectedSectorId: Int? = null,
     val error: String? = null,
     val svgMapContent: String? = null,
+    val backendId: String? = null,
+    val siteId: Int? = null,
     val areaId: Int? = null,
     val gradingSystem: GradingSystem? = null,
     // Filter state
@@ -66,17 +68,20 @@ class AreaDetailViewModel : ViewModel() {
     // Get logged routes from shared state
     private val loggedRouteIds: StateFlow<Set<Int>> = RouteDetailViewModel.sharedLoggedRouteIds
     
-    fun loadAreaDetails(areaId: Int) {
+    fun loadAreaDetails(backendId: String, siteId: Int, areaId: Int) {
         viewModelScope.launch {
-            _uiState.value = AreaDetailUiState(isLoading = true, areaId = areaId)
+            _uiState.value = AreaDetailUiState(isLoading = true, backendId = backendId, siteId = siteId, areaId = areaId)
             
-            val result = fetchAreaData(areaId)
+            // Now passing siteId to avoid fetching it from area relationship
+            val result = fetchAreaData(siteId, areaId)
             
             if (result.isFailure) {
                 _uiState.value = AreaDetailUiState(
                     isLoading = false,
                     isRefreshing = false,
                     error = result.exceptionOrNull()?.message ?: "Failed to load area details",
+                    backendId = backendId,
+                    siteId = siteId,
                     areaId = areaId
                 )
                 return@launch
@@ -97,6 +102,8 @@ class AreaDetailViewModel : ViewModel() {
                 sectors = sectors,
                 error = null,
                 svgMapContent = svgContent,
+                backendId = backendId,
+                siteId = siteId,
                 areaId = areaId,
                 gradingSystem = gradingSystem
             )
@@ -104,13 +111,15 @@ class AreaDetailViewModel : ViewModel() {
     }
     
     fun refreshAreaDetails() {
+        val backendId = _uiState.value.backendId ?: return
+        val siteId = _uiState.value.siteId ?: return
         val areaId = _uiState.value.areaId ?: return
         val currentState = _uiState.value
         
         viewModelScope.launch {
             _uiState.value = currentState.copy(isRefreshing = true, error = null)
             
-            val result = fetchAreaData(areaId)
+            val result = fetchAreaData(siteId, areaId)
             
             if (result.isFailure) {
                 _uiState.value = currentState.copy(
@@ -142,8 +151,12 @@ class AreaDetailViewModel : ViewModel() {
     /**
      * Helper method to fetch area data including site grading system
      * Returns a Result containing all area-related data
+     * 
+     * With the nested navigation architecture, siteId is passed directly from navigation,
+     * which allows us to fetch site data without traversing the area→site relationship.
+     * This reduces the number of API calls and improves performance.
      */
-    private suspend fun fetchAreaData(areaId: Int): Result<AreaData> {
+    private suspend fun fetchAreaData(siteId: Int, areaId: Int): Result<AreaData> {
         return try {
             // Load area details
             val areaResult = repository.getArea(areaId)
@@ -153,12 +166,10 @@ class AreaDetailViewModel : ViewModel() {
             
             val area = areaResult.getOrNull()
             
-            // Load site to get the grading system
+            // Load site using the directly provided siteId (optimization from nested navigation)
             var gradingSystem: GradingSystem? = null
-            area?.siteId?.let { siteId ->
-                val siteResult = repository.getSite(siteId)
-                gradingSystem = siteResult.getOrNull()?.gradingSystem
-            }
+            val siteResult = repository.getSite(siteId)
+            gradingSystem = siteResult.getOrNull()?.gradingSystem
             
             // Load sectors for the area
             val sectorsResult = repository.getSectorsByArea(areaId)
