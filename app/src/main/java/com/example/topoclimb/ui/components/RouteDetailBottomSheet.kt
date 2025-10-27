@@ -69,6 +69,7 @@ fun RouteDetailBottomSheet(
     routeWithMetadata: RouteWithMetadata,
     onDismiss: () -> Unit,
     gradingSystem: GradingSystem? = null,
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
     viewModel: RouteDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -114,7 +115,8 @@ fun RouteDetailBottomSheet(
                         onBookmarkClick = { isBookmarked = !isBookmarked },
                         onFocusToggle = { viewModel.toggleFocusMode() },
                         viewModel = viewModel,
-                        onLogCreated = { selectedTab = 1 } // Switch to Logs tab after creating a log
+                        onLogCreated = { selectedTab = 1 }, // Switch to Logs tab after creating a log
+                        onStartLogging = onStartLogging
                     )
                     1 -> LogsTab(
                         uiState = uiState,
@@ -176,7 +178,8 @@ private fun OverviewTab(
     onBookmarkClick: () -> Unit,
     onFocusToggle: () -> Unit,
     viewModel: RouteDetailViewModel,
-    onLogCreated: () -> Unit
+    onLogCreated: () -> Unit,
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -369,7 +372,15 @@ private fun OverviewTab(
                         )
                     }
 
-                    IconButton(onClick = onLogCreated) {
+                    IconButton(onClick = {
+                        if (onStartLogging != null) {
+                            // Use new 3-step flow
+                            onStartLogging(routeWithMetadata.id, routeWithMetadata.name, routeWithMetadata.grade, null)
+                        } else {
+                            // Fallback to old flow
+                            onLogCreated()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = if (uiState.isRouteLogged) "Already logged" else "Log this route",
