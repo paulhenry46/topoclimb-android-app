@@ -76,6 +76,9 @@ fun RouteDetailBottomSheet(
     var selectedTab by remember { mutableStateOf(0) }
     var isBookmarked by remember { mutableStateOf(false) }
     
+    // Use grading system from viewModel state, fallback to parameter
+    val effectiveGradingSystem = uiState.gradingSystem ?: gradingSystem
+    
     LaunchedEffect(routeWithMetadata.id) {
         viewModel.loadRouteDetails(routeWithMetadata.id)
     }
@@ -117,12 +120,12 @@ fun RouteDetailBottomSheet(
                         viewModel = viewModel,
                         onLogCreated = { selectedTab = 1 }, // Switch to Logs tab after creating a log
                         onStartLogging = onStartLogging,
-                        gradingSystem = gradingSystem
+                        gradingSystem = effectiveGradingSystem
                     )
                     1 -> LogsTab(
                         uiState = uiState,
                         routeWithMetadata = routeWithMetadata,
-                        gradingSystem = gradingSystem,
+                        gradingSystem = effectiveGradingSystem,
                         viewModel = viewModel,
                         onStartLogging = onStartLogging
                     )

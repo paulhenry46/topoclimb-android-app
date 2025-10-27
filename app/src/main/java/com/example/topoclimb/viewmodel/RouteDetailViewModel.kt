@@ -8,6 +8,7 @@ import com.example.topoclimb.data.Log
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.network.RetrofitInstance
 import com.example.topoclimb.repository.BackendConfigRepository
+import com.example.topoclimb.repository.TopoClimbRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,13 +32,15 @@ data class RouteDetailUiState(
     val createLogError: String? = null,
     val createLogSuccess: Boolean = false,
     val isRefreshingLogs: Boolean = false,
-    val isRouteLogged: Boolean = false
+    val isRouteLogged: Boolean = false,
+    val gradingSystem: com.example.topoclimb.data.GradingSystem? = null
 )
 
 class RouteDetailViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val repository = BackendConfigRepository(application)
+    private val topoClimbRepository = TopoClimbRepository()
     
     private val _uiState = MutableStateFlow(RouteDetailUiState())
     val uiState: StateFlow<RouteDetailUiState> = _uiState.asStateFlow()
@@ -75,8 +78,20 @@ class RouteDetailViewModel(
             try {
                 val routeResponse = RetrofitInstance.api.getRoute(routeId)
                 val route = routeResponse.data
+                
+                // Load site to get the grading system
+                var gradingSystem: com.example.topoclimb.data.GradingSystem? = null
+                try {
+                    val siteResult = topoClimbRepository.getSite(route.siteId)
+                    gradingSystem = siteResult.getOrNull()?.gradingSystem
+                } catch (e: Exception) {
+                    // Silently fail - grading system is optional
+                    println("RouteDetailViewModel: Failed to load grading system - ${e.message}")
+                }
+                
                 _uiState.value = _uiState.value.copy(
                     route = route,
+                    gradingSystem = gradingSystem,
                     isLoading = false
                 )
                 
