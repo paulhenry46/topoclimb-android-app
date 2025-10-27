@@ -5,7 +5,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -134,7 +133,7 @@ fun LogRouteStep3Screen(
             
             // Validate grade
             val gradePoints = GradeUtils.gradeToPoints(selectedGrade, gradingSystem)
-            val isValidGrade = gradePoints in GradeUtils.MIN_GRADE_POINTS..GradeUtils.MAX_GRADE_POINTS
+            val isValidGrade = gradePoints in GradeUtils.minGradePoints(gradingSystem)..GradeUtils.maxGradePoints(gradingSystem)
             val canSubmit = !isLoading && selectedGrade.isNotBlank() && isValidGrade
             
             // Show validation error for invalid grade

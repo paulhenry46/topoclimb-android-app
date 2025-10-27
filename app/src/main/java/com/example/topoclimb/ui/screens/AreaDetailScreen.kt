@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.ui.components.RouteCard
 import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
@@ -337,6 +338,7 @@ fun AreaDetailScreen(
                             searchQuery = uiState.searchQuery,
                             minGrade = uiState.minGrade,
                             maxGrade = uiState.maxGrade,
+                            gradingSystem = uiState.gradingSystem,
                             showNewRoutesOnly = uiState.showNewRoutesOnly,
                             selectedSectorId = uiState.selectedSectorId,
                             sectors = uiState.sectors,
@@ -497,6 +499,7 @@ fun FilterSection(
     searchQuery: String,
     minGrade: String?,
     maxGrade: String?,
+    gradingSystem: GradingSystem?,
     showNewRoutesOnly: Boolean,
     selectedSectorId: Int?,
     sectors: List<com.example.topoclimb.data.Sector>,
@@ -581,6 +584,7 @@ fun FilterSection(
                 GradeRangeSlider(
                     minGrade = minGrade,
                     maxGrade = maxGrade,
+                    gradingSystem = gradingSystem,
                     onMinGradeChange = onMinGradeChange,
                     onMaxGradeChange = onMaxGradeChange,
                     modifier = Modifier.fillMaxWidth()
@@ -752,11 +756,12 @@ fun FilterSection(
 fun GradeRangeSlider(
     minGrade: String?,
     maxGrade: String?,
+    gradingSystem : GradingSystem?,
     onMinGradeChange: (String?) -> Unit,
     onMaxGradeChange: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val grades = listOf(
+    val gradesFallback = listOf(
         "3a", "3b", "3c",
         "4a", "4b", "4c",
         "5a", "5b", "5c",
@@ -765,6 +770,7 @@ fun GradeRangeSlider(
         "8a", "8a+", "8b", "8b+", "8c", "8c+",
         "9a", "9a+", "9b", "9b+", "9c"
     )
+    val grades = gradingSystem?.points?.keys?.toList() ?: gradesFallback
     
     // Convert grade strings to slider indices
     val minIndex = minGrade?.let { grades.indexOf(it) } ?: 0
@@ -774,11 +780,20 @@ fun GradeRangeSlider(
     var sliderRange by remember(minIndex, maxIndex) { 
         mutableStateOf(minIndex.toFloat()..maxIndex.toFloat()) 
     }
+
+    // Keep local slider in sync when incoming props change
+    LaunchedEffect(minIndex, maxIndex) {
+        sliderRange = minIndex.toFloat()..maxIndex.toFloat()
+    }
     
     Column(modifier = modifier) {
+        val currentMinIndex = sliderRange.start.toInt().coerceIn(0, grades.lastIndex)
+        val currentMaxIndex = sliderRange.endInclusive.toInt().coerceIn(0, grades.lastIndex)
+        val currentMinLabel = grades[currentMinIndex]
+        val currentMaxLabel = grades[currentMaxIndex]
         // Display selected range
         Text(
-            text = "${minGrade ?: grades.first()} - ${maxGrade ?: grades.last()}",
+            text = "$currentMinLabel - $currentMaxLabel",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -788,6 +803,10 @@ fun GradeRangeSlider(
             value = sliderRange,
             onValueChange = { range ->
                 sliderRange = range
+                val newMin = grades[range.start.toInt().coerceIn(0, grades.lastIndex)]
+                val newMax = grades[range.endInclusive.toInt().coerceIn(0, grades.lastIndex)]
+                onMinGradeChange(newMin)
+                onMaxGradeChange(newMax)
             },
             onValueChangeFinished = {
                 val newMinIndex = sliderRange.start.toInt()
@@ -799,65 +818,6 @@ fun GradeRangeSlider(
             steps = grades.size - 2, // steps between start and end
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun GradeDropdown(
-    label: String,
-    selectedGrade: String?,
-    onGradeSelected: (String?) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val grades = listOf(
-        "3a", "3b", "3c",
-        "4a", "4b", "4c",
-        "5a", "5b", "5c",
-        "6a", "6a+", "6b", "6b+", "6c", "6c+",
-        "7a", "7a+", "7b", "7b+", "7c", "7c+",
-        "8a", "8a+", "8b", "8b+", "8c", "8c+",
-        "9a", "9a+", "9b", "9b+", "9c"
-    )
-    
-    var expanded by remember { mutableStateOf(false) }
-    
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = modifier
-    ) {
-        OutlinedTextField(
-            value = selectedGrade ?: "Select",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text("None") },
-                onClick = {
-                    onGradeSelected(null)
-                    expanded = false
-                }
-            )
-            grades.forEach { grade ->
-                DropdownMenuItem(
-                    text = { Text(grade) },
-                    onClick = {
-                        onGradeSelected(grade)
-                        expanded = false
-                    }
-                )
-            }
-        }
     }
 }
 
