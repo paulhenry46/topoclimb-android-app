@@ -123,7 +123,8 @@ fun RouteDetailBottomSheet(
                         uiState = uiState,
                         routeWithMetadata = routeWithMetadata,
                         gradingSystem = gradingSystem,
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        onStartLogging = onStartLogging
                     )
                 }
             }
@@ -540,11 +541,10 @@ private fun LogsTab(
     uiState: com.example.topoclimb.viewmodel.RouteDetailUiState,
     routeWithMetadata: RouteWithMetadata,
     gradingSystem: GradingSystem?,
-    viewModel: RouteDetailViewModel
+    viewModel: RouteDetailViewModel,
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
-    var showCreateLogDialog by remember { mutableStateOf(false) }
-    var showHeroMoment by remember { mutableStateOf(false) }
     
     // Filter logs based on the toggle state
     val filteredLogs = remember(uiState.logs, showOnlyWithComments) {
@@ -609,19 +609,17 @@ private fun LogsTab(
                 // Add Log button
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    onClick = { showCreateLogDialog = true },
+                    onClick = {
+                        if (onStartLogging != null) {
+                            // Use new 3-step flow
+                            onStartLogging(routeWithMetadata.id, routeWithMetadata.name, routeWithMetadata.grade, null)
+                        }
+                        // If onStartLogging is null, do nothing (old behavior would have shown dialog)
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isCreatingLog
+                    enabled = onStartLogging != null // Only enable if we have the callback
                 ) {
-                    if (uiState.isCreatingLog) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text("Add Log")
-                    }
+                    Text("Add Log")
                 }
             }
         }
@@ -702,45 +700,6 @@ private fun LogsTab(
                 }
             }
         }
-    }
-    
-    // Create Log Dialog
-    if (showCreateLogDialog) {
-        CreateLogDialog(
-            routeWithMetadata = routeWithMetadata,
-            gradingSystem = gradingSystem,
-            uiState = uiState,
-            onDismiss = {
-                showCreateLogDialog = false
-                viewModel.resetCreateLogState()
-            },
-            onCreateLog = { grade, type, way, comment, videoUrl ->
-                viewModel.createLog(
-                    routeId = routeWithMetadata.id,
-                    grade = grade,
-                    type = type,
-                    way = way,
-                    comment = comment,
-                    videoUrl = videoUrl,
-                    onSuccess = {
-                        showCreateLogDialog = false
-                        showHeroMoment = true
-                    }
-                )
-            }
-        )
-    }
-    
-    // Hero Moment Screen
-    if (showHeroMoment) {
-        HeroMomentScreen(
-            onDismiss = {
-                showHeroMoment = false
-                viewModel.resetCreateLogState()
-            },
-            routeName = routeWithMetadata.name,
-            routeColor = routeWithMetadata.color
-        )
     }
 }
 
