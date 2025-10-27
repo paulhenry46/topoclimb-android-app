@@ -72,6 +72,8 @@ class AreaDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = AreaDetailUiState(isLoading = true, backendId = backendId, siteId = siteId, areaId = areaId)
             
+            // TODO: Optimization opportunity - we could pass siteId to fetchAreaData
+            // to avoid fetching it from the area relationship
             val result = fetchAreaData(areaId)
             
             if (result.isFailure) {
@@ -150,6 +152,10 @@ class AreaDetailViewModel : ViewModel() {
     /**
      * Helper method to fetch area data including site grading system
      * Returns a Result containing all area-related data
+     * 
+     * Note: With the new nested navigation architecture, we now have access to siteId
+     * directly from the navigation parameters, which allows us to fetch site-specific
+     * data without having to traverse through the area relationship.
      */
     private suspend fun fetchAreaData(areaId: Int): Result<AreaData> {
         return try {
