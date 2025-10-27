@@ -72,9 +72,8 @@ class AreaDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = AreaDetailUiState(isLoading = true, backendId = backendId, siteId = siteId, areaId = areaId)
             
-            // TODO: Optimization opportunity - we could pass siteId to fetchAreaData
-            // to avoid fetching it from the area relationship
-            val result = fetchAreaData(areaId)
+            // Now passing siteId to avoid fetching it from area relationship
+            val result = fetchAreaData(siteId, areaId)
             
             if (result.isFailure) {
                 _uiState.value = AreaDetailUiState(
@@ -120,7 +119,7 @@ class AreaDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = currentState.copy(isRefreshing = true, error = null)
             
-            val result = fetchAreaData(areaId)
+            val result = fetchAreaData(siteId, areaId)
             
             if (result.isFailure) {
                 _uiState.value = currentState.copy(
@@ -153,11 +152,11 @@ class AreaDetailViewModel : ViewModel() {
      * Helper method to fetch area data including site grading system
      * Returns a Result containing all area-related data
      * 
-     * Note: With the new nested navigation architecture, we now have access to siteId
-     * directly from the navigation parameters, which allows us to fetch site-specific
-     * data without having to traverse through the area relationship.
+     * With the nested navigation architecture, siteId is passed directly from navigation,
+     * which allows us to fetch site data without traversing the area→site relationship.
+     * This reduces the number of API calls and improves performance.
      */
-    private suspend fun fetchAreaData(areaId: Int): Result<AreaData> {
+    private suspend fun fetchAreaData(siteId: Int, areaId: Int): Result<AreaData> {
         return try {
             // Load area details
             val areaResult = repository.getArea(areaId)
@@ -167,12 +166,10 @@ class AreaDetailViewModel : ViewModel() {
             
             val area = areaResult.getOrNull()
             
-            // Load site to get the grading system
+            // Load site using the directly provided siteId (optimization from nested navigation)
             var gradingSystem: GradingSystem? = null
-            area?.siteId?.let { siteId ->
-                val siteResult = repository.getSite(siteId)
-                gradingSystem = siteResult.getOrNull()?.gradingSystem
-            }
+            val siteResult = repository.getSite(siteId)
+            gradingSystem = siteResult.getOrNull()?.gradingSystem
             
             // Load sectors for the area
             val sectorsResult = repository.getSectorsByArea(areaId)
