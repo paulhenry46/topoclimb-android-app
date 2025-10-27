@@ -116,7 +116,8 @@ fun RouteDetailBottomSheet(
                         onFocusToggle = { viewModel.toggleFocusMode() },
                         viewModel = viewModel,
                         onLogCreated = { selectedTab = 1 }, // Switch to Logs tab after creating a log
-                        onStartLogging = onStartLogging
+                        onStartLogging = onStartLogging,
+                        gradingSystem = gradingSystem
                     )
                     1 -> LogsTab(
                         uiState = uiState,
@@ -179,7 +180,8 @@ private fun OverviewTab(
     onFocusToggle: () -> Unit,
     viewModel: RouteDetailViewModel,
     onLogCreated: () -> Unit,
-    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
+    gradingSystem: GradingSystem? = null
 ) {
     Column(
         modifier = Modifier
