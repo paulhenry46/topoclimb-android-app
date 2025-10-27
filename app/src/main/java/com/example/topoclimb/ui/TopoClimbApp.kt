@@ -25,6 +25,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.topoclimb.ui.screens.AreaDetailScreen
+import com.example.topoclimb.ui.screens.LogRouteStep1Screen
+import com.example.topoclimb.ui.screens.LogRouteStep2Screen
+import com.example.topoclimb.ui.screens.LogRouteStep3Screen
 import com.example.topoclimb.ui.screens.ProfileScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
 import com.example.topoclimb.ui.screens.SitesScreen
@@ -189,6 +192,10 @@ fun NavigationGraph(
                 areaId = areaId,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onStartLogging = { routeId, routeName, routeGrade, areaType ->
+                    // Navigate to step 1 of route logging
+                    navController.navigate("logRoute/step1/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}")
                 }
             )
         }
@@ -223,6 +230,152 @@ fun NavigationGraph(
                     navController.navigate("login/$backendId/$backendName")
                 }
             )
+        }
+        
+        // Route logging - Step 1: Select climbing type
+        composable(
+            route = "logRoute/step1/{routeId}/{routeName}/{routeGrade}/{areaType}",
+            arguments = listOf(
+                navArgument("routeId") { type = NavType.IntType },
+                navArgument("routeName") { type = NavType.StringType },
+                navArgument("routeGrade") { type = NavType.IntType },
+                navArgument("areaType") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val routeId = backStackEntry.arguments?.getInt("routeId") ?: return@composable
+            val routeName = backStackEntry.arguments?.getString("routeName") ?: return@composable
+            val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }
+            val areaType = backStackEntry.arguments?.getString("areaType")?.takeIf { it.isNotEmpty() }
+            
+            LogRouteStep1Screen(
+                routeName = routeName,
+                onBackClick = { navController.popBackStack() },
+                onTypeSelected = { climbingType ->
+                    navController.navigate("logRoute/step2/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}/$climbingType")
+                }
+            )
+        }
+        
+        // Route logging - Step 2: Select climbing way
+        composable(
+            route = "logRoute/step2/{routeId}/{routeName}/{routeGrade}/{areaType}/{climbingType}",
+            arguments = listOf(
+                navArgument("routeId") { type = NavType.IntType },
+                navArgument("routeName") { type = NavType.StringType },
+                navArgument("routeGrade") { type = NavType.IntType },
+                navArgument("areaType") { type = NavType.StringType },
+                navArgument("climbingType") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val routeId = backStackEntry.arguments?.getInt("routeId") ?: return@composable
+            val routeName = backStackEntry.arguments?.getString("routeName") ?: return@composable
+            val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }
+            val areaType = backStackEntry.arguments?.getString("areaType")?.takeIf { it.isNotEmpty() }
+            val climbingType = backStackEntry.arguments?.getString("climbingType") ?: return@composable
+            
+            LogRouteStep2Screen(
+                routeName = routeName,
+                areaType = areaType,
+                onBackClick = { navController.popBackStack() },
+                onWaySelected = { climbingWay ->
+                    navController.navigate("logRoute/step3/$routeId/$routeName/${routeGrade ?: 0}/$climbingType/$climbingWay")
+                }
+            )
+        }
+        
+        // Route logging - Step 3: Enter details and submit
+        composable(
+            route = "logRoute/step3/{routeId}/{routeName}/{routeGrade}/{climbingType}/{climbingWay}",
+            arguments = listOf(
+                navArgument("routeId") { type = NavType.IntType },
+                navArgument("routeName") { type = NavType.StringType },
+                navArgument("routeGrade") { type = NavType.IntType },
+                navArgument("climbingType") { type = NavType.StringType },
+                navArgument("climbingWay") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val routeId = backStackEntry.arguments?.getInt("routeId") ?: return@composable
+            val routeName = backStackEntry.arguments?.getString("routeName") ?: return@composable
+            val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }
+            val climbingType = backStackEntry.arguments?.getString("climbingType") ?: return@composable
+            val climbingWay = backStackEntry.arguments?.getString("climbingWay") ?: return@composable
+            
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val repository = remember { com.example.topoclimb.repository.BackendConfigRepository(context) }
+            var isLoading by remember { mutableStateOf(false) }
+            var error by remember { mutableStateOf<String?>(null) }
+            var showHeroMoment by remember { mutableStateOf(false) }
+            
+            LogRouteStep3Screen(
+                routeName = routeName,
+                routeGrade = routeGrade,
+                gradingSystem = null, // Will use default grade parsing
+                onBackClick = { navController.popBackStack() },
+                onSubmit = { grade, comment, videoUrl ->
+                    isLoading = true
+                    error = null
+                    
+                    // Create the log
+                    kotlinx.coroutines.GlobalScope.launch {
+                        try {
+                            val backend = repository.getDefaultBackend()
+                            if (backend?.authToken != null) {
+                                val request = com.example.topoclimb.data.CreateLogRequest(
+                                    grade = grade,
+                                    type = climbingType,
+                                    way = climbingWay,
+                                    comment = comment,
+                                    videoUrl = videoUrl
+                                )
+                                com.example.topoclimb.network.RetrofitInstance.api.createLog(
+                                    routeId = routeId,
+                                    authToken = "Bearer ${backend.authToken}",
+                                    request = request
+                                )
+                                
+                                // Update shared logged routes
+                                val response = com.example.topoclimb.network.RetrofitInstance.api.getUserLogs("Bearer ${backend.authToken}")
+                                com.example.topoclimb.viewmodel.RouteDetailViewModel.updateSharedLoggedRoutes(response.data.toSet())
+                                
+                                // Show hero moment and navigate back
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    isLoading = false
+                                    showHeroMoment = true
+                                }
+                            } else {
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    isLoading = false
+                                    error = "Not authenticated"
+                                }
+                            }
+                        } catch (e: Exception) {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                isLoading = false
+                                error = e.message ?: "Failed to create log"
+                            }
+                        }
+                    }
+                },
+                isLoading = isLoading,
+                error = error
+            )
+            
+            // Show hero moment screen
+            if (showHeroMoment) {
+                com.example.topoclimb.ui.components.HeroMomentScreen(
+                    onDismiss = {
+                        showHeroMoment = false
+                        // Navigate back to the area that we came from
+                        // Pop back multiple times to get to the area detail screen
+                        var poppedCount = 0
+                        while (poppedCount < 3 && navController.popBackStack()) {
+                            poppedCount++
+                        }
+                    },
+                    routeName = routeName,
+                    routeColor = null // We don't have the route color here
+                )
+            }
         }
         
         composable(

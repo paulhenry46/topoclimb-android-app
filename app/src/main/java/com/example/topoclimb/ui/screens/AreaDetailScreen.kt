@@ -45,6 +45,7 @@ fun AreaDetailScreen(
     backendId: String,
     areaId: Int,
     onBackClick: () -> Unit,
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
     viewModel: AreaDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -477,7 +478,14 @@ fun AreaDetailScreen(
             com.example.topoclimb.ui.components.RouteDetailBottomSheet(
                 routeWithMetadata = selectedRouteWithMetadata!!,
                 onDismiss = { showBottomSheet = false },
-                gradingSystem = uiState.gradingSystem
+                gradingSystem = uiState.gradingSystem,
+                onStartLogging = if (onStartLogging != null) {
+                    { routeId, routeName, routeGrade, _ ->
+                        // Pass the area type from uiState
+                        onStartLogging(routeId, routeName, routeGrade, uiState.area?.type)
+                        showBottomSheet = false // Close the bottom sheet when logging starts
+                    }
+                } else null
             )
         }
     }
