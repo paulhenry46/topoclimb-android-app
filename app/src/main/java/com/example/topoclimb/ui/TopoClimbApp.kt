@@ -327,14 +327,38 @@ fun NavigationGraph(
             val context = androidx.compose.ui.platform.LocalContext.current
             val repository = remember { com.example.topoclimb.repository.BackendConfigRepository(context) }
             val coroutineScope = rememberCoroutineScope()
+            val backendConfigRepo = remember { com.example.topoclimb.repository.BackendConfigRepository(context) }
+            val federatedRepo = remember { com.example.topoclimb.repository.FederatedTopoClimbRepository(context) }
             var isLoading by remember { mutableStateOf(false) }
             var error by remember { mutableStateOf<String?>(null) }
             var showHeroMoment by remember { mutableStateOf(false) }
+            var gradingSystem by remember { mutableStateOf<com.example.topoclimb.data.GradingSystem?>(null) }
+
+            LaunchedEffect(backendId, siteId) {
+                isLoading = true
+                error = null
+                try {
+                    val res = federatedRepo.getSite(backendId, siteId)
+                    if (res.isSuccess) {
+                        val federated = res.getOrNull()
+                        val site = federated?.data
+                        gradingSystem = site?.gradingSystem
+                    } else {
+                        error = res.exceptionOrNull()?.message ?: "Failed to load site"
+                        gradingSystem = null
+                    }
+                } catch (e: Exception) {
+                    error = e.message ?: "Failed to load site"
+                    gradingSystem = null
+                } finally {
+                    isLoading = false
+                }
+            }
             
             LogRouteStep3Screen(
                 routeName = routeName,
                 routeGrade = routeGrade,
-                gradingSystem = null, // Will use default grade parsing
+                gradingSystem = gradingSystem, // Will use default grade parsing
                 onBackClick = { navController.popBackStack() },
                 onSubmit = { grade, comment, videoUrl ->
                     isLoading = true

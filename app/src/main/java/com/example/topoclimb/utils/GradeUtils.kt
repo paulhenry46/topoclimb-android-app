@@ -11,14 +11,22 @@ object GradeUtils {
      * Minimum valid grade point value.
      * Corresponds to approximately grade 3a in the French grading system.
      */
-    const val MIN_GRADE_POINTS = 300
-    
+    private const val MIN_GRADE_POINTS = 0
+
     /**
      * Maximum valid grade point value.
      * Corresponds to approximately grade 9c in the French grading system.
      */
-    const val MAX_GRADE_POINTS = 950
-    
+    private const val MAX_GRADE_POINTS = 1000
+
+    fun minGradePoints(gradingSystem: GradingSystem?): Int {
+        return gradingSystem?.points?.values?.minOrNull() ?: MIN_GRADE_POINTS
+    }
+
+    fun maxGradePoints(gradingSystem: GradingSystem?): Int {
+        return gradingSystem?.points?.values?.maxOrNull() ?: MAX_GRADE_POINTS
+    }
+
     /**
      * Converts a grade string to a numeric value using the provided grading system.
      * Falls back to the default grade parsing if grading system is not available.
@@ -92,7 +100,7 @@ object GradeUtils {
         }
         
         // Fall back to reconstructing from default parsing logic
-        return reconstructGradeFromPoints(points)
+        return points.toString()
     }
     
     /**

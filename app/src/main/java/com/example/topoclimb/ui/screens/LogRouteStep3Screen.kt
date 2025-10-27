@@ -29,7 +29,7 @@ fun LogRouteStep3Screen(
 ) {
     var selectedGrade by remember { 
         mutableStateOf(
-            routeGrade?.let { GradeUtils.pointsToGrade(it, gradingSystem) } ?: ""
+            routeGrade?.let { GradeUtils.pointsToGrade(it, gradingSystem) } ?: "error"
         ) 
     }
     var comment by remember { mutableStateOf("") }
@@ -134,7 +134,7 @@ fun LogRouteStep3Screen(
             
             // Validate grade
             val gradePoints = GradeUtils.gradeToPoints(selectedGrade, gradingSystem)
-            val isValidGrade = gradePoints in GradeUtils.MIN_GRADE_POINTS..GradeUtils.MAX_GRADE_POINTS
+            val isValidGrade = gradePoints in GradeUtils.minGradePoints(gradingSystem)..GradeUtils.maxGradePoints(gradingSystem)
             val canSubmit = !isLoading && selectedGrade.isNotBlank() && isValidGrade
             
             // Show validation error for invalid grade
