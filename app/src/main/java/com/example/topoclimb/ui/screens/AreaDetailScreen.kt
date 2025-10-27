@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.ui.components.RouteCard
+import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
 
 // Constants for grouping labels
@@ -355,7 +356,11 @@ fun AreaDetailScreen(
                         // Group routes if grouping is enabled
                         val groupedRoutes = when (uiState.groupingOption) {
                             com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE -> {
-                                uiState.routesWithMetadata.groupBy { it.grade ?: UNKNOWN_GRADE_LABEL }
+                                uiState.routesWithMetadata.groupBy { 
+                                    it.grade?.let { gradeInt -> 
+                                        GradeUtils.pointsToGrade(gradeInt, uiState.gradingSystem) 
+                                    } ?: UNKNOWN_GRADE_LABEL 
+                                }
                             }
                             com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR -> {
                                 uiState.routesWithMetadata.groupBy { routeWithMetadata ->
@@ -405,7 +410,7 @@ fun AreaDetailScreen(
                                 
                                 RouteCard(
                                     thumbnail = routeWithMetadata.thumbnail,
-                                    grade = routeWithMetadata.grade,
+                                    grade = routeWithMetadata.grade?.let { GradeUtils.pointsToGrade(it, uiState.gradingSystem) },
                                     color = routeWithMetadata.color,
                                     name = routeWithMetadata.name,
                                     localId = localId,

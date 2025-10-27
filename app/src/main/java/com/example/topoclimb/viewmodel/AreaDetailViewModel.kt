@@ -349,14 +349,27 @@ class AreaDetailViewModel : ViewModel() {
         
         // Apply grade filters
         if (currentState.minGrade != null || currentState.maxGrade != null) {
+            val minGradeInt = currentState.minGrade?.let { GradeUtils.gradeToPoints(it, currentState.gradingSystem) }
+            val maxGradeInt = currentState.maxGrade?.let { GradeUtils.gradeToPoints(it, currentState.gradingSystem) }
+            
             filteredRoutes = filteredRoutes.filter { route ->
                 route.grade?.let { grade ->
-                    matchesGradeRange(grade, currentState.minGrade, currentState.maxGrade)
+                    when {
+                        minGradeInt != null && maxGradeInt != null -> grade in minGradeInt..maxGradeInt
+                        minGradeInt != null -> grade >= minGradeInt
+                        maxGradeInt != null -> grade <= maxGradeInt
+                        else -> true
+                    }
                 } ?: false
             }
             filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
                 routeWithMetadata.grade?.let { grade ->
-                    matchesGradeRange(grade, currentState.minGrade, currentState.maxGrade)
+                    when {
+                        minGradeInt != null && maxGradeInt != null -> grade in minGradeInt..maxGradeInt
+                        minGradeInt != null -> grade >= minGradeInt
+                        maxGradeInt != null -> grade <= maxGradeInt
+                        else -> true
+                    }
                 } ?: false
             }
         }
@@ -422,20 +435,5 @@ class AreaDetailViewModel : ViewModel() {
             routes = filteredRoutes,
             routesWithMetadata = filteredRoutesWithMetadata
         )
-    }
-    
-    private fun matchesGradeRange(grade: String, minGrade: String?, maxGrade: String?): Boolean {
-        // Use GradeUtils with the current grading system
-        return GradeUtils.matchesGradeRange(
-            grade = grade,
-            minGrade = minGrade,
-            maxGrade = maxGrade,
-            gradingSystem = _uiState.value.gradingSystem
-        )
-    }
-    
-    private fun parseGrade(grade: String): Int {
-        // Use GradeUtils with the current grading system
-        return GradeUtils.gradeToPoints(grade, _uiState.value.gradingSystem)
     }
 }

@@ -391,11 +391,12 @@ private fun OverviewTab(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Grade
-                        routeWithMetadata.grade?.let { grade ->
+                        routeWithMetadata.grade?.let { gradeInt ->
+                            val gradeStr = GradeUtils.pointsToGrade(gradeInt, gradingSystem) ?: gradeInt.toString()
                             MetadataRow(
                                 icon = Icons.Default.Star,
                                 label = "Grade",
-                                value = grade
+                                value = gradeStr
                             )
                         }
                         
@@ -733,7 +734,7 @@ private fun LogsTab(
 @Composable
 private fun LogCard(
     log: com.example.topoclimb.data.Log,
-    routeGrade: String?,
+    routeGrade: Int?,
     gradingSystem: GradingSystem?
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -754,11 +755,10 @@ private fun LogCard(
     
     val logGradeString = GradeUtils.pointsToGrade(log.grade, gradingSystem) ?: log.grade.toString()
     
-    val gradeComparison = routeGrade?.let { routeGradeStr ->
-        val routeGradePoints = GradeUtils.gradeToPoints(routeGradeStr, gradingSystem)
+    val gradeComparison = routeGrade?.let { routeGradeInt ->
         when {
-            log.grade > routeGradePoints -> GradeComparison.HIGHER
-            log.grade < routeGradePoints -> GradeComparison.LOWER
+            log.grade > routeGradeInt -> GradeComparison.HIGHER
+            log.grade < routeGradeInt -> GradeComparison.LOWER
             else -> GradeComparison.EQUAL
         }
     }
@@ -1195,7 +1195,11 @@ private fun CreateLogDialog(
     onDismiss: () -> Unit,
     onCreateLog: (grade: Int, type: String, way: String, comment: String?, videoUrl: String?) -> Unit
 ) {
-    var selectedGrade by remember { mutableStateOf(routeWithMetadata.grade ?: "") }
+    var selectedGrade by remember { 
+        mutableStateOf(
+            routeWithMetadata.grade?.let { GradeUtils.pointsToGrade(it, gradingSystem) } ?: ""
+        ) 
+    }
     var selectedType by remember { mutableStateOf("work") }
     var selectedWay by remember { mutableStateOf("bouldering") }
     var comment by remember { mutableStateOf("") }
