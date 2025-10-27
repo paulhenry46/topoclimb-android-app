@@ -8,12 +8,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.topoclimb.repository.BackendConfigRepository
 import com.example.topoclimb.ui.screens.LogRouteStep1Screen
 import com.example.topoclimb.ui.screens.LogRouteStep2Screen
 import com.example.topoclimb.ui.screens.LogRouteStep3Screen
 import com.example.topoclimb.viewmodel.LogRouteViewModel
-import kotlinx.coroutines.launch
 
 /**
  * Navigation sub-graph for the route logging flow
