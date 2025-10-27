@@ -16,6 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+// Constants for area types
+private const val AREA_TYPE_BOULDERING = "bouldering"
+
 /**
  * Step 2: Select climbing way (Lead, Top-Rope, Bouldering)
  */
@@ -29,13 +32,13 @@ fun LogRouteStep2Screen(
 ) {
     // If area is bouldering, automatically select bouldering and move to next step
     LaunchedEffect(areaType) {
-        if (areaType?.lowercase() == "bouldering") {
+        if (areaType?.lowercase() == AREA_TYPE_BOULDERING) {
             onWaySelected("bouldering")
         }
     }
     
     // Only show this screen if it's not a bouldering-only area
-    if (areaType?.lowercase() == "bouldering") {
+    if (areaType?.lowercase() == AREA_TYPE_BOULDERING) {
         // This screen will not be shown, navigation will skip to step 3
         return
     }
@@ -92,7 +95,7 @@ fun LogRouteStep2Screen(
             )
             
             // Show bouldering only for traditional areas
-            if (areaType?.lowercase() != "bouldering") {
+            if (areaType?.lowercase() != AREA_TYPE_BOULDERING) {
                 ClimbingWayCard(
                     icon = Icons.Default.Landscape,
                     way = "Bouldering",

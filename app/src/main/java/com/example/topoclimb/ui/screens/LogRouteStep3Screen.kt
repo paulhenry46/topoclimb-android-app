@@ -13,6 +13,10 @@ import androidx.compose.ui.unit.dp
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.utils.GradeUtils
 
+// Constants for grade validation
+private const val MIN_GRADE_POINTS = 300
+private const val MAX_GRADE_POINTS = 950
+
 /**
  * Step 3: Enter grade, comment, and optional video URL
  */
@@ -132,11 +136,25 @@ fun LogRouteStep3Screen(
             
             Spacer(modifier = Modifier.weight(1f))
             
+            // Validate grade
+            val gradePoints = GradeUtils.gradeToPoints(selectedGrade, gradingSystem)
+            val isValidGrade = gradePoints in MIN_GRADE_POINTS..MAX_GRADE_POINTS
+            val canSubmit = !isLoading && selectedGrade.isNotBlank() && isValidGrade
+            
+            // Show validation error for invalid grade
+            if (selectedGrade.isNotBlank() && !isValidGrade) {
+                Text(
+                    text = "Invalid grade. Please enter a valid climbing grade.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+            
             // Submit button
             Button(
                 onClick = {
-                    val gradePoints = GradeUtils.gradeToPoints(selectedGrade, gradingSystem)
-                    if (gradePoints in 300..950) {
+                    if (isValidGrade) {
                         onSubmit(
                             gradePoints,
                             comment.takeIf { it.isNotBlank() },
@@ -147,7 +165,7 @@ fun LogRouteStep3Screen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = !isLoading && selectedGrade.isNotBlank()
+                enabled = canSubmit
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
