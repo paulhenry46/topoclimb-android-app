@@ -35,6 +35,15 @@ fun LogRouteStep3Screen(
     var comment by remember { mutableStateOf("") }
     var videoUrl by remember { mutableStateOf("") }
     
+    // Update selectedGrade when gradingSystem becomes available
+    LaunchedEffect(gradingSystem, routeGrade) {
+        routeGrade?.let { grade ->
+            GradeUtils.pointsToGrade(grade, gradingSystem)?.let { gradeStr ->
+                selectedGrade = gradeStr
+            }
+        }
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
