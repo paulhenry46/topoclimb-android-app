@@ -28,6 +28,8 @@ data class AreaDetailUiState(
     val selectedSectorId: Int? = null,
     val error: String? = null,
     val svgMapContent: String? = null,
+    val backendId: String? = null,
+    val siteId: Int? = null,
     val areaId: Int? = null,
     val gradingSystem: GradingSystem? = null,
     // Filter state
@@ -66,9 +68,9 @@ class AreaDetailViewModel : ViewModel() {
     // Get logged routes from shared state
     private val loggedRouteIds: StateFlow<Set<Int>> = RouteDetailViewModel.sharedLoggedRouteIds
     
-    fun loadAreaDetails(areaId: Int) {
+    fun loadAreaDetails(backendId: String, siteId: Int, areaId: Int) {
         viewModelScope.launch {
-            _uiState.value = AreaDetailUiState(isLoading = true, areaId = areaId)
+            _uiState.value = AreaDetailUiState(isLoading = true, backendId = backendId, siteId = siteId, areaId = areaId)
             
             val result = fetchAreaData(areaId)
             
@@ -77,6 +79,8 @@ class AreaDetailViewModel : ViewModel() {
                     isLoading = false,
                     isRefreshing = false,
                     error = result.exceptionOrNull()?.message ?: "Failed to load area details",
+                    backendId = backendId,
+                    siteId = siteId,
                     areaId = areaId
                 )
                 return@launch
@@ -97,6 +101,8 @@ class AreaDetailViewModel : ViewModel() {
                 sectors = sectors,
                 error = null,
                 svgMapContent = svgContent,
+                backendId = backendId,
+                siteId = siteId,
                 areaId = areaId,
                 gradingSystem = gradingSystem
             )
@@ -104,6 +110,8 @@ class AreaDetailViewModel : ViewModel() {
     }
     
     fun refreshAreaDetails() {
+        val backendId = _uiState.value.backendId ?: return
+        val siteId = _uiState.value.siteId ?: return
         val areaId = _uiState.value.areaId ?: return
         val currentState = _uiState.value
         

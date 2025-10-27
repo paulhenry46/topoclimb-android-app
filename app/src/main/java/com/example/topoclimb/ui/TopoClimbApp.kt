@@ -89,8 +89,7 @@ fun BottomNavigationBar(navController: NavHostController) {
     val currentDestination = navBackStackEntry?.destination
     
     // Check if current destination is a detail screen (site or area detail)
-    val isOnDetailScreen = currentDestination?.route?.startsWith("site/") == true || 
-                          currentDestination?.route?.startsWith("area/") == true
+    val isOnDetailScreen = currentDestination?.route?.startsWith("site/") == true
     
     NavigationBar {
         items.forEach { item ->
@@ -170,16 +169,19 @@ fun NavigationGraph(
                     navController.popBackStack()
                 },
                 onAreaClick = { areaBackendId, areaId ->
-                    navController.navigate("area/$areaBackendId/$areaId")
+                    navController.navigate("site/$areaBackendId/$siteId/area/$areaId")
                 }
             )
         }
         
         composable(
-            route = "area/{backendId}/{areaId}",
+            route = "site/{backendId}/{siteId}/area/{areaId}",
             arguments = listOf(
                 navArgument("backendId") {
                     type = NavType.StringType
+                },
+                navArgument("siteId") {
+                    type = NavType.IntType
                 },
                 navArgument("areaId") {
                     type = NavType.IntType
@@ -187,17 +189,19 @@ fun NavigationGraph(
             )
         ) { backStackEntry ->
             val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
             val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
             
             AreaDetailScreen(
                 backendId = backendId,
+                siteId = siteId,
                 areaId = areaId,
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onStartLogging = { routeId, routeName, routeGrade, areaType ->
                     // Navigate to step 1 of route logging
-                    navController.navigate("logRoute/step1/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}")
+                    navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step1/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}")
                 }
             )
         }
@@ -236,14 +240,20 @@ fun NavigationGraph(
         
         // Route logging - Step 1: Select climbing type
         composable(
-            route = "logRoute/step1/{routeId}/{routeName}/{routeGrade}/{areaType}",
+            route = "site/{backendId}/{siteId}/area/{areaId}/logRoute/step1/{routeId}/{routeName}/{routeGrade}/{areaType}",
             arguments = listOf(
+                navArgument("backendId") { type = NavType.StringType },
+                navArgument("siteId") { type = NavType.IntType },
+                navArgument("areaId") { type = NavType.IntType },
                 navArgument("routeId") { type = NavType.IntType },
                 navArgument("routeName") { type = NavType.StringType },
                 navArgument("routeGrade") { type = NavType.IntType },
                 navArgument("areaType") { type = NavType.StringType }
             )
         ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
+            val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
             val routeId = backStackEntry.arguments?.getInt("routeId") ?: return@composable
             val routeName = backStackEntry.arguments?.getString("routeName") ?: return@composable
             val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }
@@ -253,15 +263,18 @@ fun NavigationGraph(
                 routeName = routeName,
                 onBackClick = { navController.popBackStack() },
                 onTypeSelected = { climbingType ->
-                    navController.navigate("logRoute/step2/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}/$climbingType")
+                    navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step2/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}/$climbingType")
                 }
             )
         }
         
         // Route logging - Step 2: Select climbing way
         composable(
-            route = "logRoute/step2/{routeId}/{routeName}/{routeGrade}/{areaType}/{climbingType}",
+            route = "site/{backendId}/{siteId}/area/{areaId}/logRoute/step2/{routeId}/{routeName}/{routeGrade}/{areaType}/{climbingType}",
             arguments = listOf(
+                navArgument("backendId") { type = NavType.StringType },
+                navArgument("siteId") { type = NavType.IntType },
+                navArgument("areaId") { type = NavType.IntType },
                 navArgument("routeId") { type = NavType.IntType },
                 navArgument("routeName") { type = NavType.StringType },
                 navArgument("routeGrade") { type = NavType.IntType },
@@ -269,6 +282,9 @@ fun NavigationGraph(
                 navArgument("climbingType") { type = NavType.StringType }
             )
         ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
+            val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
             val routeId = backStackEntry.arguments?.getInt("routeId") ?: return@composable
             val routeName = backStackEntry.arguments?.getString("routeName") ?: return@composable
             val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }
@@ -280,15 +296,18 @@ fun NavigationGraph(
                 areaType = areaType,
                 onBackClick = { navController.popBackStack() },
                 onWaySelected = { climbingWay ->
-                    navController.navigate("logRoute/step3/$routeId/$routeName/${routeGrade ?: 0}/$climbingType/$climbingWay")
+                    navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step3/$routeId/$routeName/${routeGrade ?: 0}/$climbingType/$climbingWay")
                 }
             )
         }
         
         // Route logging - Step 3: Enter details and submit
         composable(
-            route = "logRoute/step3/{routeId}/{routeName}/{routeGrade}/{climbingType}/{climbingWay}",
+            route = "site/{backendId}/{siteId}/area/{areaId}/logRoute/step3/{routeId}/{routeName}/{routeGrade}/{climbingType}/{climbingWay}",
             arguments = listOf(
+                navArgument("backendId") { type = NavType.StringType },
+                navArgument("siteId") { type = NavType.IntType },
+                navArgument("areaId") { type = NavType.IntType },
                 navArgument("routeId") { type = NavType.IntType },
                 navArgument("routeName") { type = NavType.StringType },
                 navArgument("routeGrade") { type = NavType.IntType },
@@ -296,6 +315,9 @@ fun NavigationGraph(
                 navArgument("climbingWay") { type = NavType.StringType }
             )
         ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
+            val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
             val routeId = backStackEntry.arguments?.getInt("routeId") ?: return@composable
             val routeName = backStackEntry.arguments?.getString("routeName") ?: return@composable
             val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }

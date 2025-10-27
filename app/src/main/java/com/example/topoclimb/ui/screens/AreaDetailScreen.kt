@@ -43,6 +43,7 @@ private const val UNKNOWN_SECTOR_LABEL = "Unknown Sector"
 @Composable
 fun AreaDetailScreen(
     backendId: String,
+    siteId: Int,
     areaId: Int,
     onBackClick: () -> Unit,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
@@ -64,8 +65,8 @@ fun AreaDetailScreen(
     var selectedRouteWithMetadata by remember { mutableStateOf<com.example.topoclimb.data.RouteWithMetadata?>(null) }
     
     // TODO: Update AreaDetailViewModel to use backendId for federated data
-    LaunchedEffect(backendId, areaId) {
-        viewModel.loadAreaDetails(areaId)
+    LaunchedEffect(backendId, siteId, areaId) {
+        viewModel.loadAreaDetails(backendId, siteId, areaId)
     }
     
     Scaffold(
@@ -104,7 +105,7 @@ fun AreaDetailScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadAreaDetails(areaId) }) {
+                        Button(onClick = { viewModel.loadAreaDetails(backendId, siteId, areaId) }) {
                             Text("Retry")
                         }
                     }
