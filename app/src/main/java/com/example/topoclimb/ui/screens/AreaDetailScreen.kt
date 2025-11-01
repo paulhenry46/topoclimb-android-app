@@ -47,7 +47,8 @@ fun AreaDetailScreen(
     areaId: Int,
     onBackClick: () -> Unit,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
-    viewModel: AreaDetailViewModel = viewModel()
+    viewModel: AreaDetailViewModel = viewModel(),
+    favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -504,7 +505,8 @@ fun AreaDetailScreen(
                         onStartLogging(routeId, routeName, routeGrade, uiState.area?.type)
                         showBottomSheet = false // Close the bottom sheet when logging starts
                     }
-                } else null
+                } else null,
+                favoriteRoutesViewModel = favoriteRoutesViewModel
             )
         }
     }
@@ -537,7 +539,7 @@ fun FilterSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -562,7 +564,11 @@ fun FilterSection(
                             }
                         }
                     },
-                    singleLine = true
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary
+                    )
                 )
                 
                 // Filter toggle button
@@ -570,18 +576,18 @@ fun FilterSection(
                     onClick = { showFilters = !showFilters },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = if (showFilters || hasActiveFilters) 
-                            MaterialTheme.colorScheme.primary 
+                            MaterialTheme.colorScheme.primaryContainer 
                         else 
-                            MaterialTheme.colorScheme.surface
+                            MaterialTheme.colorScheme.surfaceVariant
                     )
                 ) {
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = if (showFilters) "Hide filters" else "Show filters",
                         tint = if (showFilters || hasActiveFilters) 
-                            MaterialTheme.colorScheme.onPrimary 
+                            MaterialTheme.colorScheme.onPrimaryContainer 
                         else 
-                            MaterialTheme.colorScheme.onSurface
+                            MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

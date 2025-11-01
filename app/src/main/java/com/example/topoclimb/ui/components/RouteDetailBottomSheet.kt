@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lens
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -41,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.launch
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
@@ -70,11 +74,16 @@ fun RouteDetailBottomSheet(
     onDismiss: () -> Unit,
     gradingSystem: GradingSystem? = null,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
-    viewModel: RouteDetailViewModel = viewModel()
+    viewModel: RouteDetailViewModel = viewModel(),
+    favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedTab by remember { mutableStateOf(0) }
-    var isBookmarked by remember { mutableStateOf(false) }
+    val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Check if this route is in favorites
+    val isBookmarked = favoriteRoutesUiState.favoriteRoutes.any { it.id == routeWithMetadata.id }
     
     LaunchedEffect(routeWithMetadata.id) {
         viewModel.loadRouteDetails(routeWithMetadata.id)
@@ -101,21 +110,26 @@ fun RouteDetailBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-            // Tab Content (takes most of the space)
-            Box(
+            // Tab Content with HorizontalPager for swipe gesture
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
-            ) {
-                when (selectedTab) {
+            ) { page ->
+                when (page) {
                     0 -> OverviewTab(
                         routeWithMetadata = routeWithMetadata,
                         uiState = uiState,
                         isBookmarked = isBookmarked,
-                        onBookmarkClick = { isBookmarked = !isBookmarked },
+                        onBookmarkClick = { favoriteRoutesViewModel.toggleFavorite(routeWithMetadata) },
                         onFocusToggle = { viewModel.toggleFocusMode() },
                         viewModel = viewModel,
-                        onLogCreated = { selectedTab = 1 }, // Switch to Logs tab after creating a log
+                        onLogCreated = { 
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(1)
+                            }
+                        },
                         onStartLogging = onStartLogging,
                         gradingSystem = gradingSystem
                     )
@@ -129,23 +143,31 @@ fun RouteDetailBottomSheet(
                 }
             }
             
-            // Tabs at the bottom
+            // Tabs at the bottom - sync with pager
             SecondaryTabRow(
-                selectedTabIndex = selectedTab,
+                selectedTabIndex = pagerState.currentPage,
                 modifier = Modifier.fillMaxWidth(),
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
             ) {
                 Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    selected = pagerState.currentPage == 0,
+                    onClick = { 
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(0)
+                        }
+                    },
                     text = { Text("Overview") },
                     selectedContentColor = MaterialTheme.colorScheme.primary,
                     unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    selected = pagerState.currentPage == 1,
+                    onClick = { 
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(1)
+                        }
+                    },
                     text = { 
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -469,11 +491,11 @@ private fun OverviewTab(
                     }
                 }
                 
-                // Green Infobox
+                // Infobox using local primary color
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f)
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
                     Row(
@@ -486,14 +508,14 @@ private fun OverviewTab(
                             onCheckedChange = null,
                             enabled = false,
                             colors = CheckboxDefaults.colors(
-                                checkedColor = Color(0xFF4CAF50),
-                                disabledCheckedColor = Color(0xFF4CAF50)
+                                checkedColor = MaterialTheme.colorScheme.primary,
+                                disabledCheckedColor = MaterialTheme.colorScheme.primary
                             )
                         )
                         Text(
                             text = "There are no plans to dismantle this route at this time.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF2E7D32)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
@@ -555,23 +577,23 @@ private fun LogsTab(
         }
     }
     
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 400.dp, max = 600.dp)
     ) {
-        // Filter header with Add Log button
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            // Filter header
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -605,99 +627,102 @@ private fun LogsTab(
                         )
                     }
                 }
-                
-                // Add Log button
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = {
-                        if (onStartLogging != null) {
-                            // Use new 3-step flow
-                            onStartLogging(routeWithMetadata.id, routeWithMetadata.name, routeWithMetadata.grade, null)
-                        }
-                        // If onStartLogging is null, do nothing (old behavior would have shown dialog)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = onStartLogging != null // Only enable if we have the callback
-                ) {
-                    Text("Add Log")
-                }
             }
-        }
-        
-        // Content with pull-to-refresh
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshingLogs,
-            onRefresh = { viewModel.refreshLogs(routeWithMetadata.id) },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            when {
-                uiState.isLogsLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.primary
-                        )
+            
+            // Content with pull-to-refresh
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshingLogs,
+                onRefresh = { viewModel.refreshLogs(routeWithMetadata.id) },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when {
+                    uiState.isLogsLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
-                }
-                uiState.logsError != null -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                    uiState.logsError != null -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Failed to load logs",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = uiState.logsError,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    filteredLogs.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Failed to load logs",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Text(
-                                text = uiState.logsError,
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = if (showOnlyWithComments) "No logs with comments" else "No logs yet",
+                                style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                }
-                filteredLogs.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (showOnlyWithComments) "No logs with comments" else "No logs yet",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                else -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        filteredLogs.forEach { log ->
-                            LogCard(
-                                log = log,
-                                routeGrade = routeWithMetadata.grade,
-                                gradingSystem = gradingSystem
-                            )
+                    else -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            filteredLogs.forEach { log ->
+                                LogCard(
+                                    log = log,
+                                    routeGrade = routeWithMetadata.grade,
+                                    gradingSystem = gradingSystem
+                                )
+                            }
                         }
                     }
                 }
+            }
+        }
+        
+        // FAB for adding logs
+        if (onStartLogging != null) {
+            FloatingActionButton(
+                onClick = {
+                    onStartLogging(routeWithMetadata.id, routeWithMetadata.name, routeWithMetadata.grade, null)
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Log"
+                )
             }
         }
     }

@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.topoclimb.ui.BottomNavItem
 import com.example.topoclimb.ui.screens.AreaDetailScreen
+import com.example.topoclimb.ui.screens.FavoritesScreen
 import com.example.topoclimb.ui.screens.ProfileScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
 import com.example.topoclimb.ui.screens.SitesScreen
@@ -82,6 +83,10 @@ fun NavigationGraph(
             val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
             val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
             
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(navController.graph.findStartDestination().id)
+            }
+            
             AreaDetailScreen(
                 backendId = backendId,
                 siteId = siteId,
@@ -92,7 +97,8 @@ fun NavigationGraph(
                 onStartLogging = { routeId, routeName, routeGrade, areaType ->
                     // Navigate to step 1 of route logging
                     navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step1/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}")
-                }
+                },
+                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         
@@ -100,12 +106,12 @@ fun NavigationGraph(
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(navController.graph.findStartDestination().id)
             }
-            SitesScreen(
+            FavoritesScreen(
                 onSiteClick = { backendId, siteId ->
                     navController.navigate("site/$backendId/$siteId")
                 },
-                favoriteOnly = true,
-                viewModel = viewModel(viewModelStoreOwner = parentEntry)
+                viewModel = viewModel(viewModelStoreOwner = parentEntry),
+                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         
