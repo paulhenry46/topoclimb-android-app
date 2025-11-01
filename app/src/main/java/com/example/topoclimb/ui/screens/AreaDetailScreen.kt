@@ -3,7 +3,6 @@ package com.example.topoclimb.ui.screens
 import android.annotation.SuppressLint
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -823,17 +821,7 @@ fun GradeRangeSlider(
             },
             valueRange = 0f..(grades.size - 1).toFloat(),
             steps = grades.size - 2, // steps between start and end
-            modifier = Modifier
-                .fillMaxWidth()
-                .pointerInput(Unit) {
-                    // Intercept pointer events to prevent parent scroll
-                    detectDragGestures(
-                        onDragStart = { /* Consume event */ },
-                        onDrag = { _, _ -> /* Consume event */ },
-                        onDragEnd = { /* Consume event */ },
-                        onDragCancel = { /* Consume event */ }
-                    )
-                }
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
