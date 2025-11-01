@@ -74,12 +74,16 @@ fun RouteDetailBottomSheet(
     onDismiss: () -> Unit,
     gradingSystem: GradingSystem? = null,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
-    viewModel: RouteDetailViewModel = viewModel()
+    viewModel: RouteDetailViewModel = viewModel(),
+    favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
-    var isBookmarked by remember { mutableStateOf(false) }
+    
+    // Check if this route is in favorites
+    val isBookmarked = favoriteRoutesUiState.favoriteRoutes.any { it.id == routeWithMetadata.id }
     
     LaunchedEffect(routeWithMetadata.id) {
         viewModel.loadRouteDetails(routeWithMetadata.id)
@@ -118,7 +122,7 @@ fun RouteDetailBottomSheet(
                         routeWithMetadata = routeWithMetadata,
                         uiState = uiState,
                         isBookmarked = isBookmarked,
-                        onBookmarkClick = { isBookmarked = !isBookmarked },
+                        onBookmarkClick = { favoriteRoutesViewModel.toggleFavorite(routeWithMetadata) },
                         onFocusToggle = { viewModel.toggleFocusMode() },
                         viewModel = viewModel,
                         onLogCreated = { 

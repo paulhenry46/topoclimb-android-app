@@ -47,7 +47,8 @@ fun AreaDetailScreen(
     areaId: Int,
     onBackClick: () -> Unit,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
-    viewModel: AreaDetailViewModel = viewModel()
+    viewModel: AreaDetailViewModel = viewModel(),
+    favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -504,7 +505,8 @@ fun AreaDetailScreen(
                         onStartLogging(routeId, routeName, routeGrade, uiState.area?.type)
                         showBottomSheet = false // Close the bottom sheet when logging starts
                     }
-                } else null
+                } else null,
+                favoriteRoutesViewModel = favoriteRoutesViewModel
             )
         }
     }

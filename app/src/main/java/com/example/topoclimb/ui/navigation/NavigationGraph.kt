@@ -83,6 +83,10 @@ fun NavigationGraph(
             val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
             val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
             
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(navController.graph.findStartDestination().id)
+            }
+            
             AreaDetailScreen(
                 backendId = backendId,
                 siteId = siteId,
@@ -93,7 +97,8 @@ fun NavigationGraph(
                 onStartLogging = { routeId, routeName, routeGrade, areaType ->
                     // Navigate to step 1 of route logging
                     navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step1/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}")
-                }
+                },
+                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         
@@ -105,7 +110,8 @@ fun NavigationGraph(
                 onSiteClick = { backendId, siteId ->
                     navController.navigate("site/$backendId/$siteId")
                 },
-                viewModel = viewModel(viewModelStoreOwner = parentEntry)
+                viewModel = viewModel(viewModelStoreOwner = parentEntry),
+                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         

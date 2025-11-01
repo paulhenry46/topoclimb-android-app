@@ -13,17 +13,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.Federated
+import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Site
+import com.example.topoclimb.ui.components.RouteCard
+import com.example.topoclimb.viewmodel.FavoriteRoutesViewModel
 import com.example.topoclimb.viewmodel.SitesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
     onSiteClick: (String, Int) -> Unit,
-    viewModel: SitesViewModel = viewModel()
+    viewModel: SitesViewModel = viewModel(),
+    favoriteRoutesViewModel: FavoriteRoutesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
+    
+    // State for route bottom sheet
+    var showRouteBottomSheet by remember { mutableStateOf(false) }
+    var selectedRoute by remember { mutableStateOf<RouteWithMetadata?>(null) }
     
     // Filter sites based on favorite flag
     val favoriteSites = uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
@@ -69,9 +78,25 @@ fun FavoritesScreen(
                     onRefresh = { viewModel.refreshSites() },
                     onRetry = { viewModel.loadSites() }
                 )
-                1 -> FavoriteRoutesTab()
+                1 -> FavoriteRoutesTab(
+                    favoriteRoutes = favoriteRoutesUiState.favoriteRoutes,
+                    onRouteClick = { route ->
+                        selectedRoute = route
+                        showRouteBottomSheet = true
+                    },
+                    onRemoveFavorite = { favoriteRoutesViewModel.toggleFavorite(it) }
+                )
             }
         }
+    }
+    
+    // Bottom Sheet for Route Details
+    if (showRouteBottomSheet && selectedRoute != null) {
+        com.example.topoclimb.ui.components.RouteDetailBottomSheet(
+            routeWithMetadata = selectedRoute!!,
+            onDismiss = { showRouteBottomSheet = false },
+            favoriteRoutesViewModel = favoriteRoutesViewModel
+        )
     }
 }
 
@@ -160,41 +185,66 @@ private fun FavoriteSitesTab(
 }
 
 @Composable
-private fun FavoriteRoutesTab() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
+private fun FavoriteRoutesTab(
+    favoriteRoutes: List<RouteWithMetadata>,
+    onRouteClick: (RouteWithMetadata) -> Unit,
+    onRemoveFavorite: (RouteWithMetadata) -> Unit
+) {
+    if (favoriteRoutes.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
             ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Favorite Routes",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Your favorite routes will appear here. Tap the star button next to the register button in the route overview tab to add routes to your favorites.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "No Favorite Routes",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "Your favorite routes will appear here. Tap the star button next to the register button in the route overview tab to add routes to your favorites.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(favoriteRoutes) { routeWithMetadata ->
+                RouteCard(
+                    thumbnail = routeWithMetadata.thumbnail,
+                    grade = routeWithMetadata.grade?.toString(),
+                    color = routeWithMetadata.color,
+                    name = routeWithMetadata.name,
+                    localId = routeWithMetadata.lineLocalId ?: routeWithMetadata.sectorLocalId,
+                    numberLogs = routeWithMetadata.numberLogs,
+                    numberComments = routeWithMetadata.numberComments,
+                    onClick = { onRouteClick(routeWithMetadata) }
                 )
             }
         }
