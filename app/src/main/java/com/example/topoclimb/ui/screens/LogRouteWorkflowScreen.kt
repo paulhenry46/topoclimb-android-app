@@ -1,6 +1,7 @@
 package com.example.topoclimb.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -94,6 +95,14 @@ fun LogRouteWorkflowScreen(
                                 else 
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                 shape = CircleShape
+                            )
+                            .clickable(
+                                enabled = !isLoading,
+                                onClick = {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(index)
+                                    }
+                                }
                             )
                     )
                 }
