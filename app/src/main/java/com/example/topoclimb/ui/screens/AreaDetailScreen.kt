@@ -3,6 +3,7 @@ package com.example.topoclimb.ui.screens
 import android.annotation.SuppressLint
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -623,7 +625,7 @@ fun FilterSection(
                     FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL,
                         onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.ALL) },
-                        label = { Text("All") },
+                        label = { Text("All", maxLines = 1) },
                         leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }
                         } else null,
@@ -632,7 +634,7 @@ fun FilterSection(
                     FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED,
                         onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) },
-                        label = { Text("Climbed") },
+                        label = { Text("Climbed", maxLines = 1) },
                         leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }
                         } else null,
@@ -641,9 +643,19 @@ fun FilterSection(
                     FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
                         onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) },
-                        label = { Text("Not Climbed") },
+                        label = { 
+                            Text(
+                                "Not Climbed", 
+                                maxLines = 2,
+                                style = MaterialTheme.typography.bodySmall
+                            ) 
+                        },
                         leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                            { Icon(
+                                Icons.Default.Check, 
+                                contentDescription = "Selected",
+                                modifier = Modifier.size(16.dp)
+                            ) }
                         } else null,
                         modifier = Modifier.weight(1f)
                     )
@@ -774,19 +786,34 @@ fun GradeRangeSlider(
         mutableStateOf(minIndex.toFloat()..maxIndex.toFloat()) 
     }
     
+    // State to track live grade values while dragging
+    var liveMinGrade by remember { mutableStateOf(minGrade) }
+    var liveMaxGrade by remember { mutableStateOf(maxGrade) }
+    
+    // Update live grades when external values change
+    LaunchedEffect(minGrade, maxGrade) {
+        liveMinGrade = minGrade
+        liveMaxGrade = maxGrade
+    }
+    
     Column(modifier = modifier) {
-        // Display selected range
+        // Display selected range (live updates while dragging)
         Text(
-            text = "${minGrade ?: grades.first()} - ${maxGrade ?: grades.last()}",
+            text = "${liveMinGrade ?: grades.first()} - ${liveMaxGrade ?: grades.last()}",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
         
-        // Range slider
+        // Range slider with gesture to prevent parent scrolling
         RangeSlider(
             value = sliderRange,
             onValueChange = { range ->
                 sliderRange = range
+                // Update live grades in real-time
+                val newMinIndex = range.start.toInt()
+                val newMaxIndex = range.endInclusive.toInt()
+                liveMinGrade = grades.getOrNull(newMinIndex) ?: grades.first()
+                liveMaxGrade = grades.getOrNull(newMaxIndex) ?: grades.last()
             },
             onValueChangeFinished = {
                 val newMinIndex = sliderRange.start.toInt()
@@ -796,7 +823,17 @@ fun GradeRangeSlider(
             },
             valueRange = 0f..(grades.size - 1).toFloat(),
             steps = grades.size - 2, // steps between start and end
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    // Intercept pointer events to prevent parent scroll
+                    detectDragGestures(
+                        onDragStart = { /* Consume event */ },
+                        onDrag = { _, _ -> /* Consume event */ },
+                        onDragEnd = { /* Consume event */ },
+                        onDragCancel = { /* Consume event */ }
+                    )
+                }
         )
     }
 }

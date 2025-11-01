@@ -8,9 +8,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.topoclimb.ui.screens.LogRouteStep1Screen
-import com.example.topoclimb.ui.screens.LogRouteStep2Screen
-import com.example.topoclimb.ui.screens.LogRouteStep3Screen
+import com.example.topoclimb.ui.screens.LogRouteWorkflowScreen
 import com.example.topoclimb.viewmodel.LogRouteViewModel
 
 /**
@@ -20,7 +18,7 @@ import com.example.topoclimb.viewmodel.LogRouteViewModel
 fun NavGraphBuilder.logRouteNavGraph(
     navController: NavHostController
 ) {
-    // Route logging - Step 1: Select climbing type
+    // Route logging - Unified workflow with ViewPager
     composable(
         route = "site/{backendId}/{siteId}/area/{areaId}/logRoute/step1/{routeId}/{routeName}/{routeGrade}/{areaType}",
         arguments = listOf(
@@ -41,70 +39,6 @@ fun NavGraphBuilder.logRouteNavGraph(
         val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }
         val areaType = backStackEntry.arguments?.getString("areaType")?.takeIf { it.isNotEmpty() }
         
-        LogRouteStep1Screen(
-            routeName = routeName,
-            onBackClick = { navController.popBackStack() },
-            onTypeSelected = { climbingType ->
-                navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step2/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}/$climbingType")
-            }
-        )
-    }
-    
-    // Route logging - Step 2: Select climbing way
-    composable(
-        route = "site/{backendId}/{siteId}/area/{areaId}/logRoute/step2/{routeId}/{routeName}/{routeGrade}/{areaType}/{climbingType}",
-        arguments = listOf(
-            navArgument("backendId") { type = NavType.StringType },
-            navArgument("siteId") { type = NavType.IntType },
-            navArgument("areaId") { type = NavType.IntType },
-            navArgument("routeId") { type = NavType.IntType },
-            navArgument("routeName") { type = NavType.StringType },
-            navArgument("routeGrade") { type = NavType.IntType },
-            navArgument("areaType") { type = NavType.StringType },
-            navArgument("climbingType") { type = NavType.StringType }
-        )
-    ) { backStackEntry ->
-        val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
-        val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
-        val areaId = backStackEntry.arguments?.getInt("areaId") ?: return@composable
-        val routeId = backStackEntry.arguments?.getInt("routeId") ?: return@composable
-        val routeName = backStackEntry.arguments?.getString("routeName") ?: return@composable
-        val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }
-        val areaType = backStackEntry.arguments?.getString("areaType")?.takeIf { it.isNotEmpty() }
-        val climbingType = backStackEntry.arguments?.getString("climbingType") ?: return@composable
-        
-        LogRouteStep2Screen(
-            routeName = routeName,
-            areaType = areaType,
-            onBackClick = { navController.popBackStack() },
-            onWaySelected = { climbingWay ->
-                navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step3/$routeId/$routeName/${routeGrade ?: 0}/$climbingType/$climbingWay")
-            }
-        )
-    }
-    
-    // Route logging - Step 3: Enter details and submit
-    composable(
-        route = "site/{backendId}/{siteId}/area/{areaId}/logRoute/step3/{routeId}/{routeName}/{routeGrade}/{climbingType}/{climbingWay}",
-        arguments = listOf(
-            navArgument("backendId") { type = NavType.StringType },
-            navArgument("siteId") { type = NavType.IntType },
-            navArgument("areaId") { type = NavType.IntType },
-            navArgument("routeId") { type = NavType.IntType },
-            navArgument("routeName") { type = NavType.StringType },
-            navArgument("routeGrade") { type = NavType.IntType },
-            navArgument("climbingType") { type = NavType.StringType },
-            navArgument("climbingWay") { type = NavType.StringType }
-        )
-    ) { backStackEntry ->
-        val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
-        val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
-        val routeId = backStackEntry.arguments?.getInt("routeId") ?: return@composable
-        val routeName = backStackEntry.arguments?.getString("routeName") ?: return@composable
-        val routeGrade = backStackEntry.arguments?.getInt("routeGrade")?.takeIf { it != 0 }
-        val climbingType = backStackEntry.arguments?.getString("climbingType") ?: return@composable
-        val climbingWay = backStackEntry.arguments?.getString("climbingWay") ?: return@composable
-        
         val context = LocalContext.current
         val viewModel: LogRouteViewModel = viewModel()
         val uiState by viewModel.uiState.collectAsState()
@@ -123,12 +57,17 @@ fun NavGraphBuilder.logRouteNavGraph(
             }
         }
         
-        LogRouteStep3Screen(
+        LogRouteWorkflowScreen(
+            backendId = backendId,
+            siteId = siteId,
+            areaId = areaId,
+            routeId = routeId,
             routeName = routeName,
             routeGrade = routeGrade,
+            areaType = areaType,
             gradingSystem = uiState.gradingSystem,
-            onBackClick = { navController.popBackStack() },
-            onSubmit = { grade, comment, videoUrl ->
+            onClose = { navController.popBackStack() },
+            onSubmit = { grade, climbingType, climbingWay, comment, videoUrl ->
                 viewModel.createRouteLog(
                     routeId = routeId,
                     grade = grade,
@@ -148,11 +87,7 @@ fun NavGraphBuilder.logRouteNavGraph(
                 onDismiss = {
                     showHeroMoment = false
                     // Navigate back to the area that we came from
-                    // Pop back multiple times to get to the area detail screen
-                    var poppedCount = 0
-                    while (poppedCount < 3 && navController.popBackStack()) {
-                        poppedCount++
-                    }
+                    navController.popBackStack()
                 },
                 routeName = routeName,
                 routeColor = null // We don't have the route color here
