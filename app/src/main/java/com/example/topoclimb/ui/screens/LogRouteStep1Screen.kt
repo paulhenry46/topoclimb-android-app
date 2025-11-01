@@ -94,12 +94,20 @@ fun ClimbingTypeCard(
     description: String,
     onClick: () -> Unit
 ) {
+    // Define colors based on type
+    val (containerColor, contentColor) = when (type) {
+        "Flash" -> Pair(androidx.compose.ui.graphics.Color(0xFFfe9a00), androidx.compose.ui.graphics.Color.White)
+        "View" -> Pair(androidx.compose.ui.graphics.Color(0xFF615fff), androidx.compose.ui.graphics.Color.White)
+        "Work" -> Pair(androidx.compose.ui.graphics.Color(0xFF00bc7d), androidx.compose.ui.graphics.Color.White)
+        else -> Pair(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurface)
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = containerColor
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -114,7 +122,7 @@ fun ClimbingTypeCard(
                 imageVector = icon,
                 contentDescription = type,
                 modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = contentColor
             )
             
             Column(
@@ -126,13 +134,13 @@ fun ClimbingTypeCard(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = contentColor
                 )
                 
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor.copy(alpha = 0.9f)
                 )
             }
         }

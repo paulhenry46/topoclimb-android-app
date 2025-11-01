@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.topoclimb.ui.BottomNavItem
 import com.example.topoclimb.ui.screens.AreaDetailScreen
+import com.example.topoclimb.ui.screens.FavoritesScreen
 import com.example.topoclimb.ui.screens.ProfileScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
 import com.example.topoclimb.ui.screens.SitesScreen
@@ -100,11 +101,10 @@ fun NavigationGraph(
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(navController.graph.findStartDestination().id)
             }
-            SitesScreen(
+            FavoritesScreen(
                 onSiteClick = { backendId, siteId ->
                     navController.navigate("site/$backendId/$siteId")
                 },
-                favoriteOnly = true,
                 viewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }

@@ -537,7 +537,7 @@ fun FilterSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -562,7 +562,11 @@ fun FilterSection(
                             }
                         }
                     },
-                    singleLine = true
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary
+                    )
                 )
                 
                 // Filter toggle button
@@ -570,18 +574,18 @@ fun FilterSection(
                     onClick = { showFilters = !showFilters },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = if (showFilters || hasActiveFilters) 
-                            MaterialTheme.colorScheme.primary 
+                            MaterialTheme.colorScheme.primaryContainer 
                         else 
-                            MaterialTheme.colorScheme.surface
+                            MaterialTheme.colorScheme.surfaceVariant
                     )
                 ) {
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = if (showFilters) "Hide filters" else "Show filters",
                         tint = if (showFilters || hasActiveFilters) 
-                            MaterialTheme.colorScheme.onPrimary 
+                            MaterialTheme.colorScheme.onPrimaryContainer 
                         else 
-                            MaterialTheme.colorScheme.onSurface
+                            MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
