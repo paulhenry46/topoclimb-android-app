@@ -57,12 +57,29 @@ fun AreaDetailScreen(
     // Get shared logged routes state
     val loggedRouteIds by com.example.topoclimb.viewmodel.RouteDetailViewModel.sharedLoggedRouteIds.collectAsState()
     
+    // Get shared route to show state
+    val routeToShowId by com.example.topoclimb.viewmodel.RouteDetailViewModel.routeToShow.collectAsState()
+    
     // Remember the map height once it's been measured
     var mapHeight by remember { mutableStateOf(0.dp) }
     
     // State for bottom sheet
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedRouteWithMetadata by remember { mutableStateOf<com.example.topoclimb.data.RouteWithMetadata?>(null) }
+    
+    // Handle route to show after logging workflow
+    LaunchedEffect(routeToShowId, uiState.routesWithMetadata) {
+        routeToShowId?.let { routeId ->
+            // Find the route in the list
+            val route = uiState.routesWithMetadata.find { it.id == routeId }
+            if (route != null) {
+                selectedRouteWithMetadata = route
+                showBottomSheet = true
+                // Clear the route to show state
+                com.example.topoclimb.viewmodel.RouteDetailViewModel.setRouteToShow(null)
+            }
+        }
+    }
     
     // TODO: Update AreaDetailViewModel to use backendId for federated data
     LaunchedEffect(backendId, siteId, areaId) {
@@ -621,18 +638,16 @@ fun FilterSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterChip(
-                        selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL,
-                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.ALL) },
-                        label = { Text("All", maxLines = 1) },
-                        leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                        } else null,
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED,
-                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) },
-                        label = { Text("Climbed", maxLines = 1) },
+                        onClick = { 
+                            onClimbedFilterChange(
+                                if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) 
+                                    com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
+                                else 
+                                    com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED
+                            ) 
+                        },
+                        label = { Text("Climbed") },
                         leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }
                         } else null,
@@ -640,20 +655,17 @@ fun FilterSection(
                     )
                     FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
-                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) },
-                        label = { 
-                            Text(
-                                "Not Climbed", 
-                                maxLines = 2,
-                                style = MaterialTheme.typography.bodySmall
+                        onClick = { 
+                            onClimbedFilterChange(
+                                if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) 
+                                    com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
+                                else 
+                                    com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED
                             ) 
                         },
+                        label = { Text("Not Climbed") },
                         leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) {
-                            { Icon(
-                                Icons.Default.Check, 
-                                contentDescription = "Selected",
-                                modifier = Modifier.size(16.dp)
-                            ) }
+                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
                         } else null,
                         modifier = Modifier.weight(1f)
                     )
@@ -672,17 +684,15 @@ fun FilterSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterChip(
-                        selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.NONE,
-                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.NONE) },
-                        label = { Text("None") },
-                        leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.NONE) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                        } else null,
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
                         selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE,
-                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) },
+                        onClick = { 
+                            onGroupingOptionChange(
+                                if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) 
+                                    com.example.topoclimb.viewmodel.GroupingOption.NONE 
+                                else 
+                                    com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE
+                            ) 
+                        },
                         label = { Text("Grade") },
                         leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }
@@ -691,7 +701,14 @@ fun FilterSection(
                     )
                     FilterChip(
                         selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR,
-                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) },
+                        onClick = { 
+                            onGroupingOptionChange(
+                                if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) 
+                                    com.example.topoclimb.viewmodel.GroupingOption.NONE 
+                                else 
+                                    com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR
+                            ) 
+                        },
                         label = { Text("Sector") },
                         leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }

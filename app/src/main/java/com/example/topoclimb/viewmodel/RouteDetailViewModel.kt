@@ -50,12 +50,20 @@ class RouteDetailViewModel(
         private val _sharedLoggedRouteIds = MutableStateFlow<Set<Int>>(emptySet())
         val sharedLoggedRouteIds: StateFlow<Set<Int>> = _sharedLoggedRouteIds.asStateFlow()
         
+        // Shared state for route to show after logging workflow
+        private val _routeToShow = MutableStateFlow<Int?>(null)
+        val routeToShow: StateFlow<Int?> = _routeToShow.asStateFlow()
+        
         fun updateSharedLoggedRoutes(routeIds: Set<Int>) {
             _sharedLoggedRouteIds.value = routeIds
         }
         
         fun addLoggedRoute(routeId: Int) {
             _sharedLoggedRouteIds.value = _sharedLoggedRouteIds.value + routeId
+        }
+        
+        fun setRouteToShow(routeId: Int?) {
+            _routeToShow.value = routeId
         }
     }
     

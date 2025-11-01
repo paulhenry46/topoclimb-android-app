@@ -66,7 +66,11 @@ fun NavGraphBuilder.logRouteNavGraph(
             routeGrade = routeGrade,
             areaType = areaType,
             gradingSystem = uiState.gradingSystem,
-            onClose = { navController.popBackStack() },
+            onClose = { 
+                // Set the route to show when we go back
+                com.example.topoclimb.viewmodel.RouteDetailViewModel.setRouteToShow(routeId)
+                navController.popBackStack() 
+            },
             onSubmit = { grade, climbingType, climbingWay, comment, videoUrl ->
                 viewModel.createRouteLog(
                     routeId = routeId,

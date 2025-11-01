@@ -5,10 +5,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Cake
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,7 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -25,7 +20,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.viewmodel.ProfileViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onManageBackendsClick: () -> Unit = {},
@@ -44,21 +38,13 @@ fun ProfileScreen(
         }
     }
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Profile") }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (uiState.isAuthenticated && user != null) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (uiState.isAuthenticated && user != null) {
                 // Profile picture
                 AsyncImage(
                     model = user.profilePhotoUrl,
@@ -104,54 +90,31 @@ fun ProfileScreen(
                 // User info card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
                             text = "Account Information",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            style = MaterialTheme.typography.titleMedium
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        // Email with icon
-                        InfoRowWithIcon(
-                            icon = Icons.Default.Email,
-                            label = "Email",
-                            value = user.email
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                         
                         user.birthDate?.let { birthDate ->
                             if (birthDate.length >= 10) {
-                                InfoRowWithIcon(
-                                    icon = Icons.Default.Cake,
-                                    label = "Birth Date",
-                                    value = birthDate.substring(0, 10)
-                                )
+                                InfoRow("Birth Date", birthDate.substring(0, 10))
                             }
                         }
                         user.gender?.let { gender ->
                             if (gender.isNotEmpty()) {
-                                InfoRowWithIcon(
-                                    icon = Icons.Default.Person,
-                                    label = "Gender",
-                                    value = gender.replaceFirstChar { char -> 
-                                        if (char.isLowerCase()) char.titlecase() else char.toString() 
-                                    }
-                                )
+                                InfoRow("Gender", gender.replaceFirstChar { char -> 
+                                    if (char.isLowerCase()) char.titlecase() else char.toString() 
+                                })
                             }
                         }
                         if (user.createdAt.length >= 10) {
-                            InfoRowWithIcon(
-                                icon = Icons.Default.CalendarToday,
-                                label = "Member Since",
-                                value = user.createdAt.substring(0, 10)
-                            )
+                            InfoRow("Member Since", user.createdAt.substring(0, 10))
                         }
                     }
                 }
@@ -213,7 +176,6 @@ fun ProfileScreen(
             }
         }
     }
-}
 
 @Composable
 fun InfoRow(label: String, value: String) {
@@ -232,38 +194,6 @@ fun InfoRow(label: String, value: String) {
             text = value,
             style = MaterialTheme.typography.bodyMedium
         )
-    }
-}
-
-@Composable
-fun InfoRowWithIcon(icon: ImageVector, label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp)
-        )
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
     }
 }
 
