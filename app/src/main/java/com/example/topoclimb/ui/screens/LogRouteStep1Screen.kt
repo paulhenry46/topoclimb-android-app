@@ -16,6 +16,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+// Color constants for climbing type cards
+private val FLASH_COLOR = androidx.compose.ui.graphics.Color(0xFFfe9a00)
+private val VIEW_COLOR = androidx.compose.ui.graphics.Color(0xFF615fff)
+private val WORK_COLOR = androidx.compose.ui.graphics.Color(0xFF00bc7d)
+private val CARD_TEXT_COLOR = androidx.compose.ui.graphics.Color.White
+
 /**
  * Step 1: Select climbing type (flash, view, work)
  */
@@ -96,9 +102,9 @@ fun ClimbingTypeCard(
 ) {
     // Define colors based on type
     val (containerColor, contentColor) = when (type) {
-        "Flash" -> Pair(androidx.compose.ui.graphics.Color(0xFFfe9a00), androidx.compose.ui.graphics.Color.White)
-        "View" -> Pair(androidx.compose.ui.graphics.Color(0xFF615fff), androidx.compose.ui.graphics.Color.White)
-        "Work" -> Pair(androidx.compose.ui.graphics.Color(0xFF00bc7d), androidx.compose.ui.graphics.Color.White)
+        "Flash" -> Pair(FLASH_COLOR, CARD_TEXT_COLOR)
+        "View" -> Pair(VIEW_COLOR, CARD_TEXT_COLOR)
+        "Work" -> Pair(WORK_COLOR, CARD_TEXT_COLOR)
         else -> Pair(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurface)
     }
     

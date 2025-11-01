@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topoclimb.data.Federated
+import com.example.topoclimb.data.Site
 import com.example.topoclimb.viewmodel.SitesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,7 +77,7 @@ fun FavoritesScreen(
 
 @Composable
 private fun FavoriteSitesTab(
-    favoriteSites: List<com.example.topoclimb.data.Federated<com.example.topoclimb.data.Site>>,
+    favoriteSites: List<Federated<Site>>,
     isLoading: Boolean,
     isRefreshing: Boolean,
     error: String?,
