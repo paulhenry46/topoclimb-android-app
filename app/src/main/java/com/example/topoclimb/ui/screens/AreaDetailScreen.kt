@@ -57,12 +57,29 @@ fun AreaDetailScreen(
     // Get shared logged routes state
     val loggedRouteIds by com.example.topoclimb.viewmodel.RouteDetailViewModel.sharedLoggedRouteIds.collectAsState()
     
+    // Get shared route to show state
+    val routeToShowId by com.example.topoclimb.viewmodel.RouteDetailViewModel.routeToShow.collectAsState()
+    
     // Remember the map height once it's been measured
     var mapHeight by remember { mutableStateOf(0.dp) }
     
     // State for bottom sheet
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedRouteWithMetadata by remember { mutableStateOf<com.example.topoclimb.data.RouteWithMetadata?>(null) }
+    
+    // Handle route to show after logging workflow
+    LaunchedEffect(routeToShowId, uiState.routesWithMetadata) {
+        routeToShowId?.let { routeId ->
+            // Find the route in the list
+            val route = uiState.routesWithMetadata.find { it.id == routeId }
+            if (route != null) {
+                selectedRouteWithMetadata = route
+                showBottomSheet = true
+                // Clear the route to show state
+                com.example.topoclimb.viewmodel.RouteDetailViewModel.setRouteToShow(null)
+            }
+        }
+    }
     
     // TODO: Update AreaDetailViewModel to use backendId for federated data
     LaunchedEffect(backendId, siteId, areaId) {
@@ -621,17 +638,15 @@ fun FilterSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterChip(
-                        selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL,
-                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.ALL) },
-                        label = { Text("All") },
-                        leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.ALL) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                        } else null,
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED,
-                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) },
+                        onClick = { 
+                            onClimbedFilterChange(
+                                if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) 
+                                    com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
+                                else 
+                                    com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED
+                            ) 
+                        },
                         label = { Text("Climbed") },
                         leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }
@@ -640,7 +655,14 @@ fun FilterSection(
                     )
                     FilterChip(
                         selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
-                        onClick = { onClimbedFilterChange(com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) },
+                        onClick = { 
+                            onClimbedFilterChange(
+                                if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) 
+                                    com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
+                                else 
+                                    com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED
+                            ) 
+                        },
                         label = { Text("Not Climbed") },
                         leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }
@@ -662,17 +684,15 @@ fun FilterSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterChip(
-                        selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.NONE,
-                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.NONE) },
-                        label = { Text("None") },
-                        leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.NONE) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                        } else null,
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
                         selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE,
-                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) },
+                        onClick = { 
+                            onGroupingOptionChange(
+                                if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) 
+                                    com.example.topoclimb.viewmodel.GroupingOption.NONE 
+                                else 
+                                    com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE
+                            ) 
+                        },
                         label = { Text("Grade") },
                         leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }
@@ -681,7 +701,14 @@ fun FilterSection(
                     )
                     FilterChip(
                         selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR,
-                        onClick = { onGroupingOptionChange(com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) },
+                        onClick = { 
+                            onGroupingOptionChange(
+                                if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) 
+                                    com.example.topoclimb.viewmodel.GroupingOption.NONE 
+                                else 
+                                    com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR
+                            ) 
+                        },
                         label = { Text("Sector") },
                         leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) {
                             { Icon(Icons.Default.Check, contentDescription = "Selected") }
@@ -774,19 +801,34 @@ fun GradeRangeSlider(
         mutableStateOf(minIndex.toFloat()..maxIndex.toFloat()) 
     }
     
+    // State to track live grade values while dragging
+    var liveMinGrade by remember { mutableStateOf(minGrade) }
+    var liveMaxGrade by remember { mutableStateOf(maxGrade) }
+    
+    // Update live grades when external values change
+    LaunchedEffect(minGrade, maxGrade) {
+        liveMinGrade = minGrade
+        liveMaxGrade = maxGrade
+    }
+    
     Column(modifier = modifier) {
-        // Display selected range
+        // Display selected range (live updates while dragging)
         Text(
-            text = "${minGrade ?: grades.first()} - ${maxGrade ?: grades.last()}",
+            text = "${liveMinGrade ?: grades.first()} - ${liveMaxGrade ?: grades.last()}",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
         
-        // Range slider
+        // Range slider with gesture to prevent parent scrolling
         RangeSlider(
             value = sliderRange,
             onValueChange = { range ->
                 sliderRange = range
+                // Update live grades in real-time
+                val newMinIndex = range.start.toInt()
+                val newMaxIndex = range.endInclusive.toInt()
+                liveMinGrade = grades.getOrNull(newMinIndex) ?: grades.first()
+                liveMaxGrade = grades.getOrNull(newMaxIndex) ?: grades.last()
             },
             onValueChangeFinished = {
                 val newMinIndex = sliderRange.start.toInt()

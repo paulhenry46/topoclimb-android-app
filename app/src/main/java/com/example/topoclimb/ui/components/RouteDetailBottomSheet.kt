@@ -735,21 +735,16 @@ private fun LogCard(
         }
     }
     
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickableWithoutRipple { isExpanded = !isExpanded },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+            .clickableWithoutRipple { isExpanded = !isExpanded }
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+                .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // User info row
@@ -1010,6 +1005,12 @@ private fun LogCard(
                 }
             }
         }
+        
+        // Divider between logs
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 8.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     }
 }
 

@@ -20,7 +20,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.viewmodel.ProfileViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onManageBackendsClick: () -> Unit = {},
@@ -39,21 +38,13 @@ fun ProfileScreen(
         }
     }
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Profile") }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (uiState.isAuthenticated && user != null) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (uiState.isAuthenticated && user != null) {
                 // Profile picture
                 AsyncImage(
                     model = user.profilePhotoUrl,
@@ -185,7 +176,6 @@ fun ProfileScreen(
             }
         }
     }
-}
 
 @Composable
 fun InfoRow(label: String, value: String) {
