@@ -21,7 +21,7 @@ fun FavoritesScreen(
     viewModel: SitesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     
     // Filter sites based on favorite flag
     val favoriteSites = uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
@@ -39,7 +39,7 @@ fun FavoritesScreen(
                 .padding(padding)
         ) {
             // Tab selector
-            TabRow(
+            PrimaryTabRow(
                 selectedTabIndex = selectedTab,
                 modifier = Modifier.fillMaxWidth()
             ) {
