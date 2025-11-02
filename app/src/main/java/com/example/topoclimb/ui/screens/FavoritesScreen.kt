@@ -37,6 +37,12 @@ fun FavoritesScreen(
     // Filter sites based on favorite flag
     val favoriteSites = uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
     
+    // Get grading system from sites
+    val gradingSystemMap = uiState.sites.associate { it.data.id to it.data.gradingSystem }
+    
+    // Get backend ID map from sites  
+    val backendIdMap = uiState.sites.associate { it.data.id to it.backend.backendId }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -80,6 +86,7 @@ fun FavoritesScreen(
                 )
                 1 -> FavoriteRoutesTab(
                     favoriteRoutes = favoriteRoutesUiState.favoriteRoutes,
+                    gradingSystemMap = gradingSystemMap,
                     onRouteClick = { route ->
                         selectedRoute = route
                         showRouteBottomSheet = true
@@ -92,9 +99,12 @@ fun FavoritesScreen(
     
     // Bottom Sheet for Route Details
     if (showRouteBottomSheet && selectedRoute != null) {
+        val gradingSystem = gradingSystemMap[selectedRoute!!.siteId]
         com.example.topoclimb.ui.components.RouteDetailBottomSheet(
             routeWithMetadata = selectedRoute!!,
             onDismiss = { showRouteBottomSheet = false },
+            gradingSystem = gradingSystem,
+            onStartLogging = null, // Can't log routes from favorites - need area context
             favoriteRoutesViewModel = favoriteRoutesViewModel
         )
     }
@@ -202,6 +212,7 @@ private fun FavoriteSitesTab(
 @Composable
 private fun FavoriteRoutesTab(
     favoriteRoutes: List<RouteWithMetadata>,
+    gradingSystemMap: Map<Int, com.example.topoclimb.data.GradingSystem?>,
     onRouteClick: (RouteWithMetadata) -> Unit,
     onRemoveFavorite: (RouteWithMetadata) -> Unit
 ) {
@@ -245,22 +256,42 @@ private fun FavoriteRoutesTab(
             }
         }
     } else {
+        // Group routes by site name
+        val routesBySite = favoriteRoutes.groupBy { it.siteName ?: "Unknown Site" }
+        
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(favoriteRoutes) { routeWithMetadata ->
-                RouteCard(
-                    thumbnail = routeWithMetadata.thumbnail,
-                    grade = routeWithMetadata.grade?.toString(),
-                    color = routeWithMetadata.color,
-                    name = routeWithMetadata.name,
-                    localId = routeWithMetadata.lineLocalId ?: routeWithMetadata.sectorLocalId,
-                    numberLogs = routeWithMetadata.numberLogs,
-                    numberComments = routeWithMetadata.numberComments,
-                    onClick = { onRouteClick(routeWithMetadata) }
-                )
+            routesBySite.forEach { (siteName, routes) ->
+                // Site header
+                item {
+                    Text(
+                        text = "$siteName (${routes.size})",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                    )
+                }
+                
+                // Routes for this site
+                items(routes) { routeWithMetadata ->
+                    val gradingSystem = gradingSystemMap[routeWithMetadata.siteId]
+                    val gradeString = routeWithMetadata.grade?.let { 
+                        com.example.topoclimb.utils.GradeUtils.pointsToGrade(it, gradingSystem)
+                    }
+                    
+                    RouteCard(
+                        thumbnail = routeWithMetadata.thumbnail,
+                        grade = gradeString,
+                        color = routeWithMetadata.color,
+                        name = routeWithMetadata.name,
+                        localId = routeWithMetadata.lineLocalId ?: routeWithMetadata.sectorLocalId,
+                        numberLogs = routeWithMetadata.numberLogs,
+                        numberComments = routeWithMetadata.numberComments,
+                        onClick = { onRouteClick(routeWithMetadata) }
+                    )
+                }
             }
         }
     }
