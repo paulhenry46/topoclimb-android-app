@@ -42,13 +42,6 @@ fun BottomNavigationBar(navController: NavHostController) {
                 icon = { Icon(item.icon, contentDescription = item.label) },
                 label = { Text(item.label) },
                 selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
                 onClick = {
                     // If we're on a detail screen and clicking Sites, pop back to Sites instead of restoring state
                     if (isOnDetailScreen && item.route == BottomNavItem.Sites.route) {
