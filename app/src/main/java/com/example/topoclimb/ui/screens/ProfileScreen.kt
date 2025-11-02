@@ -5,6 +5,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -13,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -103,18 +107,18 @@ fun ProfileScreen(
                         
                         user.birthDate?.let { birthDate ->
                             if (birthDate.length >= 10) {
-                                InfoRow("Birth Date", birthDate.substring(0, 10))
+                                InfoRow("Birth Date", birthDate.substring(0, 10), Icons.Default.Cake)
                             }
                         }
                         user.gender?.let { gender ->
                             if (gender.isNotEmpty()) {
                                 InfoRow("Gender", gender.replaceFirstChar { char -> 
                                     if (char.isLowerCase()) char.titlecase() else char.toString() 
-                                })
+                                }, Icons.Default.Person)
                             }
                         }
                         if (user.createdAt.length >= 10) {
-                            InfoRow("Member Since", user.createdAt.substring(0, 10))
+                            InfoRow("Member Since", user.createdAt.substring(0, 10), Icons.Default.CalendarMonth)
                         }
                     }
                 }
@@ -178,22 +182,31 @@ fun ProfileScreen(
     }
 
 @Composable
-fun InfoRow(label: String, value: String) {
+fun InfoRow(label: String, value: String, icon: ImageVector) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
     }
 }
 

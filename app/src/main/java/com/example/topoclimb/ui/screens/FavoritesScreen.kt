@@ -30,12 +30,28 @@ fun FavoritesScreen(
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     
+    // Ensure sites are loaded when this screen is shown
+    LaunchedEffect(Unit) {
+        if (uiState.sites.isEmpty() && !uiState.isLoading) {
+            viewModel.loadSites()
+        }
+    }
+    
     // State for route bottom sheet
     var showRouteBottomSheet by remember { mutableStateOf(false) }
     var selectedRoute by remember { mutableStateOf<RouteWithMetadata?>(null) }
     
     // Filter sites based on favorite flag
     val favoriteSites = uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
+    
+    // Build maps from loaded sites
+    val gradingSystemMap = remember(uiState.sites) {
+        uiState.sites.associate { it.data.id to it.data.gradingSystem }
+    }
+    
+    val siteNameMap = remember(uiState.sites) {
+        uiState.sites.associate { it.data.id to it.data.name }
+    }
     
     Scaffold(
         topBar = {
@@ -80,6 +96,8 @@ fun FavoritesScreen(
                 )
                 1 -> FavoriteRoutesTab(
                     favoriteRoutes = favoriteRoutesUiState.favoriteRoutes,
+                    gradingSystemMap = gradingSystemMap,
+                    siteNameMap = siteNameMap,
                     onRouteClick = { route ->
                         selectedRoute = route
                         showRouteBottomSheet = true
@@ -92,9 +110,12 @@ fun FavoritesScreen(
     
     // Bottom Sheet for Route Details
     if (showRouteBottomSheet && selectedRoute != null) {
+        val gradingSystem = gradingSystemMap[selectedRoute!!.siteId]
         com.example.topoclimb.ui.components.RouteDetailBottomSheet(
             routeWithMetadata = selectedRoute!!,
             onDismiss = { showRouteBottomSheet = false },
+            gradingSystem = gradingSystem,
+            onStartLogging = null, // Can't log routes from favorites - need area context
             favoriteRoutesViewModel = favoriteRoutesViewModel
         )
     }
@@ -151,18 +172,33 @@ private fun FavoriteSitesTab(
                     if (favoriteSites.isEmpty()) {
                         item {
                             Card(
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
                             ) {
-                                Box(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = "No Favorite Site",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
                                     Text(
                                         text = "No favorite site selected. Tap the star on a site card to set it as favorite.",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 }
                             }
@@ -187,6 +223,8 @@ private fun FavoriteSitesTab(
 @Composable
 private fun FavoriteRoutesTab(
     favoriteRoutes: List<RouteWithMetadata>,
+    gradingSystemMap: Map<Int, com.example.topoclimb.data.GradingSystem?>,
+    siteNameMap: Map<Int, String>,
     onRouteClick: (RouteWithMetadata) -> Unit,
     onRemoveFavorite: (RouteWithMetadata) -> Unit
 ) {
@@ -230,22 +268,55 @@ private fun FavoriteRoutesTab(
             }
         }
     } else {
+        // Group routes by site - prioritize route's siteName, then lookup, then fallback
+        val routesBySite = remember(favoriteRoutes, siteNameMap) {
+            favoriteRoutes.groupBy { route ->
+                // First try the route's own siteName, then lookup from map, finally "Unknown Site"
+                route.siteName?.takeIf { it.isNotBlank() }
+                    ?: siteNameMap[route.siteId]?.takeIf { route.siteId > 0 }
+                    ?: if (route.siteId > 0) "Unknown Site (ID: ${route.siteId})" else "Unknown Site"
+            }
+        }
+        
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(favoriteRoutes) { routeWithMetadata ->
-                RouteCard(
-                    thumbnail = routeWithMetadata.thumbnail,
-                    grade = routeWithMetadata.grade?.toString(),
-                    color = routeWithMetadata.color,
-                    name = routeWithMetadata.name,
-                    localId = routeWithMetadata.lineLocalId ?: routeWithMetadata.sectorLocalId,
-                    numberLogs = routeWithMetadata.numberLogs,
-                    numberComments = routeWithMetadata.numberComments,
-                    onClick = { onRouteClick(routeWithMetadata) }
-                )
+            routesBySite.forEach { (siteName, routes) ->
+                // Site header
+                item {
+                    Text(
+                        text = "$siteName (${routes.size})",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                    )
+                }
+                
+                // Routes for this site
+                items(routes) { routeWithMetadata ->
+                    // Get grading system, handle invalid siteId gracefully
+                    val gradingSystem = if (routeWithMetadata.siteId > 0) {
+                        gradingSystemMap[routeWithMetadata.siteId]
+                    } else {
+                        null
+                    }
+                    
+                    val gradeString = routeWithMetadata.grade?.let { 
+                        com.example.topoclimb.utils.GradeUtils.pointsToGrade(it, gradingSystem)
+                    }
+                    
+                    RouteCard(
+                        thumbnail = routeWithMetadata.thumbnail,
+                        grade = gradeString,
+                        color = routeWithMetadata.color,
+                        name = routeWithMetadata.name,
+                        localId = routeWithMetadata.lineLocalId ?: routeWithMetadata.sectorLocalId,
+                        numberLogs = routeWithMetadata.numberLogs,
+                        numberComments = routeWithMetadata.numberComments,
+                        onClick = { onRouteClick(routeWithMetadata) }
+                    )
+                }
             }
         }
     }

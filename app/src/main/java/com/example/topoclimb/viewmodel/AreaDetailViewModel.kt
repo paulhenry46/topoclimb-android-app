@@ -30,6 +30,7 @@ data class AreaDetailUiState(
     val svgMapContent: String? = null,
     val backendId: String? = null,
     val siteId: Int? = null,
+    val siteName: String? = null,
     val areaId: Int? = null,
     val gradingSystem: GradingSystem? = null,
     // Filter state
@@ -87,7 +88,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -104,6 +105,7 @@ class AreaDetailViewModel : ViewModel() {
                 svgMapContent = svgContent,
                 backendId = backendId,
                 siteId = siteId,
+                siteName = siteName,
                 areaId = areaId,
                 gradingSystem = gradingSystem
             )
@@ -129,7 +131,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -143,6 +145,7 @@ class AreaDetailViewModel : ViewModel() {
                 sectors = sectors,
                 error = null,
                 svgMapContent = svgContent,
+                siteName = siteName,
                 gradingSystem = gradingSystem
             )
         }
@@ -168,8 +171,10 @@ class AreaDetailViewModel : ViewModel() {
             
             // Load site using the directly provided siteId (optimization from nested navigation)
             var gradingSystem: GradingSystem? = null
+            var siteName: String? = null
             val siteResult = repository.getSite(siteId)
             gradingSystem = siteResult.getOrNull()?.gradingSystem
+            siteName = siteResult.getOrNull()?.name
             
             // Load sectors for the area
             val sectorsResult = repository.getSectorsByArea(areaId)
@@ -201,12 +206,21 @@ class AreaDetailViewModel : ViewModel() {
                 }
             }
             
-            // Convert routes to RouteWithMetadata
+            // Convert routes to RouteWithMetadata, ensuring siteId and siteName are set
             val routesWithMetadata = routes.map { route ->
-                RouteWithMetadata(route)
+                // If the route doesn't have siteId or siteName from API, set them from context
+                val updatedRoute = if (route.siteId == 0 || route.siteName.isNullOrBlank()) {
+                    route.copy(
+                        siteId = if (route.siteId == 0) siteId else route.siteId,
+                        siteName = route.siteName?.takeIf { it.isNotBlank() } ?: siteName
+                    )
+                } else {
+                    route
+                }
+                RouteWithMetadata(updatedRoute)
             }
             
-            Result.success(AreaData(area, gradingSystem, sectors, routes, routesWithMetadata, svgContent))
+            Result.success(AreaData(area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -218,11 +232,26 @@ class AreaDetailViewModel : ViewModel() {
     private data class AreaData(
         val area: Area?,
         val gradingSystem: GradingSystem?,
+        val siteName: String?,
         val sectors: List<Sector>,
         val routes: List<Route>,
         val routesWithMetadata: List<RouteWithMetadata>,
         val svgContent: String?
     )
+    
+    /**
+     * Ensures a route has valid siteId and siteName by using context values if missing
+     */
+    private fun ensureRouteSiteInfo(route: Route, contextSiteId: Int, contextSiteName: String?): Route {
+        return if (route.siteId == 0 || route.siteName.isNullOrBlank()) {
+            route.copy(
+                siteId = if (route.siteId == 0) contextSiteId else route.siteId,
+                siteName = route.siteName?.takeIf { it.isNotBlank() } ?: contextSiteName
+            )
+        } else {
+            route
+        }
+    }
     
     fun filterRoutesBySector(sectorId: Int?) {
         viewModelScope.launch {
@@ -232,8 +261,14 @@ class AreaDetailViewModel : ViewModel() {
                 currentState.area?.let { area ->
                     val routesResult = repository.getRoutesByArea(area.id)
                     val routes = routesResult.getOrNull() ?: emptyList()
+                    
+                    // Get site info from current state
+                    val contextSiteId = currentState.siteId ?: 0
+                    val contextSiteName = currentState.siteName
+                    
                     val routesWithMetadata = routes.map { route ->
-                        RouteWithMetadata(route)
+                        val updatedRoute = ensureRouteSiteInfo(route, contextSiteId, contextSiteName)
+                        RouteWithMetadata(updatedRoute)
                     }
                     // Update cache
                     allRoutesCache = routes
@@ -253,6 +288,10 @@ class AreaDetailViewModel : ViewModel() {
                 // Get sector info for localId
                 val sector = currentState.sectors.find { it.id == sectorId }
                 
+                // Get site info from current state
+                val contextSiteId = currentState.siteId ?: 0
+                val contextSiteName = currentState.siteName
+                
                 val linesResult = repository.getLinesBySector(sectorId)
                 if (linesResult.isSuccess) {
                     val lines = linesResult.getOrNull() ?: emptyList()
@@ -264,9 +303,10 @@ class AreaDetailViewModel : ViewModel() {
                         if (routesResult.isSuccess) {
                             val routes = routesResult.getOrNull() ?: emptyList()
                             routes.forEach { route ->
+                                val updatedRoute = ensureRouteSiteInfo(route, contextSiteId, contextSiteName)
                                 allRoutesWithMetadata.add(
                                     RouteWithMetadata(
-                                        route = route,
+                                        route = updatedRoute,
                                         lineLocalId = line.localId,
                                         sectorLocalId = sector?.localId,
                                         lineCount = lines.size
