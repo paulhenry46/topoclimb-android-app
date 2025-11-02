@@ -44,16 +44,13 @@ fun FavoritesScreen(
     // Filter sites based on favorite flag
     val favoriteSites = uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
     
-    // Get grading system from sites
-    val gradingSystemMap = uiState.sites.associate { it.data.id to it.data.gradingSystem }
+    // Build maps from loaded sites
+    val gradingSystemMap = remember(uiState.sites) {
+        uiState.sites.associate { it.data.id to it.data.gradingSystem }
+    }
     
-    // Get site name map from sites  
-    val siteNameMap = uiState.sites.associate { it.data.id to it.data.name }
-    
-    // Debug: Log sites info
-    android.util.Log.d("FavoritesScreen", "Total sites loaded: ${uiState.sites.size}")
-    uiState.sites.forEach { site ->
-        android.util.Log.d("FavoritesScreen", "Site: id=${site.data.id}, name=${site.data.name}")
+    val siteNameMap = remember(uiState.sites) {
+        uiState.sites.associate { it.data.id to it.data.name }
     }
     
     Scaffold(
@@ -271,20 +268,14 @@ private fun FavoriteRoutesTab(
             }
         }
     } else {
-        // Debug: Log the state
-        android.util.Log.d("FavoritesScreen", "Favorite routes count: ${favoriteRoutes.size}")
-        android.util.Log.d("FavoritesScreen", "Site name map size: ${siteNameMap.size}")
-        android.util.Log.d("FavoritesScreen", "Grading system map size: ${gradingSystemMap.size}")
-        favoriteRoutes.forEach { route ->
-            android.util.Log.d("FavoritesScreen", "Route: ${route.name}, siteId: ${route.siteId}, siteName: ${route.siteName}, lookupName: ${siteNameMap[route.siteId]}")
-        }
-        
-        // Group routes by site - look up site name using siteId
-        val routesBySite = favoriteRoutes.groupBy { route ->
-            val lookupName = siteNameMap[route.siteId]
-            val finalName = lookupName ?: route.siteName ?: "Unknown Site"
-            android.util.Log.d("FavoritesScreen", "Grouping route ${route.name} under: $finalName")
-            finalName
+        // Group routes by site - prioritize route's siteName, then lookup, then fallback
+        val routesBySite = remember(favoriteRoutes, siteNameMap) {
+            favoriteRoutes.groupBy { route ->
+                // First try the route's own siteName, then lookup from map, finally "Unknown Site"
+                route.siteName?.takeIf { it.isNotBlank() }
+                    ?: siteNameMap[route.siteId]
+                    ?: "Unknown Site (ID: ${route.siteId})"
+            }
         }
         
         LazyColumn(
