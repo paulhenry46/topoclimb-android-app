@@ -273,8 +273,8 @@ private fun FavoriteRoutesTab(
             favoriteRoutes.groupBy { route ->
                 // First try the route's own siteName, then lookup from map, finally "Unknown Site"
                 route.siteName?.takeIf { it.isNotBlank() }
-                    ?: siteNameMap[route.siteId]
-                    ?: "Unknown Site (ID: ${route.siteId})"
+                    ?: siteNameMap[route.siteId]?.takeIf { route.siteId > 0 }
+                    ?: if (route.siteId > 0) "Unknown Site (ID: ${route.siteId})" else "Unknown Site"
             }
         }
         
@@ -295,7 +295,13 @@ private fun FavoriteRoutesTab(
                 
                 // Routes for this site
                 items(routes) { routeWithMetadata ->
-                    val gradingSystem = gradingSystemMap[routeWithMetadata.siteId]
+                    // Get grading system, handle invalid siteId gracefully
+                    val gradingSystem = if (routeWithMetadata.siteId > 0) {
+                        gradingSystemMap[routeWithMetadata.siteId]
+                    } else {
+                        null
+                    }
+                    
                     val gradeString = routeWithMetadata.grade?.let { 
                         com.example.topoclimb.utils.GradeUtils.pointsToGrade(it, gradingSystem)
                     }
