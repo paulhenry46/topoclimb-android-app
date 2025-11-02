@@ -16,6 +16,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+// Color constants for climbing type cards
+private val FLASH_COLOR = androidx.compose.ui.graphics.Color(0xFFfe9a00)
+private val VIEW_COLOR = androidx.compose.ui.graphics.Color(0xFF615fff)
+private val WORK_COLOR = androidx.compose.ui.graphics.Color(0xFF00bc7d)
+private val CARD_TEXT_COLOR = androidx.compose.ui.graphics.Color.White
+
 /**
  * Step 1: Select climbing type (flash, view, work)
  */
@@ -94,12 +100,20 @@ fun ClimbingTypeCard(
     description: String,
     onClick: () -> Unit
 ) {
+    // Define colors based on type
+    val (containerColor, contentColor) = when (type) {
+        "Flash" -> Pair(FLASH_COLOR, CARD_TEXT_COLOR)
+        "View" -> Pair(VIEW_COLOR, CARD_TEXT_COLOR)
+        "Work" -> Pair(WORK_COLOR, CARD_TEXT_COLOR)
+        else -> Pair(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurface)
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = containerColor
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -114,7 +128,7 @@ fun ClimbingTypeCard(
                 imageVector = icon,
                 contentDescription = type,
                 modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = contentColor
             )
             
             Column(
@@ -126,13 +140,13 @@ fun ClimbingTypeCard(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = contentColor
                 )
                 
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor.copy(alpha = 0.9f)
                 )
             }
         }
