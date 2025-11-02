@@ -30,6 +30,7 @@ data class AreaDetailUiState(
     val svgMapContent: String? = null,
     val backendId: String? = null,
     val siteId: Int? = null,
+    val siteName: String? = null,
     val areaId: Int? = null,
     val gradingSystem: GradingSystem? = null,
     // Filter state
@@ -87,7 +88,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -104,6 +105,7 @@ class AreaDetailViewModel : ViewModel() {
                 svgMapContent = svgContent,
                 backendId = backendId,
                 siteId = siteId,
+                siteName = siteName,
                 areaId = areaId,
                 gradingSystem = gradingSystem
             )
@@ -129,7 +131,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -143,6 +145,7 @@ class AreaDetailViewModel : ViewModel() {
                 sectors = sectors,
                 error = null,
                 svgMapContent = svgContent,
+                siteName = siteName,
                 gradingSystem = gradingSystem
             )
         }
@@ -217,7 +220,7 @@ class AreaDetailViewModel : ViewModel() {
                 RouteWithMetadata(updatedRoute)
             }
             
-            Result.success(AreaData(area, gradingSystem, sectors, routes, routesWithMetadata, svgContent))
+            Result.success(AreaData(area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -229,6 +232,7 @@ class AreaDetailViewModel : ViewModel() {
     private data class AreaData(
         val area: Area?,
         val gradingSystem: GradingSystem?,
+        val siteName: String?,
         val sectors: List<Sector>,
         val routes: List<Route>,
         val routesWithMetadata: List<RouteWithMetadata>,
@@ -260,7 +264,7 @@ class AreaDetailViewModel : ViewModel() {
                     
                     // Get site info from current state
                     val contextSiteId = currentState.siteId ?: 0
-                    val contextSiteName = currentState.area?.siteName
+                    val contextSiteName = currentState.siteName
                     
                     val routesWithMetadata = routes.map { route ->
                         val updatedRoute = ensureRouteSiteInfo(route, contextSiteId, contextSiteName)
@@ -286,7 +290,7 @@ class AreaDetailViewModel : ViewModel() {
                 
                 // Get site info from current state
                 val contextSiteId = currentState.siteId ?: 0
-                val contextSiteName = currentState.area?.siteName
+                val contextSiteName = currentState.siteName
                 
                 val linesResult = repository.getLinesBySector(sectorId)
                 if (linesResult.isSuccess) {
