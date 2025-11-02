@@ -30,6 +30,13 @@ fun FavoritesScreen(
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     
+    // Ensure sites are loaded when this screen is shown
+    LaunchedEffect(Unit) {
+        if (uiState.sites.isEmpty() && !uiState.isLoading) {
+            viewModel.loadSites()
+        }
+    }
+    
     // State for route bottom sheet
     var showRouteBottomSheet by remember { mutableStateOf(false) }
     var selectedRoute by remember { mutableStateOf<RouteWithMetadata?>(null) }
@@ -42,6 +49,12 @@ fun FavoritesScreen(
     
     // Get site name map from sites  
     val siteNameMap = uiState.sites.associate { it.data.id to it.data.name }
+    
+    // Debug: Log sites info
+    android.util.Log.d("FavoritesScreen", "Total sites loaded: ${uiState.sites.size}")
+    uiState.sites.forEach { site ->
+        android.util.Log.d("FavoritesScreen", "Site: id=${site.data.id}, name=${site.data.name}")
+    }
     
     Scaffold(
         topBar = {
@@ -258,9 +271,20 @@ private fun FavoriteRoutesTab(
             }
         }
     } else {
+        // Debug: Log the state
+        android.util.Log.d("FavoritesScreen", "Favorite routes count: ${favoriteRoutes.size}")
+        android.util.Log.d("FavoritesScreen", "Site name map size: ${siteNameMap.size}")
+        android.util.Log.d("FavoritesScreen", "Grading system map size: ${gradingSystemMap.size}")
+        favoriteRoutes.forEach { route ->
+            android.util.Log.d("FavoritesScreen", "Route: ${route.name}, siteId: ${route.siteId}, siteName: ${route.siteName}, lookupName: ${siteNameMap[route.siteId]}")
+        }
+        
         // Group routes by site - look up site name using siteId
         val routesBySite = favoriteRoutes.groupBy { route ->
-            siteNameMap[route.siteId] ?: route.siteName ?: "Unknown Site"
+            val lookupName = siteNameMap[route.siteId]
+            val finalName = lookupName ?: route.siteName ?: "Unknown Site"
+            android.util.Log.d("FavoritesScreen", "Grouping route ${route.name} under: $finalName")
+            finalName
         }
         
         LazyColumn(
