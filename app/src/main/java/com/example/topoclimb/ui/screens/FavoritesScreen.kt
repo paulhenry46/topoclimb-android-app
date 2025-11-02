@@ -40,8 +40,8 @@ fun FavoritesScreen(
     // Get grading system from sites
     val gradingSystemMap = uiState.sites.associate { it.data.id to it.data.gradingSystem }
     
-    // Get backend ID map from sites  
-    val backendIdMap = uiState.sites.associate { it.data.id to it.backend.backendId }
+    // Get site name map from sites  
+    val siteNameMap = uiState.sites.associate { it.data.id to it.data.name }
     
     Scaffold(
         topBar = {
@@ -87,6 +87,7 @@ fun FavoritesScreen(
                 1 -> FavoriteRoutesTab(
                     favoriteRoutes = favoriteRoutesUiState.favoriteRoutes,
                     gradingSystemMap = gradingSystemMap,
+                    siteNameMap = siteNameMap,
                     onRouteClick = { route ->
                         selectedRoute = route
                         showRouteBottomSheet = true
@@ -213,6 +214,7 @@ private fun FavoriteSitesTab(
 private fun FavoriteRoutesTab(
     favoriteRoutes: List<RouteWithMetadata>,
     gradingSystemMap: Map<Int, com.example.topoclimb.data.GradingSystem?>,
+    siteNameMap: Map<Int, String>,
     onRouteClick: (RouteWithMetadata) -> Unit,
     onRemoveFavorite: (RouteWithMetadata) -> Unit
 ) {
@@ -256,8 +258,10 @@ private fun FavoriteRoutesTab(
             }
         }
     } else {
-        // Group routes by site name
-        val routesBySite = favoriteRoutes.groupBy { it.siteName ?: "Unknown Site" }
+        // Group routes by site - look up site name using siteId
+        val routesBySite = favoriteRoutes.groupBy { route ->
+            siteNameMap[route.siteId] ?: route.siteName ?: "Unknown Site"
+        }
         
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
