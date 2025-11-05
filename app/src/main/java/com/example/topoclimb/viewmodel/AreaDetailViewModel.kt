@@ -7,6 +7,7 @@ import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
+import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.repository.TopoClimbRepository
 import com.example.topoclimb.utils.GradeUtils
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+
+enum class ViewMode {
+    MAP,      // Traditional interactive map view
+    SCHEMA    // Schema view with sector overlays
+}
 
 data class AreaDetailUiState(
     val isLoading: Boolean = true,
@@ -33,6 +39,10 @@ data class AreaDetailUiState(
     val siteName: String? = null,
     val areaId: Int? = null,
     val gradingSystem: GradingSystem? = null,
+    // Schema view state
+    val schemas: List<SectorSchema> = emptyList(),
+    val currentSchemaIndex: Int = 0,
+    val viewMode: ViewMode = ViewMode.MAP,
     // Filter state
     val searchQuery: String = "",
     val minGrade: String? = null,
@@ -88,7 +98,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -107,7 +117,8 @@ class AreaDetailViewModel : ViewModel() {
                 siteId = siteId,
                 siteName = siteName,
                 areaId = areaId,
-                gradingSystem = gradingSystem
+                gradingSystem = gradingSystem,
+                schemas = schemas
             )
         }
     }
@@ -131,7 +142,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -146,7 +157,8 @@ class AreaDetailViewModel : ViewModel() {
                 error = null,
                 svgMapContent = svgContent,
                 siteName = siteName,
-                gradingSystem = gradingSystem
+                gradingSystem = gradingSystem,
+                schemas = schemas
             )
         }
     }
@@ -220,7 +232,15 @@ class AreaDetailViewModel : ViewModel() {
                 RouteWithMetadata(updatedRoute)
             }
             
-            Result.success(AreaData(area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent))
+            // Load schemas for trad areas only
+            val schemas = if (area?.type == "trad") {
+                val schemasResult = repository.getAreaSchemas(areaId)
+                schemasResult.getOrNull()?.filter { it.paths != null && it.bg != null } ?: emptyList()
+            } else {
+                emptyList()
+            }
+            
+            Result.success(AreaData(area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -236,7 +256,8 @@ class AreaDetailViewModel : ViewModel() {
         val sectors: List<Sector>,
         val routes: List<Route>,
         val routesWithMetadata: List<RouteWithMetadata>,
-        val svgContent: String?
+        val svgContent: String?,
+        val schemas: List<SectorSchema>
     )
     
     /**
@@ -381,6 +402,60 @@ class AreaDetailViewModel : ViewModel() {
             groupingOption = GroupingOption.NONE
         )
         applyFilters()
+    }
+    
+    fun toggleViewMode() {
+        val currentState = _uiState.value
+        val newMode = if (currentState.viewMode == ViewMode.MAP) ViewMode.SCHEMA else ViewMode.MAP
+        _uiState.value = currentState.copy(viewMode = newMode)
+        
+        // When switching to schema mode, select the first schema's sector if available
+        if (newMode == ViewMode.SCHEMA && currentState.schemas.isNotEmpty()) {
+            val firstSchema = currentState.schemas[0]
+            filterRoutesBySector(firstSchema.id)
+        } else if (newMode == ViewMode.MAP) {
+            // When switching back to map mode, clear sector filter
+            filterRoutesBySector(null)
+        }
+    }
+    
+    fun navigateToNextSchema() {
+        val currentState = _uiState.value
+        if (currentState.schemas.isEmpty()) return
+        
+        val nextIndex = (currentState.currentSchemaIndex + 1) % currentState.schemas.size
+        _uiState.value = currentState.copy(currentSchemaIndex = nextIndex)
+        
+        // Update sector filter to match the new schema
+        val schema = currentState.schemas[nextIndex]
+        filterRoutesBySector(schema.id)
+    }
+    
+    fun navigateToPreviousSchema() {
+        val currentState = _uiState.value
+        if (currentState.schemas.isEmpty()) return
+        
+        val prevIndex = if (currentState.currentSchemaIndex > 0) {
+            currentState.currentSchemaIndex - 1
+        } else {
+            currentState.schemas.size - 1
+        }
+        _uiState.value = currentState.copy(currentSchemaIndex = prevIndex)
+        
+        // Update sector filter to match the new schema
+        val schema = currentState.schemas[prevIndex]
+        filterRoutesBySector(schema.id)
+    }
+    
+    fun selectSchemaByIndex(index: Int) {
+        val currentState = _uiState.value
+        if (index < 0 || index >= currentState.schemas.size) return
+        
+        _uiState.value = currentState.copy(currentSchemaIndex = index)
+        
+        // Update sector filter to match the selected schema
+        val schema = currentState.schemas[index]
+        filterRoutesBySector(schema.id)
     }
     
     private fun applyFilters() {
