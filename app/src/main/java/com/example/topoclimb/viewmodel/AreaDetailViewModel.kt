@@ -304,7 +304,18 @@ class AreaDetailViewModel : ViewModel() {
             } else {
                 // Selected - fetch lines for this sector, then routes for each line
                 val currentState = _uiState.value
-                _uiState.value = currentState.copy(selectedSectorId = sectorId)
+                
+                // If in schema mode, also update the current schema index to match this sector
+                val newSchemaIndex = if (currentState.viewMode == ViewMode.SCHEMA) {
+                    currentState.schemas.indexOfFirst { it.id == sectorId }.takeIf { it >= 0 } ?: currentState.currentSchemaIndex
+                } else {
+                    currentState.currentSchemaIndex
+                }
+                
+                _uiState.value = currentState.copy(
+                    selectedSectorId = sectorId,
+                    currentSchemaIndex = newSchemaIndex
+                )
                 
                 // Get sector info for localId
                 val sector = currentState.sectors.find { it.id == sectorId }
@@ -344,7 +355,8 @@ class AreaDetailViewModel : ViewModel() {
                     allRoutesWithMetadataCache = allRoutesWithMetadata
                     
                     _uiState.value = currentState.copy(
-                        selectedSectorId = sectorId
+                        selectedSectorId = sectorId,
+                        currentSchemaIndex = newSchemaIndex
                     )
                     // Apply filters to the new data
                     applyFilters()
@@ -354,6 +366,7 @@ class AreaDetailViewModel : ViewModel() {
                     allRoutesWithMetadataCache = emptyList()
                     _uiState.value = currentState.copy(
                         selectedSectorId = sectorId,
+                        currentSchemaIndex = newSchemaIndex,
                         routes = emptyList(),
                         routesWithMetadata = emptyList()
                     )

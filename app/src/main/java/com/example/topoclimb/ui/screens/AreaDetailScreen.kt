@@ -172,7 +172,7 @@ fun AreaDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                     // Map or Schema section based on view mode
-                    if (uiState.viewMode == ViewMode.SCHEMA && uiState.schemas.isNotEmpty()) {
+                    if (uiState.viewMode == ViewMode.SCHEMA) {
                         // Schema view mode
                         item {
                             Text(
@@ -182,7 +182,15 @@ fun AreaDetailScreen(
                             )
                         }
                         item {
-                            val currentSchema = uiState.schemas.getOrNull(uiState.currentSchemaIndex)
+                            // Check if there's a schema for the selected sector
+                            val currentSchema = if (uiState.selectedSectorId != null) {
+                                // User has selected a specific sector, try to find its schema
+                                uiState.schemas.find { it.id == uiState.selectedSectorId }
+                            } else {
+                                // No specific sector selected, use current schema index
+                                uiState.schemas.getOrNull(uiState.currentSchemaIndex)
+                            }
+                            
                             if (currentSchema != null) {
                                 // Get filtered route IDs to show in schema
                                 val filteredRouteIds = uiState.routesWithMetadata.map { it.id }.toSet()
@@ -217,11 +225,21 @@ fun AreaDetailScreen(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = "No schema available for this sector",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "No schema available for this sector",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            if (uiState.schemas.isNotEmpty()) {
+                                                Button(onClick = { viewModel.toggleViewMode() }) {
+                                                    Text("Switch to Map View")
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
