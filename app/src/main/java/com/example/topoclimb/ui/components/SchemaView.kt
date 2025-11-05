@@ -44,13 +44,14 @@ fun SchemaView(
     var isLoading by remember(schema) { mutableStateOf(true) }
     var error by remember(schema) { mutableStateOf<String?>(null) }
     
+    // Reuse OkHttpClient instance
+    val httpClient = remember { OkHttpClient() }
+    
     LaunchedEffect(schema) {
         isLoading = true
         error = null
         
         try {
-            val httpClient = OkHttpClient()
-            
             // Load background image as base64
             val bgData = schema.bg?.let { url ->
                 withContext(Dispatchers.IO) {
@@ -58,8 +59,10 @@ fun SchemaView(
                         val request = Request.Builder().url(url).build()
                         httpClient.newCall(request).execute().use { response ->
                             if (response.isSuccessful) {
+                                // Determine content type from response or default to image/*
+                                val contentType = response.header("Content-Type") ?: "image/jpeg"
                                 response.body?.bytes()?.let { bytes ->
-                                    "data:image/jpeg;base64," + android.util.Base64.encodeToString(
+                                    "data:$contentType;base64," + android.util.Base64.encodeToString(
                                         bytes,
                                         android.util.Base64.NO_WRAP
                                     )
@@ -215,7 +218,10 @@ fun SchemaView(
                             
                             // Escape the SVG content to prevent script injection
                             // Note: We trust the SVG from the server, but we sanitize by removing any script tags
-                            val sanitizedSvg = svgPathsData?.replace(Regex("<script[^>]*>.*?</script>", RegexOption.IGNORE_CASE), "") ?: ""
+                            val sanitizedSvg = svgPathsData?.replace(
+                                Regex("<script[^>]*>.*?</script>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)),
+                                ""
+                            ) ?: ""
                             
                             val htmlContent = """
                                 <!DOCTYPE html>
