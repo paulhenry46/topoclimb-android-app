@@ -233,7 +233,7 @@ class AreaDetailViewModel : ViewModel() {
             }
             
             // Load schemas for trad areas only
-            val schemas = if (area?.type == "trad") {
+            val schemas = if (area?.type == com.example.topoclimb.data.AreaType.TRAD) {
                 val schemasResult = repository.getAreaSchemas(areaId)
                 schemasResult.getOrNull()?.filter { it.paths != null && it.bg != null } ?: emptyList()
             } else {

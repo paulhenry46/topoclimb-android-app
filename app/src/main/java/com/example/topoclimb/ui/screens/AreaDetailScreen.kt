@@ -106,7 +106,7 @@ fun AreaDetailScreen(
                 },
                 actions = {
                     // Show view mode toggle only for trad areas with schemas
-                    if (uiState.area?.type == "trad" && uiState.schemas.isNotEmpty()) {
+                    if (uiState.area?.type == com.example.topoclimb.data.AreaType.TRAD && uiState.schemas.isNotEmpty()) {
                         IconButton(onClick = { viewModel.toggleViewMode() }) {
                             Icon(
                                 imageVector = if (uiState.viewMode == ViewMode.SCHEMA) 

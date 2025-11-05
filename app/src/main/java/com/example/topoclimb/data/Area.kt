@@ -1,6 +1,11 @@
 package com.example.topoclimb.data
 import com.google.gson.annotations.SerializedName
 
+object AreaType {
+    const val TRAD = "trad"
+    const val BOULDERING = "bouldering"
+}
+
 data class Area(
     val id: Int,
     val name: String,
@@ -9,5 +14,5 @@ data class Area(
     val longitude: Double?,
     val siteId: Int,
     @SerializedName("svg_schema") val svgMap: String?,
-    val type: String? // "bouldering" or "traditional"
+    val type: String? // "bouldering" or "trad"
 )

@@ -34,7 +34,9 @@ fun SchemaView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    // Sanitize hex color to ensure it's a valid format (#RRGGBB)
     val primaryColorHex = String.format("#%06X", 0xFFFFFF and MaterialTheme.colorScheme.primary.toArgb())
+        .take(7) // Ensure max 7 chars (#RRGGBB)
     
     // Load background image and SVG paths
     var bgImageData by remember(schema) { mutableStateOf<String?>(null) }
@@ -195,15 +197,25 @@ fun SchemaView(
                                 addJavascriptInterface(object {
                                     @JavascriptInterface
                                     fun onRouteSelected(routeIdStr: String) {
-                                        val routeId = routeIdStr.removePrefix("path_").toIntOrNull()
-                                        routeId?.let { onRouteClick(it) }
+                                        // Validate input: should start with "path_" and contain only digits after
+                                        if (routeIdStr.startsWith("path_")) {
+                                            val routeId = routeIdStr.removePrefix("path_").toIntOrNull()
+                                            if (routeId != null && routeId > 0) {
+                                                onRouteClick(routeId)
+                                            }
+                                        }
                                     }
                                 }, "Android")
                             }
                         },
                         update = { webView ->
-                            // Create a list of visible route IDs
-                            val visibleRouteIds = filteredRouteIds.joinToString(",") { "path_$it" }
+                            // Sanitize inputs to prevent XSS
+                            // Route IDs are integers, so creating "path_N" format is safe
+                            val visibleRouteIds = filteredRouteIds.joinToString(",") { id -> "path_$id" }
+                            
+                            // Escape the SVG content to prevent script injection
+                            // Note: We trust the SVG from the server, but we sanitize by removing any script tags
+                            val sanitizedSvg = svgPathsData?.replace(Regex("<script[^>]*>.*?</script>", RegexOption.IGNORE_CASE), "") ?: ""
                             
                             val htmlContent = """
                                 <!DOCTYPE html>
@@ -286,7 +298,7 @@ fun SchemaView(
                                     <div class="container">
                                         <img class="bg-image" src="$bgImageData" alt="Sector background">
                                         <div class="svg-overlay">
-                                            $svgPathsData
+                                            $sanitizedSvg
                                         </div>
                                     </div>
                                 </body>
