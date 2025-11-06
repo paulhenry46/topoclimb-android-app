@@ -104,14 +104,8 @@ class AreaDetailViewModel : ViewModel() {
             allRoutesCache = routes
             allRoutesWithMetadataCache = routesWithMetadata
             
-            // Determine initial view mode: if trad area has schemas but no map, default to SCHEMA
-            val initialViewMode = if (area?.type == com.example.topoclimb.data.AreaType.TRAD && 
-                                      schemas.isNotEmpty() && 
-                                      svgContent == null) {
-                ViewMode.SCHEMA
-            } else {
-                ViewMode.MAP
-            }
+            // Determine initial view mode
+            val initialViewMode = determineInitialViewMode(area, schemas, svgContent)
             
             _uiState.value = AreaDetailUiState(
                 isLoading = false,
@@ -132,8 +126,10 @@ class AreaDetailViewModel : ViewModel() {
             )
             
             // If we're starting in schema mode, filter routes by the first schema's sector
-            if (initialViewMode == ViewMode.SCHEMA && schemas.isNotEmpty()) {
-                filterRoutesBySector(schemas[0].id)
+            if (initialViewMode == ViewMode.SCHEMA) {
+                schemas.firstOrNull()?.id?.let { firstSchemaId ->
+                    filterRoutesBySector(firstSchemaId)
+                }
             }
         }
     }
@@ -274,6 +270,24 @@ class AreaDetailViewModel : ViewModel() {
         val svgContent: String?,
         val schemas: List<SectorSchema>
     )
+    
+    /**
+     * Determines the initial view mode based on area type and available data
+     * Returns SCHEMA mode for trad areas with schemas but no map, otherwise MAP mode
+     */
+    private fun determineInitialViewMode(
+        area: Area?,
+        schemas: List<SectorSchema>,
+        svgContent: String?
+    ): ViewMode {
+        return if (area?.type == com.example.topoclimb.data.AreaType.TRAD && 
+                   schemas.isNotEmpty() && 
+                   svgContent == null) {
+            ViewMode.SCHEMA
+        } else {
+            ViewMode.MAP
+        }
+    }
     
     /**
      * Ensures a route has valid siteId and siteName by using context values if missing
