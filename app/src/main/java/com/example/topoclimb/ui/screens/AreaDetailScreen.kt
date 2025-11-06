@@ -245,17 +245,19 @@ fun AreaDetailScreen(
                             }
                         }
                     } else {
-                        // SVG Map section - moved to top for better integration
-                        uiState.svgMapContent?.let { svgMap ->
-                        item {
-                            Text(
-                                text = "Topo Map",
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        }
-                        item {
-                            Card(
+                        // MAP mode - show map if available, or suggest schema view for trad areas
+                        if (uiState.svgMapContent != null) {
+                            // SVG Map section - moved to top for better integration
+                            val svgMap = uiState.svgMapContent
+                            item {
+                                Text(
+                                    text = "Topo Map",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            item {
+                                Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .then(
@@ -451,7 +453,48 @@ fun AreaDetailScreen(
                                 )
                             }
                         }
-                    }
+                        } else if (uiState.area?.type == com.example.topoclimb.data.AreaType.TRAD && uiState.schemas.isNotEmpty()) {
+                            // No map available but schemas exist - show placeholder suggesting schema view
+                            item {
+                                Text(
+                                    text = "Topo Map",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "Map not available",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = "Switch to Schema View to see route details",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(onClick = { viewModel.toggleViewMode() }) {
+                                                Text("Switch to Schema View")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     
                     // Filter section

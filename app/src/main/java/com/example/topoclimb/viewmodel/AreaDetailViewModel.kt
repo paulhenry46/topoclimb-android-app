@@ -104,6 +104,15 @@ class AreaDetailViewModel : ViewModel() {
             allRoutesCache = routes
             allRoutesWithMetadataCache = routesWithMetadata
             
+            // Determine initial view mode: if trad area has schemas but no map, default to SCHEMA
+            val initialViewMode = if (area?.type == com.example.topoclimb.data.AreaType.TRAD && 
+                                      schemas.isNotEmpty() && 
+                                      svgContent == null) {
+                ViewMode.SCHEMA
+            } else {
+                ViewMode.MAP
+            }
+            
             _uiState.value = AreaDetailUiState(
                 isLoading = false,
                 isRefreshing = false,
@@ -118,8 +127,14 @@ class AreaDetailViewModel : ViewModel() {
                 siteName = siteName,
                 areaId = areaId,
                 gradingSystem = gradingSystem,
-                schemas = schemas
+                schemas = schemas,
+                viewMode = initialViewMode
             )
+            
+            // If we're starting in schema mode, filter routes by the first schema's sector
+            if (initialViewMode == ViewMode.SCHEMA && schemas.isNotEmpty()) {
+                filterRoutesBySector(schemas[0].id)
+            }
         }
     }
     
