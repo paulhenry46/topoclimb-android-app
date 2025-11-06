@@ -3,6 +3,7 @@ package com.example.topoclimb.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
+import com.example.topoclimb.data.AreaType
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RouteWithMetadata
@@ -244,7 +245,7 @@ class AreaDetailViewModel : ViewModel() {
             }
             
             // Load schemas for trad areas only
-            val schemas = if (area?.type == com.example.topoclimb.data.AreaType.TRAD) {
+            val schemas = if (area?.type == AreaType.TRAD) {
                 val schemasResult = repository.getAreaSchemas(areaId)
                 schemasResult.getOrNull()?.filter { it.paths != null && it.bg != null } ?: emptyList()
             } else {
@@ -280,7 +281,7 @@ class AreaDetailViewModel : ViewModel() {
         schemas: List<SectorSchema>,
         svgContent: String?
     ): ViewMode {
-        return if (area?.type == com.example.topoclimb.data.AreaType.TRAD && 
+        return if (area?.type == AreaType.TRAD && 
                    schemas.isNotEmpty() && 
                    svgContent == null) {
             ViewMode.SCHEMA

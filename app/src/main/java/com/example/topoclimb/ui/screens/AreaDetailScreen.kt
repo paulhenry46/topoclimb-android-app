@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topoclimb.data.AreaType
 import com.example.topoclimb.ui.components.RouteCard
 import com.example.topoclimb.ui.components.SchemaView
 import com.example.topoclimb.utils.GradeUtils
@@ -106,7 +107,7 @@ fun AreaDetailScreen(
                 },
                 actions = {
                     // Show view mode toggle only for trad areas with schemas
-                    if (uiState.area?.type == com.example.topoclimb.data.AreaType.TRAD && uiState.schemas.isNotEmpty()) {
+                    if (uiState.area?.type == AreaType.TRAD && uiState.schemas.isNotEmpty()) {
                         IconButton(onClick = { viewModel.toggleViewMode() }) {
                             Icon(
                                 imageVector = if (uiState.viewMode == ViewMode.SCHEMA) 
@@ -453,7 +454,7 @@ fun AreaDetailScreen(
                                 )
                             }
                         }
-                        } else if (uiState.area?.type == com.example.topoclimb.data.AreaType.TRAD && uiState.schemas.isNotEmpty()) {
+                        } else if (uiState.area?.type == AreaType.TRAD && uiState.schemas.isNotEmpty()) {
                             // No map available but schemas exist - show placeholder suggesting schema view
                             item {
                                 Text(
