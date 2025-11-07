@@ -188,8 +188,8 @@ fun SchemaView(
                             WebView(context).apply {
                                 settings.javaScriptEnabled = true
                                 settings.loadWithOverviewMode = true
-                                settings.useWideViewPort = true
-                                settings.builtInZoomControls = true
+                                settings.useWideViewPort = false
+                                settings.builtInZoomControls = false
                                 settings.displayZoomControls = false
                                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                                 
@@ -234,7 +234,6 @@ fun SchemaView(
                                             -webkit-touch-callout: none;
                                             -webkit-user-select: none;
                                             user-select: none;
-                                            overflow: hidden;
                                         }
                                         .container {
                                             position: relative;
@@ -245,7 +244,6 @@ fun SchemaView(
                                             width: 100%;
                                             height: auto;
                                             display: block;
-                                            object-fit: contain;
                                         }
                                         .svg-overlay {
                                             position: absolute;
@@ -313,7 +311,9 @@ fun SchemaView(
                             
                             webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
                         },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
                     )
                 }
                 else -> {

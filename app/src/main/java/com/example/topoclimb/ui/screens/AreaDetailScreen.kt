@@ -257,7 +257,7 @@ fun AreaDetailScreen(
                                     hasNext = uiState.schemas.size > 1,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(400.dp)
+                                        .wrapContentHeight()
                                 )
                             } else if (uiState.schemaError == null) {
                                 // No schema available and no error shown yet - show placeholder
