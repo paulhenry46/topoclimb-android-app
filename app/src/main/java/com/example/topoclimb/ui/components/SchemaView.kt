@@ -40,9 +40,11 @@ fun SchemaView(
     var svgPathsData by remember(schema) { mutableStateOf<String?>(null) }
     var isLoading by remember(schema) { mutableStateOf(true) }
     var error by remember(schema) { mutableStateOf<String?>(null) }
+    var imageHeight by remember(schema) { mutableStateOf(400.dp) }
     
     // Reuse OkHttpClient instance
     val httpClient = remember { OkHttpClient() }
+    val density = androidx.compose.ui.platform.LocalDensity.current
     
     LaunchedEffect(schema) {
         isLoading = true
@@ -205,6 +207,13 @@ fun SchemaView(
                                             }
                                         }
                                     }
+                                    
+                                    @JavascriptInterface
+                                    fun setImageHeight(heightPx: Int) {
+                                        // Convert px to dp and update the state
+                                        val heightDp = with(density) { heightPx.toDp() }
+                                        imageHeight = heightDp
+                                    }
                                 }, "Android")
                             }
                         },
@@ -295,6 +304,22 @@ fun SchemaView(
                                                     }
                                                 });
                                             });
+                                            
+                                            // Measure and report image height
+                                            const img = document.querySelector('.bg-image');
+                                            if (img) {
+                                                function updateHeight() {
+                                                    if (window.Android && window.Android.setImageHeight) {
+                                                        window.Android.setImageHeight(img.offsetHeight);
+                                                    }
+                                                }
+                                                
+                                                if (img.complete) {
+                                                    updateHeight();
+                                                } else {
+                                                    img.addEventListener('load', updateHeight);
+                                                }
+                                            }
                                         });
                                     </script>
                                 </head>
@@ -313,7 +338,7 @@ fun SchemaView(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .wrapContentHeight()
+                            .height(imageHeight)
                     )
                 }
                 else -> {
