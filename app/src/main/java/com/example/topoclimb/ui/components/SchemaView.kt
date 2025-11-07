@@ -34,9 +34,6 @@ fun SchemaView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    // Sanitize hex color to ensure it's a valid format (#RRGGBB)
-    val primaryColorHex = String.format("#%06X", 0xFFFFFF and MaterialTheme.colorScheme.primary.toArgb())
-        .take(7) // Ensure max 7 chars (#RRGGBB)
     
     // Load background image and SVG paths
     var bgImageData by remember(schema) { mutableStateOf<String?>(null) }
@@ -232,24 +229,23 @@ fun SchemaView(
                                         body {
                                             margin: 0;
                                             padding: 0;
-                                            display: flex;
-                                            justify-content: center;
-                                            align-items: flex-start;
                                             background: transparent;
                                             -webkit-tap-highlight-color: transparent;
                                             -webkit-touch-callout: none;
                                             -webkit-user-select: none;
                                             user-select: none;
+                                            overflow: hidden;
                                         }
                                         .container {
                                             position: relative;
                                             width: 100%;
-                                            max-width: 100%;
+                                            display: inline-block;
                                         }
                                         .bg-image {
                                             width: 100%;
                                             height: auto;
                                             display: block;
+                                            object-fit: contain;
                                         }
                                         .svg-overlay {
                                             position: absolute;
@@ -257,18 +253,22 @@ fun SchemaView(
                                             left: 0;
                                             width: 100%;
                                             height: 100%;
+                                            pointer-events: none;
                                         }
                                         svg {
                                             width: 100%;
                                             height: 100%;
+                                            position: absolute;
+                                            top: 0;
+                                            left: 0;
                                         }
                                         svg path {
-                                            stroke: $primaryColorHex;
+                                            /* Keep original stroke colors from SVG */
                                             fill: none;
                                             cursor: pointer;
                                             stroke-width: 3;
                                             opacity: 0.8;
-                                            paint-order: stroke;
+                                            pointer-events: auto;
                                         }
                                         svg path.hidden {
                                             display: none;
