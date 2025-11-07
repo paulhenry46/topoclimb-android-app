@@ -129,7 +129,7 @@ class TopoClimbRepository {
     suspend fun getAreaSchemas(areaId: Int): Result<List<SectorSchema>> {
         return try {
             val response = api.getAreaSchemas(areaId)
-            Result.success(response.data)
+            Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }

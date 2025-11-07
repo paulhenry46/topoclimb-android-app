@@ -17,7 +17,7 @@ import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RouteResponse
 import com.example.topoclimb.data.RoutesResponse
 import com.example.topoclimb.data.Sector
-import com.example.topoclimb.data.SchemasResponse
+import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.data.SectorsResponse
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SiteResponse
@@ -79,7 +79,7 @@ interface TopoClimbApiService {
     suspend fun getSectorsByArea(@Path("areaId") areaId: Int): SectorsResponse
     
     @GET("areas/{areaId}/schemas")
-    suspend fun getAreaSchemas(@Path("areaId") areaId: Int): SchemasResponse
+    suspend fun getAreaSchemas(@Path("areaId") areaId: Int): List<SectorSchema>
     
     @GET("routes/{route}/logs")
     suspend fun getRouteLogs(@Path("route") routeId: Int): LogsResponse

@@ -12,11 +12,3 @@ data class SectorSchema(
     val paths: String?,    // URL to SVG file with route paths
     val bg: String?        // URL to background image
 )
-
-/**
- * Response wrapper for schemas endpoint
- */
-data class SchemasResponse(
-    @SerializedName("data")
-    val data: List<SectorSchema>
-)
