@@ -42,6 +42,8 @@ data class AreaDetailUiState(
     val gradingSystem: GradingSystem? = null,
     // Schema view state
     val schemas: List<SectorSchema> = emptyList(),
+    val allSchemas: List<SectorSchema> = emptyList(), // All schemas including those without paths/bg
+    val schemaError: String? = null, // Error message when loading schemas
     val currentSchemaIndex: Int = 0,
     val viewMode: ViewMode = ViewMode.MAP,
     // Filter state
@@ -99,7 +101,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas, allSchemas, schemaError) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -123,6 +125,8 @@ class AreaDetailViewModel : ViewModel() {
                 areaId = areaId,
                 gradingSystem = gradingSystem,
                 schemas = schemas,
+                allSchemas = allSchemas,
+                schemaError = schemaError,
                 viewMode = initialViewMode
             )
             
@@ -154,7 +158,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas, allSchemas, schemaError) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -170,7 +174,9 @@ class AreaDetailViewModel : ViewModel() {
                 svgMapContent = svgContent,
                 siteName = siteName,
                 gradingSystem = gradingSystem,
-                schemas = schemas
+                schemas = schemas,
+                allSchemas = allSchemas,
+                schemaError = schemaError
             )
         }
     }
@@ -245,14 +251,33 @@ class AreaDetailViewModel : ViewModel() {
             }
             
             // Load schemas for trad areas only
-            val schemas = if (area?.type == AreaType.TRAD) {
+            val allSchemas: List<SectorSchema>
+            val schemas: List<SectorSchema>
+            var schemaError: String? = null
+            
+            if (area?.type == AreaType.TRAD) {
                 val schemasResult = repository.getAreaSchemas(areaId)
-                schemasResult.getOrNull()?.filter { it.paths != null && it.bg != null } ?: emptyList()
+                if (schemasResult.isSuccess) {
+                    allSchemas = schemasResult.getOrNull() ?: emptyList()
+                    schemas = allSchemas.filter { it.paths != null && it.bg != null }
+                    
+                    // Add debug info about what we got
+                    if (allSchemas.isEmpty()) {
+                        schemaError = "API returned empty schemas list"
+                    } else if (schemas.isEmpty()) {
+                        schemaError = "Received ${allSchemas.size} schema(s) but all have null paths or bg. Schemas: ${allSchemas.map { "${it.name}(paths=${it.paths != null}, bg=${it.bg != null})" }}"
+                    }
+                } else {
+                    allSchemas = emptyList()
+                    schemas = emptyList()
+                    schemaError = "Failed to load schemas: ${schemasResult.exceptionOrNull()?.message ?: "Unknown error"}"
+                }
             } else {
-                emptyList()
+                allSchemas = emptyList()
+                schemas = emptyList()
             }
             
-            Result.success(AreaData(area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas))
+            Result.success(AreaData(area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas, allSchemas, schemaError))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -269,7 +294,9 @@ class AreaDetailViewModel : ViewModel() {
         val routes: List<Route>,
         val routesWithMetadata: List<RouteWithMetadata>,
         val svgContent: String?,
-        val schemas: List<SectorSchema>
+        val schemas: List<SectorSchema>,
+        val allSchemas: List<SectorSchema>,
+        val schemaError: String?
     )
     
     /**

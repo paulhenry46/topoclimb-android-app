@@ -106,8 +106,8 @@ fun AreaDetailScreen(
                     }
                 },
                 actions = {
-                    // Show view mode toggle only for trad areas with schemas
-                    if (uiState.area?.type == AreaType.TRAD && uiState.schemas.isNotEmpty()) {
+                    // Show view mode toggle for trad areas (regardless of schema availability)
+                    if (uiState.area?.type == AreaType.TRAD) {
                         IconButton(onClick = { viewModel.toggleViewMode() }) {
                             Icon(
                                 imageVector = if (uiState.viewMode == ViewMode.SCHEMA) 
@@ -182,6 +182,50 @@ fun AreaDetailScreen(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
+                        
+                        // Show schema error if present
+                        uiState.schemaError?.let { errorMessage ->
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "Schema Loading Error",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        Text(
+                                            text = errorMessage,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        if (uiState.allSchemas.isNotEmpty()) {
+                                            Text(
+                                                text = "All schemas: ${uiState.allSchemas.joinToString(", ") { it.name }}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                        }
+                                        Button(
+                                            onClick = { viewModel.toggleViewMode() },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.error
+                                            )
+                                        ) {
+                                            Text("Switch to Map View")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                         item {
                             // Check if there's a schema for the selected sector
                             val currentSchema = if (uiState.selectedSectorId != null) {
@@ -215,8 +259,8 @@ fun AreaDetailScreen(
                                         .fillMaxWidth()
                                         .height(400.dp)
                                 )
-                            } else {
-                                // No schema available placeholder
+                            } else if (uiState.schemaError == null) {
+                                // No schema available and no error shown yet - show placeholder
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -235,10 +279,8 @@ fun AreaDetailScreen(
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                            if (uiState.schemas.isNotEmpty()) {
-                                                Button(onClick = { viewModel.toggleViewMode() }) {
-                                                    Text("Switch to Map View")
-                                                }
+                                            Button(onClick = { viewModel.toggleViewMode() }) {
+                                                Text("Switch to Map View")
                                             }
                                         }
                                     }
