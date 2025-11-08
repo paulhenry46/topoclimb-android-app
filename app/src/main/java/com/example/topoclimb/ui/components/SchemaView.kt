@@ -35,18 +35,19 @@ fun SchemaView(
 ) {
     val context = LocalContext.current
     
-    // Load background image and SVG paths
-    var bgImageData by remember(schema) { mutableStateOf<String?>(null) }
-    var svgPathsData by remember(schema) { mutableStateOf<String?>(null) }
-    var isLoading by remember(schema) { mutableStateOf(true) }
-    var error by remember(schema) { mutableStateOf<String?>(null) }
-    var imageHeight by remember(schema) { mutableStateOf(400.dp) }
+    // Use schema.id as key to prevent reloading when scrolling
+    // Only reload when actually switching to a different sector
+    var bgImageData by remember(schema.id) { mutableStateOf<String?>(null) }
+    var svgPathsData by remember(schema.id) { mutableStateOf<String?>(null) }
+    var isLoading by remember(schema.id) { mutableStateOf(true) }
+    var error by remember(schema.id) { mutableStateOf<String?>(null) }
+    var imageHeight by remember(schema.id) { mutableStateOf(400.dp) }
     
     // Reuse OkHttpClient instance
     val httpClient = remember { OkHttpClient() }
     val density = androidx.compose.ui.platform.LocalDensity.current
     
-    LaunchedEffect(schema) {
+    LaunchedEffect(schema.id) {
         isLoading = true
         error = null
         
@@ -312,6 +313,7 @@ fun SchemaView(
                                             
                                             // Measure and report image height
                                             const img = document.querySelector('.bg-image');
+                                            const svg = document.querySelector('svg');
                                             if (img) {
                                                 function updateHeight() {
                                                     if (window.Android && window.Android.setImageHeight) {
@@ -319,7 +321,9 @@ fun SchemaView(
                                                         setTimeout(function() {
                                                             // Use multiple measurements to get full content height
                                                             const container = document.querySelector('.container');
-                                                            const fullHeight = Math.max(
+                                                            
+                                                            // Measure image dimensions
+                                                            const imgHeight = Math.max(
                                                                 img.naturalHeight || 0,
                                                                 img.offsetHeight || 0,
                                                                 img.scrollHeight || 0,
@@ -330,6 +334,20 @@ fun SchemaView(
                                                                 document.documentElement.offsetHeight || 0,
                                                                 document.documentElement.scrollHeight || 0
                                                             );
+                                                            
+                                                            // Fallback: use SVG height if image measurement seems incorrect
+                                                            // SVG is scaled to full width, so its rendered height should match
+                                                            let svgHeight = 0;
+                                                            if (svg) {
+                                                                svgHeight = Math.max(
+                                                                    svg.getBoundingClientRect().height || 0,
+                                                                    svg.offsetHeight || 0,
+                                                                    svg.scrollHeight || 0
+                                                                );
+                                                            }
+                                                            
+                                                            // Use the maximum of both measurements
+                                                            const fullHeight = Math.max(imgHeight, svgHeight);
                                                             window.Android.setImageHeight(fullHeight);
                                                         }, 100);
                                                     }
