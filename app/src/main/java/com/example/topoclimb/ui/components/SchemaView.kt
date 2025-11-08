@@ -159,9 +159,7 @@ fun SchemaView(
         
         // Schema content
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             when {
