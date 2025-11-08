@@ -21,6 +21,15 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
+// Cache for schema data to prevent reloading when scrolling
+private data class SchemaData(
+    val bgImageData: String?,
+    val svgPathsData: String?,
+    val imageHeight: androidx.compose.ui.unit.Dp
+)
+
+private val schemaCache = mutableMapOf<Int, SchemaData>()
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun SchemaView(
@@ -35,19 +44,27 @@ fun SchemaView(
 ) {
     val context = LocalContext.current
     
-    // Use schema.id as key to prevent reloading when scrolling
-    // Only reload when actually switching to a different sector
-    var bgImageData by remember(schema.id) { mutableStateOf<String?>(null) }
-    var svgPathsData by remember(schema.id) { mutableStateOf<String?>(null) }
-    var isLoading by remember(schema.id) { mutableStateOf(true) }
+    // Check cache first
+    val cachedData = remember(schema.id) { schemaCache[schema.id] }
+    
+    // State variables - initialize from cache if available
+    var bgImageData by remember(schema.id) { mutableStateOf(cachedData?.bgImageData) }
+    var svgPathsData by remember(schema.id) { mutableStateOf(cachedData?.svgPathsData) }
+    var isLoading by remember(schema.id) { mutableStateOf(cachedData == null) }
     var error by remember(schema.id) { mutableStateOf<String?>(null) }
-    var imageHeight by remember(schema.id) { mutableStateOf(400.dp) }
+    var imageHeight by remember(schema.id) { mutableStateOf(cachedData?.imageHeight ?: 400.dp) }
     
     // Reuse OkHttpClient instance
     val httpClient = remember { OkHttpClient() }
     val density = androidx.compose.ui.platform.LocalDensity.current
     
+    // Only load if not in cache
     LaunchedEffect(schema.id) {
+        if (schemaCache.containsKey(schema.id)) {
+            // Data already loaded, skip
+            return@LaunchedEffect
+        }
+        
         isLoading = true
         error = null
         
@@ -95,11 +112,23 @@ fun SchemaView(
             
             bgImageData = bgData
             svgPathsData = pathsData
+            
+            // Cache the data for future use
+            schemaCache[schema.id] = SchemaData(bgData, pathsData, imageHeight)
+            
             isLoading = false
         } catch (e: Exception) {
             error = e.message
             isLoading = false
         }
+    }
+    
+    // Update cache when height changes
+    DisposableEffect(schema.id, imageHeight) {
+        if (bgImageData != null || svgPathsData != null) {
+            schemaCache[schema.id] = SchemaData(bgImageData, svgPathsData, imageHeight)
+        }
+        onDispose { }
     }
     
     Column(modifier = modifier) {
