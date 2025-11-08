@@ -213,7 +213,10 @@ fun SchemaView(
                                             // Convert px to dp and update the state
                                             // Add a larger buffer (20dp) to prevent any cropping
                                             val heightDp = with(density) { heightPx.toDp() + 20.dp }
-                                            imageHeight = heightDp
+                                            // Only update if the new height is larger to prevent cropping
+                                            if (heightDp > imageHeight) {
+                                                imageHeight = heightDp
+                                            }
                                         }
                                     }
                                 }, "Android")
