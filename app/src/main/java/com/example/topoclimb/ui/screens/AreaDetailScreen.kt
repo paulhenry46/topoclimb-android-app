@@ -12,8 +12,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -34,9 +36,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topoclimb.data.AreaType
 import com.example.topoclimb.ui.components.RouteCard
+import com.example.topoclimb.ui.components.SchemaView
 import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
+import com.example.topoclimb.viewmodel.ViewMode
 
 // Constants for grouping labels
 private const val UNKNOWN_GRADE_LABEL = "Unknown"
@@ -99,6 +104,27 @@ fun AreaDetailScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    // Show view mode toggle for trad areas (regardless of schema availability)
+                    if (uiState.area?.type == AreaType.TRAD) {
+                        IconButton(onClick = { viewModel.toggleViewMode() }) {
+                            Icon(
+                                imageVector = if (uiState.viewMode == ViewMode.SCHEMA) 
+                                    Icons.Outlined.Map 
+                                else 
+                                    Icons.Filled.Map,
+                                contentDescription = if (uiState.viewMode == ViewMode.SCHEMA)
+                                    "Switch to Map view"
+                                else
+                                    "Switch to Schema view",
+                                tint = if (uiState.viewMode == ViewMode.SCHEMA)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
             )
         }
@@ -146,17 +172,135 @@ fun AreaDetailScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                    // SVG Map section - moved to top for better integration
-                    uiState.svgMapContent?.let { svgMap ->
+                    // Map or Schema section based on view mode
+                    if (uiState.viewMode == ViewMode.SCHEMA) {
+                        // Schema view mode
                         item {
                             Text(
-                                text = "Topo Map",
+                                text = "Sector Schema",
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
+                        
+                        // Show schema error if present
+                        uiState.schemaError?.let { errorMessage ->
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "Schema Loading Error",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        Text(
+                                            text = errorMessage,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        if (uiState.allSchemas.isNotEmpty()) {
+                                            Text(
+                                                text = "All schemas: ${uiState.allSchemas.joinToString(", ") { it.name }}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                        }
+                                        Button(
+                                            onClick = { viewModel.toggleViewMode() },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.error
+                                            )
+                                        ) {
+                                            Text("Switch to Map View")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                         item {
-                            Card(
+                            // Check if there's a schema for the selected sector
+                            val currentSchema = if (uiState.selectedSectorId != null) {
+                                // User has selected a specific sector, try to find its schema
+                                uiState.schemas.find { it.id == uiState.selectedSectorId }
+                            } else {
+                                // No specific sector selected, use current schema index
+                                uiState.schemas.getOrNull(uiState.currentSchemaIndex)
+                            }
+                            
+                            if (currentSchema != null) {
+                                // Get filtered route IDs to show in schema
+                                val filteredRouteIds = uiState.routesWithMetadata.map { it.id }.toSet()
+                                
+                                SchemaView(
+                                    schema = currentSchema,
+                                    filteredRouteIds = filteredRouteIds,
+                                    onRouteClick = { routeId ->
+                                        // Find and open the route
+                                        val route = uiState.routesWithMetadata.find { it.id == routeId }
+                                        if (route != null) {
+                                            selectedRouteWithMetadata = route
+                                            showBottomSheet = true
+                                        }
+                                    },
+                                    onPreviousClick = { viewModel.navigateToPreviousSchema() },
+                                    onNextClick = { viewModel.navigateToNextSchema() },
+                                    hasPrevious = uiState.schemas.size > 1,
+                                    hasNext = uiState.schemas.size > 1,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentHeight()
+                                )
+                            } else if (uiState.schemaError == null) {
+                                // No schema available and no error shown yet - show placeholder
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "No schema available for this sector",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Button(onClick = { viewModel.toggleViewMode() }) {
+                                                Text("Switch to Map View")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // MAP mode - show map if available, or suggest schema view for trad areas
+                        if (uiState.svgMapContent != null) {
+                            // SVG Map section - moved to top for better integration
+                            val svgMap = uiState.svgMapContent
+                            item {
+                                Text(
+                                    text = "Topo Map",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            item {
+                                Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .then(
@@ -350,6 +494,48 @@ fun AreaDetailScreen(
                                         .fillMaxWidth()
                                         .wrapContentHeight()
                                 )
+                            }
+                        }
+                        } else if (uiState.area?.type == AreaType.TRAD && uiState.schemas.isNotEmpty()) {
+                            // No map available but schemas exist - show placeholder suggesting schema view
+                            item {
+                                Text(
+                                    text = "Topo Map",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "Map not available",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = "Switch to Schema View to see route details",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(onClick = { viewModel.toggleViewMode() }) {
+                                                Text("Switch to Schema View")
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

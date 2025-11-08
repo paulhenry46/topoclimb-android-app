@@ -8,6 +8,7 @@ import com.example.topoclimb.data.Line
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RoutesResponse
 import com.example.topoclimb.data.Sector
+import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SitesResponse
 import com.example.topoclimb.network.RetrofitInstance
@@ -120,6 +121,15 @@ class TopoClimbRepository {
         return try {
             val response = api.getRoutesByLine(lineId)
             Result.success(response.data)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getAreaSchemas(areaId: Int): Result<List<SectorSchema>> {
+        return try {
+            val response = api.getAreaSchemas(areaId)
+            Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }

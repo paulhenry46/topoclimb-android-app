@@ -3,10 +3,12 @@ package com.example.topoclimb.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
+import com.example.topoclimb.data.AreaType
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
+import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.repository.TopoClimbRepository
 import com.example.topoclimb.utils.GradeUtils
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +19,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+
+enum class ViewMode {
+    MAP,      // Traditional interactive map view
+    SCHEMA    // Schema view with sector overlays
+}
 
 data class AreaDetailUiState(
     val isLoading: Boolean = true,
@@ -33,6 +40,12 @@ data class AreaDetailUiState(
     val siteName: String? = null,
     val areaId: Int? = null,
     val gradingSystem: GradingSystem? = null,
+    // Schema view state
+    val schemas: List<SectorSchema> = emptyList(),
+    val allSchemas: List<SectorSchema> = emptyList(), // All schemas including those without paths/bg
+    val schemaError: String? = null, // Error message when loading schemas
+    val currentSchemaIndex: Int = 0,
+    val viewMode: ViewMode = ViewMode.MAP,
     // Filter state
     val searchQuery: String = "",
     val minGrade: String? = null,
@@ -88,11 +101,14 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas, allSchemas, schemaError) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
             allRoutesWithMetadataCache = routesWithMetadata
+            
+            // Determine initial view mode
+            val initialViewMode = determineInitialViewMode(area, schemas, svgContent)
             
             _uiState.value = AreaDetailUiState(
                 isLoading = false,
@@ -107,8 +123,19 @@ class AreaDetailViewModel : ViewModel() {
                 siteId = siteId,
                 siteName = siteName,
                 areaId = areaId,
-                gradingSystem = gradingSystem
+                gradingSystem = gradingSystem,
+                schemas = schemas,
+                allSchemas = allSchemas,
+                schemaError = schemaError,
+                viewMode = initialViewMode
             )
+            
+            // If we're starting in schema mode, filter routes by the first schema's sector
+            if (initialViewMode == ViewMode.SCHEMA) {
+                schemas.firstOrNull()?.id?.let { firstSchemaId ->
+                    filterRoutesBySector(firstSchemaId)
+                }
+            }
         }
     }
     
@@ -131,7 +158,7 @@ class AreaDetailViewModel : ViewModel() {
                 return@launch
             }
             
-            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent) = result.getOrNull()!!
+            val (area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas, allSchemas, schemaError) = result.getOrNull()!!
             
             // Cache all routes for filtering
             allRoutesCache = routes
@@ -146,7 +173,10 @@ class AreaDetailViewModel : ViewModel() {
                 error = null,
                 svgMapContent = svgContent,
                 siteName = siteName,
-                gradingSystem = gradingSystem
+                gradingSystem = gradingSystem,
+                schemas = schemas,
+                allSchemas = allSchemas,
+                schemaError = schemaError
             )
         }
     }
@@ -220,7 +250,34 @@ class AreaDetailViewModel : ViewModel() {
                 RouteWithMetadata(updatedRoute)
             }
             
-            Result.success(AreaData(area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent))
+            // Load schemas for trad areas only
+            val allSchemas: List<SectorSchema>
+            val schemas: List<SectorSchema>
+            var schemaError: String? = null
+            
+            if (area?.type == AreaType.TRAD) {
+                val schemasResult = repository.getAreaSchemas(areaId)
+                if (schemasResult.isSuccess) {
+                    allSchemas = schemasResult.getOrNull() ?: emptyList()
+                    schemas = allSchemas.filter { it.paths != null && it.bg != null }
+                    
+                    // Add debug info about what we got
+                    if (allSchemas.isEmpty()) {
+                        schemaError = "API returned empty schemas list"
+                    } else if (schemas.isEmpty()) {
+                        schemaError = "Received ${allSchemas.size} schema(s) but all have null paths or bg. Schemas: ${allSchemas.map { "${it.name}(paths=${it.paths != null}, bg=${it.bg != null})" }}"
+                    }
+                } else {
+                    allSchemas = emptyList()
+                    schemas = emptyList()
+                    schemaError = "Failed to load schemas: ${schemasResult.exceptionOrNull()?.message ?: "Unknown error"}"
+                }
+            } else {
+                allSchemas = emptyList()
+                schemas = emptyList()
+            }
+            
+            Result.success(AreaData(area, gradingSystem, siteName, sectors, routes, routesWithMetadata, svgContent, schemas, allSchemas, schemaError))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -236,8 +293,29 @@ class AreaDetailViewModel : ViewModel() {
         val sectors: List<Sector>,
         val routes: List<Route>,
         val routesWithMetadata: List<RouteWithMetadata>,
-        val svgContent: String?
+        val svgContent: String?,
+        val schemas: List<SectorSchema>,
+        val allSchemas: List<SectorSchema>,
+        val schemaError: String?
     )
+    
+    /**
+     * Determines the initial view mode based on area type and available data
+     * Returns SCHEMA mode for trad areas with schemas but no map, otherwise MAP mode
+     */
+    private fun determineInitialViewMode(
+        area: Area?,
+        schemas: List<SectorSchema>,
+        svgContent: String?
+    ): ViewMode {
+        return if (area?.type == AreaType.TRAD && 
+                   schemas.isNotEmpty() && 
+                   svgContent == null) {
+            ViewMode.SCHEMA
+        } else {
+            ViewMode.MAP
+        }
+    }
     
     /**
      * Ensures a route has valid siteId and siteName by using context values if missing
@@ -283,7 +361,18 @@ class AreaDetailViewModel : ViewModel() {
             } else {
                 // Selected - fetch lines for this sector, then routes for each line
                 val currentState = _uiState.value
-                _uiState.value = currentState.copy(selectedSectorId = sectorId)
+                
+                // If in schema mode, also update the current schema index to match this sector
+                val newSchemaIndex = if (currentState.viewMode == ViewMode.SCHEMA) {
+                    currentState.schemas.indexOfFirst { it.id == sectorId }.takeIf { it >= 0 } ?: currentState.currentSchemaIndex
+                } else {
+                    currentState.currentSchemaIndex
+                }
+                
+                _uiState.value = currentState.copy(
+                    selectedSectorId = sectorId,
+                    currentSchemaIndex = newSchemaIndex
+                )
                 
                 // Get sector info for localId
                 val sector = currentState.sectors.find { it.id == sectorId }
@@ -323,7 +412,8 @@ class AreaDetailViewModel : ViewModel() {
                     allRoutesWithMetadataCache = allRoutesWithMetadata
                     
                     _uiState.value = currentState.copy(
-                        selectedSectorId = sectorId
+                        selectedSectorId = sectorId,
+                        currentSchemaIndex = newSchemaIndex
                     )
                     // Apply filters to the new data
                     applyFilters()
@@ -333,6 +423,7 @@ class AreaDetailViewModel : ViewModel() {
                     allRoutesWithMetadataCache = emptyList()
                     _uiState.value = currentState.copy(
                         selectedSectorId = sectorId,
+                        currentSchemaIndex = newSchemaIndex,
                         routes = emptyList(),
                         routesWithMetadata = emptyList()
                     )
@@ -381,6 +472,60 @@ class AreaDetailViewModel : ViewModel() {
             groupingOption = GroupingOption.NONE
         )
         applyFilters()
+    }
+    
+    fun toggleViewMode() {
+        val currentState = _uiState.value
+        val newMode = if (currentState.viewMode == ViewMode.MAP) ViewMode.SCHEMA else ViewMode.MAP
+        _uiState.value = currentState.copy(viewMode = newMode)
+        
+        // When switching to schema mode, select the first schema's sector if available
+        if (newMode == ViewMode.SCHEMA && currentState.schemas.isNotEmpty()) {
+            val firstSchema = currentState.schemas[0]
+            filterRoutesBySector(firstSchema.id)
+        } else if (newMode == ViewMode.MAP) {
+            // When switching back to map mode, clear sector filter
+            filterRoutesBySector(null)
+        }
+    }
+    
+    fun navigateToNextSchema() {
+        val currentState = _uiState.value
+        if (currentState.schemas.isEmpty()) return
+        
+        val nextIndex = (currentState.currentSchemaIndex + 1) % currentState.schemas.size
+        _uiState.value = currentState.copy(currentSchemaIndex = nextIndex)
+        
+        // Update sector filter to match the new schema
+        val schema = currentState.schemas[nextIndex]
+        filterRoutesBySector(schema.id)
+    }
+    
+    fun navigateToPreviousSchema() {
+        val currentState = _uiState.value
+        if (currentState.schemas.isEmpty()) return
+        
+        val prevIndex = if (currentState.currentSchemaIndex > 0) {
+            currentState.currentSchemaIndex - 1
+        } else {
+            currentState.schemas.size - 1
+        }
+        _uiState.value = currentState.copy(currentSchemaIndex = prevIndex)
+        
+        // Update sector filter to match the new schema
+        val schema = currentState.schemas[prevIndex]
+        filterRoutesBySector(schema.id)
+    }
+    
+    fun selectSchemaByIndex(index: Int) {
+        val currentState = _uiState.value
+        if (index < 0 || index >= currentState.schemas.size) return
+        
+        _uiState.value = currentState.copy(currentSchemaIndex = index)
+        
+        // Update sector filter to match the selected schema
+        val schema = currentState.schemas[index]
+        filterRoutesBySector(schema.id)
     }
     
     private fun applyFilters() {
