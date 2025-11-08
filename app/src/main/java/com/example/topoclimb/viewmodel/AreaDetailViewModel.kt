@@ -210,9 +210,44 @@ class AreaDetailViewModel : ViewModel() {
             val sectorsResult = repository.getSectorsByArea(areaId)
             val sectors = sectorsResult.getOrNull() ?: emptyList()
             
-            // Load routes for the area
-            val routesResult = repository.getRoutesByArea(areaId)
-            val routes = routesResult.getOrNull() ?: emptyList()
+            // Load routes with sector and line metadata using the chain:
+            // getSectorsByArea -> getLinesBySector -> getRoutesByLine
+            val allRoutesWithMetadata = mutableListOf<RouteWithMetadata>()
+            for (sector in sectors) {
+                val linesResult = repository.getLinesBySector(sector.id)
+                if (linesResult.isSuccess) {
+                    val lines = linesResult.getOrNull() ?: emptyList()
+                    
+                    // Fetch routes for each line and enrich with metadata
+                    for (line in lines) {
+                        val routesResult = repository.getRoutesByLine(line.id)
+                        if (routesResult.isSuccess) {
+                            val routes = routesResult.getOrNull() ?: emptyList()
+                            routes.forEach { route ->
+                                val updatedRoute = if (route.siteId == 0 || route.siteName.isNullOrBlank()) {
+                                    route.copy(
+                                        siteId = if (route.siteId == 0) siteId else route.siteId,
+                                        siteName = route.siteName?.takeIf { it.isNotBlank() } ?: siteName
+                                    )
+                                } else {
+                                    route
+                                }
+                                allRoutesWithMetadata.add(
+                                    RouteWithMetadata(
+                                        route = updatedRoute,
+                                        lineLocalId = line.localId,
+                                        sectorLocalId = sector.localId,
+                                        lineCount = lines.size
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            val routes = allRoutesWithMetadata.map { it.route }
+            val routesWithMetadata = allRoutesWithMetadata
             
             // Fetch SVG map content from URL if available
             val svgContent = area?.svgMap?.let { mapUrl ->
@@ -234,20 +269,6 @@ class AreaDetailViewModel : ViewModel() {
                     e.printStackTrace()
                     null
                 }
-            }
-            
-            // Convert routes to RouteWithMetadata, ensuring siteId and siteName are set
-            val routesWithMetadata = routes.map { route ->
-                // If the route doesn't have siteId or siteName from API, set them from context
-                val updatedRoute = if (route.siteId == 0 || route.siteName.isNullOrBlank()) {
-                    route.copy(
-                        siteId = if (route.siteId == 0) siteId else route.siteId,
-                        siteName = route.siteName?.takeIf { it.isNotBlank() } ?: siteName
-                    )
-                } else {
-                    route
-                }
-                RouteWithMetadata(updatedRoute)
             }
             
             // Load schemas for trad areas only
@@ -332,104 +353,23 @@ class AreaDetailViewModel : ViewModel() {
     }
     
     fun filterRoutesBySector(sectorId: Int?) {
-        viewModelScope.launch {
-            if (sectorId == null) {
-                // Deselected - reload all routes for the area
-                val currentState = _uiState.value
-                currentState.area?.let { area ->
-                    val routesResult = repository.getRoutesByArea(area.id)
-                    val routes = routesResult.getOrNull() ?: emptyList()
-                    
-                    // Get site info from current state
-                    val contextSiteId = currentState.siteId ?: 0
-                    val contextSiteName = currentState.siteName
-                    
-                    val routesWithMetadata = routes.map { route ->
-                        val updatedRoute = ensureRouteSiteInfo(route, contextSiteId, contextSiteName)
-                        RouteWithMetadata(updatedRoute)
-                    }
-                    // Update cache
-                    allRoutesCache = routes
-                    allRoutesWithMetadataCache = routesWithMetadata
-                    
-                    _uiState.value = currentState.copy(
-                        selectedSectorId = null
-                    )
-                    // Apply filters to the new data
-                    applyFilters()
-                }
-            } else {
-                // Selected - fetch lines for this sector, then routes for each line
-                val currentState = _uiState.value
-                
-                // If in schema mode, also update the current schema index to match this sector
-                val newSchemaIndex = if (currentState.viewMode == ViewMode.SCHEMA) {
-                    currentState.schemas.indexOfFirst { it.id == sectorId }.takeIf { it >= 0 } ?: currentState.currentSchemaIndex
-                } else {
-                    currentState.currentSchemaIndex
-                }
-                
-                _uiState.value = currentState.copy(
-                    selectedSectorId = sectorId,
-                    currentSchemaIndex = newSchemaIndex
-                )
-                
-                // Get sector info for localId
-                val sector = currentState.sectors.find { it.id == sectorId }
-                
-                // Get site info from current state
-                val contextSiteId = currentState.siteId ?: 0
-                val contextSiteName = currentState.siteName
-                
-                val linesResult = repository.getLinesBySector(sectorId)
-                if (linesResult.isSuccess) {
-                    val lines = linesResult.getOrNull() ?: emptyList()
-                    val allRoutesWithMetadata = mutableListOf<RouteWithMetadata>()
-                    
-                    // Fetch routes for each line and enrich with metadata
-                    for (line in lines) {
-                        val routesResult = repository.getRoutesByLine(line.id)
-                        if (routesResult.isSuccess) {
-                            val routes = routesResult.getOrNull() ?: emptyList()
-                            routes.forEach { route ->
-                                val updatedRoute = ensureRouteSiteInfo(route, contextSiteId, contextSiteName)
-                                allRoutesWithMetadata.add(
-                                    RouteWithMetadata(
-                                        route = updatedRoute,
-                                        lineLocalId = line.localId,
-                                        sectorLocalId = sector?.localId,
-                                        lineCount = lines.size
-                                    )
-                                )
-                            }
-                        }
-                    }
-                    
-                    val allRoutes = allRoutesWithMetadata.map { it.route }
-                    
-                    // Update cache
-                    allRoutesCache = allRoutes
-                    allRoutesWithMetadataCache = allRoutesWithMetadata
-                    
-                    _uiState.value = currentState.copy(
-                        selectedSectorId = sectorId,
-                        currentSchemaIndex = newSchemaIndex
-                    )
-                    // Apply filters to the new data
-                    applyFilters()
-                } else {
-                    // Error fetching lines, keep current state but mark sector as selected
-                    allRoutesCache = emptyList()
-                    allRoutesWithMetadataCache = emptyList()
-                    _uiState.value = currentState.copy(
-                        selectedSectorId = sectorId,
-                        currentSchemaIndex = newSchemaIndex,
-                        routes = emptyList(),
-                        routesWithMetadata = emptyList()
-                    )
-                }
-            }
+        // This is now a local filtering operation - no network requests
+        val currentState = _uiState.value
+        
+        // If in schema mode, also update the current schema index to match this sector
+        val newSchemaIndex = if (currentState.viewMode == ViewMode.SCHEMA && sectorId != null) {
+            currentState.schemas.indexOfFirst { it.id == sectorId }.takeIf { it >= 0 } ?: currentState.currentSchemaIndex
+        } else {
+            currentState.currentSchemaIndex
         }
+        
+        _uiState.value = currentState.copy(
+            selectedSectorId = sectorId,
+            currentSchemaIndex = newSchemaIndex
+        )
+        
+        // Apply filters to show routes for the selected sector (or all routes if null)
+        applyFilters()
     }
     
     fun updateSearchQuery(query: String) {
@@ -532,6 +472,15 @@ class AreaDetailViewModel : ViewModel() {
         val currentState = _uiState.value
         var filteredRoutes = allRoutesCache
         var filteredRoutesWithMetadata = allRoutesWithMetadataCache
+        
+        // Apply sector filter if a sector is selected
+        if (currentState.selectedSectorId != null) {
+            val selectedSector = currentState.sectors.find { it.id == currentState.selectedSectorId }
+            filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                routeWithMetadata.sectorLocalId == selectedSector?.localId
+            }
+            filteredRoutes = filteredRoutesWithMetadata.map { it.route }
+        }
         
         // Apply search filter
         if (currentState.searchQuery.isNotEmpty()) {
