@@ -308,15 +308,15 @@ fun SchemaView(
                                             /* Keep original stroke colors from SVG */
                                             fill: none;
                                             cursor: pointer;
-                                            stroke-width: 3;
-                                            opacity: 0.8;
+                                            stroke-width: 10;
+                                            opacity: 0.7;
                                             pointer-events: auto;
                                         }
                                         svg path.hidden {
                                             display: none;
                                         }
                                         svg path:hover {
-                                            stroke-width: 5;
+                                            stroke-width: 15;
                                             opacity: 1;
                                         }
                                     </style>
