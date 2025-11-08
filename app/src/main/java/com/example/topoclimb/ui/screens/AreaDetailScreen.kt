@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -76,6 +77,16 @@ fun AreaDetailScreen(
     // State for bottom sheet
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedRouteWithMetadata by remember { mutableStateOf<com.example.topoclimb.data.RouteWithMetadata?>(null) }
+    
+    // Schema cache - scoped to this screen only, cleared when leaving
+    val schemaCache = remember { mutableMapOf<Int, com.example.topoclimb.ui.components.SchemaData>() }
+    
+    // Clear cache when leaving the screen
+    DisposableEffect(Unit) {
+        onDispose {
+            schemaCache.clear()
+        }
+    }
     
     // Handle route to show after logging workflow
     LaunchedEffect(routeToShowId, uiState.routesWithMetadata) {
@@ -255,6 +266,7 @@ fun AreaDetailScreen(
                                     onNextClick = { viewModel.navigateToNextSchema() },
                                     hasPrevious = uiState.schemas.size > 1,
                                     hasNext = uiState.schemas.size > 1,
+                                    schemaCache = schemaCache,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .wrapContentHeight()
