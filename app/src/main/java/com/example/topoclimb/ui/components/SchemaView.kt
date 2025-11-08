@@ -208,10 +208,13 @@ fun SchemaView(
                                     
                                     @JavascriptInterface
                                     fun setImageHeight(heightPx: Int) {
-                                        // Convert px to dp and update the state
-                                        // Add a small buffer (8dp) to prevent any cropping
-                                        val heightDp = with(density) { heightPx.toDp() + 8.dp }
-                                        imageHeight = heightDp
+                                        // Validate input
+                                        if (heightPx > 0) {
+                                            // Convert px to dp and update the state
+                                            // Add a larger buffer (20dp) to prevent any cropping
+                                            val heightDp = with(density) { heightPx.toDp() + 20.dp }
+                                            imageHeight = heightDp
+                                        }
                                     }
                                 }, "Android")
                             }
@@ -309,16 +312,23 @@ fun SchemaView(
                                             if (img) {
                                                 function updateHeight() {
                                                     if (window.Android && window.Android.setImageHeight) {
-                                                        // Use scrollHeight to get full content height
-                                                        const container = document.querySelector('.container');
-                                                        const fullHeight = Math.max(
-                                                            img.offsetHeight,
-                                                            img.scrollHeight,
-                                                            container ? container.offsetHeight : 0,
-                                                            container ? container.scrollHeight : 0,
-                                                            document.body.scrollHeight
-                                                        );
-                                                        window.Android.setImageHeight(fullHeight);
+                                                        // Give a small delay to ensure image is fully rendered
+                                                        setTimeout(function() {
+                                                            // Use multiple measurements to get full content height
+                                                            const container = document.querySelector('.container');
+                                                            const fullHeight = Math.max(
+                                                                img.naturalHeight || 0,
+                                                                img.offsetHeight || 0,
+                                                                img.scrollHeight || 0,
+                                                                container ? container.offsetHeight : 0,
+                                                                container ? container.scrollHeight : 0,
+                                                                document.body.offsetHeight || 0,
+                                                                document.body.scrollHeight || 0,
+                                                                document.documentElement.offsetHeight || 0,
+                                                                document.documentElement.scrollHeight || 0
+                                                            );
+                                                            window.Android.setImageHeight(fullHeight);
+                                                        }, 100);
                                                     }
                                                 }
                                                 
