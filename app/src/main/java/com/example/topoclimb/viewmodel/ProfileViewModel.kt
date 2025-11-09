@@ -24,7 +24,9 @@ data class ProfileUiState(
     val statsError: String? = null,
     val isUpdating: Boolean = false,
     val updateError: String? = null,
-    val updateSuccess: Boolean = false
+    val updateSuccess: Boolean = false,
+    val debugMode: Boolean = false,
+    val statsRawJson: String? = null
 )
 
 class ProfileViewModel(
@@ -102,27 +104,40 @@ class ProfileViewModel(
         }
         
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoadingStats = true, statsError = null)
+            _uiState.value = _uiState.value.copy(isLoadingStats = true, statsError = null, statsRawJson = null)
             
             try {
                 println("ProfileViewModel: Loading stats for backend: ${defaultBackend.name}")
                 val apiService = retrofitManager.getApiService(defaultBackend)
                 val authToken = "Bearer ${defaultBackend.authToken}"
                 println("ProfileViewModel: Calling getUserStats with authToken: ${authToken.take(20)}...")
+                
+                // Make the API call
                 val response = apiService.getUserStats(authToken)
                 
+                // Convert response to JSON string for debug display
+                val rawJson = com.google.gson.Gson().toJson(response)
+                
                 println("ProfileViewModel: Stats loaded successfully: ${response.data}")
+                println("ProfileViewModel: Raw JSON response: $rawJson")
+                
                 _uiState.value = _uiState.value.copy(
                     stats = response.data,
                     isLoadingStats = false,
-                    statsError = null
+                    statsError = null,
+                    statsRawJson = rawJson
                 )
             } catch (e: Exception) {
                 println("ProfileViewModel: Failed to load stats: ${e.message}")
                 e.printStackTrace()
+                
+                // Try to capture error details
+                val errorJson = "Error: ${e.javaClass.simpleName}\nMessage: ${e.message}\nCause: ${e.cause?.message}"
+                
                 _uiState.value = _uiState.value.copy(
                     isLoadingStats = false,
-                    statsError = e.message ?: "Failed to load stats"
+                    statsError = e.message ?: "Failed to load stats",
+                    statsRawJson = errorJson
                 )
             }
         }
@@ -173,5 +188,12 @@ class ProfileViewModel(
             updateSuccess = false,
             updateError = null
         )
+    }
+    
+    fun toggleDebugMode() {
+        _uiState.value = _uiState.value.copy(
+            debugMode = !_uiState.value.debugMode
+        )
+        println("ProfileViewModel: Debug mode ${if (_uiState.value.debugMode) "enabled" else "disabled"}")
     }
 }
