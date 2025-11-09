@@ -48,6 +48,8 @@ class ProfileViewModel(
     private fun updateProfile() {
         val defaultBackend = repository.getDefaultBackend()
         
+        println("ProfileViewModel: updateProfile called - defaultBackend: ${defaultBackend?.name}, isAuthenticated: ${defaultBackend?.isAuthenticated()}")
+        
         if (defaultBackend != null && defaultBackend.isAuthenticated()) {
             _uiState.value = _uiState.value.copy(
                 user = defaultBackend.user,
@@ -56,8 +58,10 @@ class ProfileViewModel(
                 isLoading = false
             )
             // Automatically load stats when user is authenticated
+            println("ProfileViewModel: User is authenticated, loading stats...")
             loadUserStats()
         } else {
+            println("ProfileViewModel: User is not authenticated, resetting state")
             _uiState.value = ProfileUiState(
                 user = null,
                 isAuthenticated = false,
@@ -77,8 +81,23 @@ class ProfileViewModel(
     fun loadUserStats() {
         val defaultBackend = repository.getDefaultBackend()
         
-        if (defaultBackend == null || !defaultBackend.isAuthenticated()) {
-            println("ProfileViewModel: Cannot load stats - defaultBackend: $defaultBackend, isAuthenticated: ${defaultBackend?.isAuthenticated()}")
+        println("ProfileViewModel: loadUserStats called - defaultBackend: ${defaultBackend?.name}, isAuthenticated: ${defaultBackend?.isAuthenticated()}")
+        
+        if (defaultBackend == null) {
+            println("ProfileViewModel: Cannot load stats - no default backend")
+            _uiState.value = _uiState.value.copy(
+                statsError = "No backend configured",
+                isLoadingStats = false
+            )
+            return
+        }
+        
+        if (!defaultBackend.isAuthenticated()) {
+            println("ProfileViewModel: Cannot load stats - backend not authenticated")
+            _uiState.value = _uiState.value.copy(
+                statsError = "Not authenticated",
+                isLoadingStats = false
+            )
             return
         }
         
