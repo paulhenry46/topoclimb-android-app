@@ -61,14 +61,9 @@ fun ProfileScreen(
         }
     }
     
-    // Refresh profile when the screen is displayed and periodically check for updates
+    // Refresh profile when the screen is displayed
     LaunchedEffect(Unit) {
         viewModel.refresh()
-        // Continue to check for updates every second while screen is visible
-        while (true) {
-            kotlinx.coroutines.delay(1000)
-            viewModel.refresh()
-        }
     }
     
     // Show success snackbar

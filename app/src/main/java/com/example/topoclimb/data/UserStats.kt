@@ -1,6 +1,34 @@
 package com.example.topoclimb.data
 
 import com.google.gson.annotations.SerializedName
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.annotations.JsonAdapter
+import java.lang.reflect.Type
+
+/**
+ * Custom deserializer for routes_by_grade field that handles both empty array [] and object {}
+ */
+class RoutesByGradeDeserializer : JsonDeserializer<Map<String, Int>> {
+    override fun deserialize(
+        json: JsonElement,
+        typeOfT: Type,
+        context: JsonDeserializationContext
+    ): Map<String, Int> {
+        return when {
+            json.isJsonArray -> emptyMap() // Handle empty array case
+            json.isJsonObject -> {
+                val map = mutableMapOf<String, Int>()
+                json.asJsonObject.entrySet().forEach { entry ->
+                    map[entry.key] = entry.value.asInt
+                }
+                map
+            }
+            else -> emptyMap()
+        }
+    }
+}
 
 /**
  * User statistics data model
@@ -13,7 +41,8 @@ data class UserStats(
     @SerializedName("total_climbed")
     val totalClimbed: Int, // Total number of routes climbed
     @SerializedName("routes_by_grade")
-    val routesByGrade: Map<String, Int> // e.g., {"6a": 2, "5c": 2, "4a": 1}
+    @JsonAdapter(RoutesByGradeDeserializer::class)
+    val routesByGrade: Map<String, Int> // e.g., {"6a": 2, "5c": 2, "4a": 1} or []
 )
 
 /**
