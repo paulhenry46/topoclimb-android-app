@@ -23,7 +23,6 @@ import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SiteResponse
 import com.example.topoclimb.data.SitesResponse
 import com.example.topoclimb.data.UserLogsResponse
-import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -94,17 +93,5 @@ interface TopoClimbApiService {
     
     @GET("user/logs")
     suspend fun getUserLogs(@Header("Authorization") authToken: String): UserLogsResponse
-    
-    @GET("user/stats")
-    suspend fun getUserStats(@Header("Authorization") authToken: String): com.example.topoclimb.data.UserStatsResponse
-    
-    @GET("user/stats")
-    suspend fun getUserStatsRaw(@Header("Authorization") authToken: String): ResponseBody
-    
-    @POST("user/update")
-    suspend fun updateUser(
-        @Body request: com.example.topoclimb.data.UserUpdateRequest,
-        @Header("Authorization") authToken: String
-    ): com.example.topoclimb.data.UserUpdateResponse
 }
 
