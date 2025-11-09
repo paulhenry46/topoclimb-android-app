@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lens
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -492,11 +493,19 @@ private fun OverviewTab(
                     }
                 }
                 
-                // Infobox using local primary color
+                // Infobox using local primary color - shows route removal information
+                val removalInfo = remember(uiState.route?.removingAt) {
+                    calculateRemovalInfo(uiState.route?.removingAt)
+                }
+                
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                        containerColor = when (removalInfo.type) {
+                            RemovalInfoType.URGENT -> MaterialTheme.colorScheme.errorContainer
+                            RemovalInfoType.SCHEDULED -> MaterialTheme.colorScheme.tertiaryContainer
+                            RemovalInfoType.NO_PLAN -> MaterialTheme.colorScheme.primaryContainer
+                        }
                     )
                 ) {
                     Row(
@@ -504,19 +513,28 @@ private fun OverviewTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Checkbox(
-                            checked = true,
-                            onCheckedChange = null,
-                            enabled = false,
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = MaterialTheme.colorScheme.primary,
-                                disabledCheckedColor = MaterialTheme.colorScheme.primary
-                            )
+                        Icon(
+                            imageVector = when (removalInfo.type) {
+                                RemovalInfoType.URGENT -> Icons.Default.Warning
+                                RemovalInfoType.SCHEDULED -> Icons.Default.Info
+                                RemovalInfoType.NO_PLAN -> Icons.Default.Check
+                            },
+                            contentDescription = null,
+                            tint = when (removalInfo.type) {
+                                RemovalInfoType.URGENT -> MaterialTheme.colorScheme.onErrorContainer
+                                RemovalInfoType.SCHEDULED -> MaterialTheme.colorScheme.onTertiaryContainer
+                                RemovalInfoType.NO_PLAN -> MaterialTheme.colorScheme.onPrimaryContainer
+                            },
+                            modifier = Modifier.size(24.dp)
                         )
                         Text(
-                            text = "There are no plans to dismantle this route at this time.",
+                            text = removalInfo.message,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = when (removalInfo.type) {
+                                RemovalInfoType.URGENT -> MaterialTheme.colorScheme.onErrorContainer
+                                RemovalInfoType.SCHEDULED -> MaterialTheme.colorScheme.onTertiaryContainer
+                                RemovalInfoType.NO_PLAN -> MaterialTheme.colorScheme.onPrimaryContainer
+                            }
                         )
                     }
                 }
@@ -1386,5 +1404,84 @@ private fun CreateLogDialog(
                 }
             }
         }
+    }
+}
+
+/**
+ * Enum representing the type of removal information
+ */
+private enum class RemovalInfoType {
+    NO_PLAN,    // No removal planned
+    SCHEDULED,  // Removal scheduled more than a week away
+    URGENT      // Removal scheduled within a week
+}
+
+/**
+ * Data class holding removal information
+ */
+private data class RemovalInfo(
+    val type: RemovalInfoType,
+    val message: String
+)
+
+/**
+ * Calculate removal information based on the removing_at date
+ */
+private fun calculateRemovalInfo(removingAt: String?): RemovalInfo {
+    if (removingAt.isNullOrBlank()) {
+        return RemovalInfo(
+            type = RemovalInfoType.NO_PLAN,
+            message = "There are no plans to dismantle this route at this time."
+        )
+    }
+    
+    try {
+        // Parse the date - handle both formats: "2025-09-06 00:00:00" and "2025-09-06"
+        val dateFormat = when {
+            removingAt.contains(" ") -> SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            else -> SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        }
+        
+        val removalDate = dateFormat.parse(removingAt) ?: return RemovalInfo(
+            type = RemovalInfoType.NO_PLAN,
+            message = "There are no plans to dismantle this route at this time."
+        )
+        
+        val now = Date()
+        val daysDifference = ((removalDate.time - now.time) / (1000 * 60 * 60 * 24)).toInt()
+        
+        // Format date as dd/MM/yy
+        val displayFormat = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
+        val formattedDate = displayFormat.format(removalDate)
+        
+        return when {
+            daysDifference < 0 -> {
+                // Already passed, treat as no plan
+                RemovalInfo(
+                    type = RemovalInfoType.NO_PLAN,
+                    message = "There are no plans to dismantle this route at this time."
+                )
+            }
+            daysDifference <= 7 -> {
+                // Within a week
+                RemovalInfo(
+                    type = RemovalInfoType.URGENT,
+                    message = "This track is on its last legs! It will be dismantled on $formattedDate."
+                )
+            }
+            else -> {
+                // More than a week
+                RemovalInfo(
+                    type = RemovalInfoType.SCHEDULED,
+                    message = "The removal of this route is scheduled for $formattedDate."
+                )
+            }
+        }
+    } catch (e: Exception) {
+        // If parsing fails, return no plan
+        return RemovalInfo(
+            type = RemovalInfoType.NO_PLAN,
+            message = "There are no plans to dismantle this route at this time."
+        )
     }
 }

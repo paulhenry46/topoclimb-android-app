@@ -260,6 +260,29 @@ class BackendConfigRepository(context: Context) {
         }
     }
     
+    /**
+     * Update user information in a backend
+     */
+    fun updateUserInBackend(backendId: String, user: User): Result<Unit> {
+        return try {
+            val updatedBackends = _backends.value.map { 
+                if (it.id == backendId) {
+                    it.copy(
+                        user = user,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                } else {
+                    it
+                }
+            }
+            _backends.value = updatedBackends
+            saveBackends()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
     companion object {
         private const val PREFS_NAME = "topoclimb_backends"
         private const val KEY_BACKENDS = "backends"
