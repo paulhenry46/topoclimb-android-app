@@ -112,14 +112,15 @@ class ProfileViewModel(
                 val authToken = "Bearer ${defaultBackend.authToken}"
                 println("ProfileViewModel: Calling getUserStats with authToken: ${authToken.take(20)}...")
                 
-                // Make the API call
+                // First, get the raw JSON response for debug display
+                val rawResponseBody = apiService.getUserStatsRaw(authToken)
+                val rawJson = rawResponseBody.string()
+                println("ProfileViewModel: Raw JSON response: $rawJson")
+                
+                // Now parse the response for actual use
                 val response = apiService.getUserStats(authToken)
                 
-                // Convert response to JSON string for debug display
-                val rawJson = com.google.gson.Gson().toJson(response)
-                
                 println("ProfileViewModel: Stats loaded successfully: ${response.data}")
-                println("ProfileViewModel: Raw JSON response: $rawJson")
                 
                 _uiState.value = _uiState.value.copy(
                     stats = response.data,
@@ -132,7 +133,7 @@ class ProfileViewModel(
                 e.printStackTrace()
                 
                 // Try to capture error details
-                val errorJson = "Error: ${e.javaClass.simpleName}\nMessage: ${e.message}\nCause: ${e.cause?.message}"
+                val errorJson = "Error: ${e.javaClass.simpleName}\nMessage: ${e.message}\nCause: ${e.cause?.message}\n\nStack trace:\n${e.stackTraceToString()}"
                 
                 _uiState.value = _uiState.value.copy(
                     isLoadingStats = false,
