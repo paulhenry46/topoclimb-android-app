@@ -132,6 +132,7 @@ fun ProfileScreen(
                 
                 // Stats card
                 val currentStats = uiState.stats
+                val currentStatsError = uiState.statsError
                 if (currentStats != null) {
                     StatsCard(
                         stats = currentStats,
@@ -150,6 +151,32 @@ fun ProfileScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator()
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                } else if (currentStatsError != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Failed to load statistics",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                text = currentStatsError,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))

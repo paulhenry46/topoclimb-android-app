@@ -78,6 +78,7 @@ class ProfileViewModel(
         val defaultBackend = repository.getDefaultBackend()
         
         if (defaultBackend == null || !defaultBackend.isAuthenticated()) {
+            println("ProfileViewModel: Cannot load stats - defaultBackend: $defaultBackend, isAuthenticated: ${defaultBackend?.isAuthenticated()}")
             return
         }
         
@@ -85,16 +86,21 @@ class ProfileViewModel(
             _uiState.value = _uiState.value.copy(isLoadingStats = true, statsError = null)
             
             try {
+                println("ProfileViewModel: Loading stats for backend: ${defaultBackend.name}")
                 val apiService = retrofitManager.getApiService(defaultBackend)
                 val authToken = "Bearer ${defaultBackend.authToken}"
+                println("ProfileViewModel: Calling getUserStats with authToken: ${authToken.take(20)}...")
                 val response = apiService.getUserStats(authToken)
                 
+                println("ProfileViewModel: Stats loaded successfully: ${response.data}")
                 _uiState.value = _uiState.value.copy(
                     stats = response.data,
                     isLoadingStats = false,
                     statsError = null
                 )
             } catch (e: Exception) {
+                println("ProfileViewModel: Failed to load stats: ${e.message}")
+                e.printStackTrace()
                 _uiState.value = _uiState.value.copy(
                     isLoadingStats = false,
                     statsError = e.message ?: "Failed to load stats"
