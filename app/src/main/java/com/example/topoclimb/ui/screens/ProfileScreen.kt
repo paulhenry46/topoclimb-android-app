@@ -22,6 +22,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.topoclimb.ui.theme.Orange40
+import com.example.topoclimb.ui.theme.Orange80
 import com.example.topoclimb.viewmodel.ProfileViewModel
 
 @Composable
@@ -129,7 +131,7 @@ fun ProfileScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
+                        containerColor = Orange80
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
@@ -142,24 +144,24 @@ fun ProfileScreen(
                             imageVector = Icons.Default.Face,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onErrorContainer
+                            tint = androidx.compose.ui.graphics.Color.Black
                         )
                         Text(
                             text = "Not Logged In",
                             style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = androidx.compose.ui.graphics.Color.Black
                         )
                         Text(
                             text = "Login to a TopoClimb instance to see your profile",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = androidx.compose.ui.graphics.Color.Black
                         )
                         Button(
                             onClick = onManageBackendsClick,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
+                                containerColor = Orange40,
+                                contentColor = androidx.compose.ui.graphics.Color.White
                             )
                         ) {
                             Icon(

@@ -16,6 +16,11 @@ val White = Color(0xFFFFFFFF)
 val DarkGray = Color(0xFF212121)
 val LightGray = Color(0xFFF5F5F5)
 
+// Warning/Orange colors for less aggressive notifications
+val Orange80 = Color(0xFFFFCC80) // Light orange for dark theme
+val Orange40 = Color(0xFFFF9800) // Orange for light theme
+val Orange60 = Color(0xFFFFB74D) // Medium orange
+
 // Keep old colors for backwards compatibility if needed elsewhere
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
