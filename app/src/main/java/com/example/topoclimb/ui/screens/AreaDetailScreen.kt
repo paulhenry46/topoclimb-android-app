@@ -57,6 +57,7 @@ fun AreaDetailScreen(
     favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val density = LocalDensity.current
     val primaryColorHex = String.format("#%06X", 0xFFFFFF and MaterialTheme.colorScheme.primary.toArgb())
@@ -66,6 +67,12 @@ fun AreaDetailScreen(
     
     // Get shared route to show state
     val routeToShowId by com.example.topoclimb.viewmodel.RouteDetailViewModel.routeToShow.collectAsState()
+    
+    // Update favorite route IDs in viewModel when they change
+    LaunchedEffect(favoriteRoutesUiState.favoriteRoutes) {
+        val favoriteIds = favoriteRoutesUiState.favoriteRoutes.map { it.id }.toSet()
+        viewModel.setFavoriteRouteIds(favoriteIds)
+    }
     
     // Remember the map height once it's been measured
     var mapHeight by remember { mutableStateOf(0.dp) }
@@ -560,6 +567,7 @@ fun AreaDetailScreen(
                             sectors = uiState.sectors,
                             climbedFilter = uiState.climbedFilter,
                             groupingOption = uiState.groupingOption,
+                            showFavoritesOnly = uiState.showFavoritesOnly,
                             onSearchQueryChange = { viewModel.updateSearchQuery(it) },
                             onMinGradeChange = { viewModel.updateMinGrade(it) },
                             onMaxGradeChange = { viewModel.updateMaxGrade(it) },
@@ -567,6 +575,7 @@ fun AreaDetailScreen(
                             onSectorSelected = { viewModel.filterRoutesBySector(it) },
                             onClimbedFilterChange = { viewModel.setClimbedFilter(it) },
                             onGroupingOptionChange = { viewModel.setGroupingOption(it) },
+                            onFavoritesToggle = { viewModel.toggleFavoritesFilter(it) },
                             onClearFilters = { viewModel.clearFilters() }
                         )
                     }
@@ -722,6 +731,7 @@ fun FilterSection(
     sectors: List<com.example.topoclimb.data.Sector>,
     climbedFilter: com.example.topoclimb.viewmodel.ClimbedFilter,
     groupingOption: com.example.topoclimb.viewmodel.GroupingOption,
+    showFavoritesOnly: Boolean,
     onSearchQueryChange: (String) -> Unit,
     onMinGradeChange: (String?) -> Unit,
     onMaxGradeChange: (String?) -> Unit,
@@ -729,10 +739,11 @@ fun FilterSection(
     onSectorSelected: (Int?) -> Unit,
     onClimbedFilterChange: (com.example.topoclimb.viewmodel.ClimbedFilter) -> Unit,
     onGroupingOptionChange: (com.example.topoclimb.viewmodel.GroupingOption) -> Unit,
+    onFavoritesToggle: (Boolean) -> Unit,
     onClearFilters: () -> Unit
 ) {
     var showFilters by remember { mutableStateOf(false) }
-    val hasActiveFilters = searchQuery.isNotEmpty() || minGrade != null || maxGrade != null || showNewRoutesOnly || climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL
+    val hasActiveFilters = searchQuery.isNotEmpty() || minGrade != null || maxGrade != null || showNewRoutesOnly || climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL || showFavoritesOnly
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -826,6 +837,24 @@ fun FilterSection(
                     Switch(
                         checked = showNewRoutesOnly,
                         onCheckedChange = onNewRoutesToggle
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Favorites filter
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Show only favorite routes",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(
+                        checked = showFavoritesOnly,
+                        onCheckedChange = onFavoritesToggle
                     )
                 }
                 

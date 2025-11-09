@@ -52,6 +52,7 @@ data class AreaDetailUiState(
     val maxGrade: String? = null,
     val showNewRoutesOnly: Boolean = false,
     val climbedFilter: ClimbedFilter = ClimbedFilter.ALL,
+    val showFavoritesOnly: Boolean = false,
     // Grouping state
     val groupingOption: GroupingOption = GroupingOption.NONE
 )
@@ -81,6 +82,16 @@ class AreaDetailViewModel : ViewModel() {
     
     // Get logged routes from shared state
     private val loggedRouteIds: StateFlow<Set<Int>> = RouteDetailViewModel.sharedLoggedRouteIds
+    
+    // Store favorite route IDs for filtering
+    private var favoriteRouteIds: Set<Int> = emptySet()
+    
+    fun setFavoriteRouteIds(ids: Set<Int>) {
+        favoriteRouteIds = ids
+        if (_uiState.value.showFavoritesOnly) {
+            applyFilters()
+        }
+    }
     
     fun loadAreaDetails(backendId: String, siteId: Int, areaId: Int) {
         viewModelScope.launch {
@@ -402,6 +413,11 @@ class AreaDetailViewModel : ViewModel() {
         applyFilters()
     }
     
+    fun toggleFavoritesFilter(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(showFavoritesOnly = enabled)
+        applyFilters()
+    }
+    
     fun clearFilters() {
         _uiState.value = _uiState.value.copy(
             searchQuery = "",
@@ -409,6 +425,7 @@ class AreaDetailViewModel : ViewModel() {
             maxGrade = null,
             showNewRoutesOnly = false,
             climbedFilter = ClimbedFilter.ALL,
+            showFavoritesOnly = false,
             groupingOption = GroupingOption.NONE
         )
         applyFilters()
@@ -573,6 +590,16 @@ class AreaDetailViewModel : ViewModel() {
             }
             ClimbedFilter.ALL -> {
                 // No filtering needed
+            }
+        }
+        
+        // Apply favorites filter
+        if (currentState.showFavoritesOnly) {
+            filteredRoutes = filteredRoutes.filter { route ->
+                favoriteRouteIds.contains(route.id)
+            }
+            filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                favoriteRouteIds.contains(routeWithMetadata.id)
             }
         }
         
