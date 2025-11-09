@@ -112,13 +112,14 @@ class ProfileViewModel(
                 val authToken = "Bearer ${defaultBackend.authToken}"
                 println("ProfileViewModel: Calling getUserStats with authToken: ${authToken.take(20)}...")
                 
-                // First, get the raw JSON response for debug display
+                // Get the raw JSON response for debug display
                 val rawResponseBody = apiService.getUserStatsRaw(authToken)
                 val rawJson = rawResponseBody.string()
                 println("ProfileViewModel: Raw JSON response: $rawJson")
                 
-                // Now parse the response for actual use
-                val response = apiService.getUserStats(authToken)
+                // Parse the raw JSON to get the stats object
+                val gson = com.google.gson.Gson()
+                val response = gson.fromJson(rawJson, com.example.topoclimb.data.UserStatsResponse::class.java)
                 
                 println("ProfileViewModel: Stats loaded successfully: ${response.data}")
                 
