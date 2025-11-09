@@ -56,6 +56,8 @@ class ProfileViewModel(
     }
     
     fun refresh() {
+        // Reload backends from SharedPreferences to pick up changes from other repository instances
+        repository.reloadBackends()
         // Force update profile from current backend state
         updateProfile()
     }

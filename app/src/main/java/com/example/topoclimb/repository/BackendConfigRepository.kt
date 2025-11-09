@@ -56,6 +56,14 @@ class BackendConfigRepository(context: Context) {
     }
     
     /**
+     * Reload backends from SharedPreferences
+     * This is useful when backends have been modified by another repository instance
+     */
+    fun reloadBackends() {
+        loadBackends()
+    }
+    
+    /**
      * Save backends to SharedPreferences
      */
     private fun saveBackends() {

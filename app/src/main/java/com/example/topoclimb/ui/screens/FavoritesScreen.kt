@@ -3,6 +3,8 @@ package com.example.topoclimb.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
@@ -18,6 +20,7 @@ import com.example.topoclimb.data.Site
 import com.example.topoclimb.ui.components.RouteCard
 import com.example.topoclimb.viewmodel.FavoriteRoutesViewModel
 import com.example.topoclimb.viewmodel.SitesViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +31,10 @@ fun FavoritesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    
+    // Pager state for swipe navigation between tabs
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val coroutineScope = rememberCoroutineScope()
     
     // Ensure sites are loaded when this screen is shown
     LaunchedEffect(Unit) {
@@ -65,45 +71,58 @@ fun FavoritesScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Tab selector
+            // Tab selector with synchronized pager state
             PrimaryTabRow(
-                selectedTabIndex = selectedTab,
+                selectedTabIndex = pagerState.currentPage,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    selected = pagerState.currentPage == 0,
+                    onClick = { 
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(0)
+                        }
+                    },
                     text = { Text("Sites") }
                 )
                 Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    selected = pagerState.currentPage == 1,
+                    onClick = { 
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(1)
+                        }
+                    },
                     text = { Text("Routes") }
                 )
             }
             
-            // Content based on selected tab
-            when (selectedTab) {
-                0 -> FavoriteSitesTab(
-                    favoriteSites = favoriteSites,
-                    isLoading = uiState.isLoading,
-                    isRefreshing = uiState.isRefreshing,
-                    error = uiState.error,
-                    onSiteClick = onSiteClick,
-                    onFavoriteClick = { viewModel.toggleFavorite(it) },
-                    onRefresh = { viewModel.refreshSites() },
-                    onRetry = { viewModel.loadSites() }
-                )
-                1 -> FavoriteRoutesTab(
-                    favoriteRoutes = favoriteRoutesUiState.favoriteRoutes,
-                    gradingSystemMap = gradingSystemMap,
-                    siteNameMap = siteNameMap,
-                    onRouteClick = { route ->
-                        selectedRoute = route
-                        showRouteBottomSheet = true
-                    },
-                    onRemoveFavorite = { favoriteRoutesViewModel.toggleFavorite(it) }
-                )
+            // Content with HorizontalPager for swipe navigation
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                when (page) {
+                    0 -> FavoriteSitesTab(
+                        favoriteSites = favoriteSites,
+                        isLoading = uiState.isLoading,
+                        isRefreshing = uiState.isRefreshing,
+                        error = uiState.error,
+                        onSiteClick = onSiteClick,
+                        onFavoriteClick = { viewModel.toggleFavorite(it) },
+                        onRefresh = { viewModel.refreshSites() },
+                        onRetry = { viewModel.loadSites() }
+                    )
+                    1 -> FavoriteRoutesTab(
+                        favoriteRoutes = favoriteRoutesUiState.favoriteRoutes,
+                        gradingSystemMap = gradingSystemMap,
+                        siteNameMap = siteNameMap,
+                        onRouteClick = { route ->
+                            selectedRoute = route
+                            showRouteBottomSheet = true
+                        },
+                        onRemoveFavorite = { favoriteRoutesViewModel.toggleFavorite(it) }
+                    )
+                }
             }
         }
     }

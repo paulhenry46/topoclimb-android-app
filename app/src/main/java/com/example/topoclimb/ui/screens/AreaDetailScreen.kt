@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -57,6 +58,7 @@ fun AreaDetailScreen(
     favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val density = LocalDensity.current
     val primaryColorHex = String.format("#%06X", 0xFFFFFF and MaterialTheme.colorScheme.primary.toArgb())
@@ -66,6 +68,12 @@ fun AreaDetailScreen(
     
     // Get shared route to show state
     val routeToShowId by com.example.topoclimb.viewmodel.RouteDetailViewModel.routeToShow.collectAsState()
+    
+    // Update favorite route IDs in viewModel when they change
+    LaunchedEffect(favoriteRoutesUiState.favoriteRoutes) {
+        val favoriteIds = favoriteRoutesUiState.favoriteRoutes.map { it.id }.toSet()
+        viewModel.setFavoriteRouteIds(favoriteIds)
+    }
     
     // Remember the map height once it's been measured
     var mapHeight by remember { mutableStateOf(0.dp) }
@@ -103,6 +111,14 @@ fun AreaDetailScreen(
         viewModel.loadAreaDetails(backendId, siteId, areaId)
     }
     
+    // State for filter modal
+    var showFilterModal by remember { mutableStateOf(false) }
+    
+    // Check if there are active filters (excluding search query)
+    val hasActiveFilters = uiState.minGrade != null || uiState.maxGrade != null || 
+        uiState.showNewRoutesOnly || uiState.climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL || 
+        uiState.showFavoritesOnly
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -113,6 +129,26 @@ fun AreaDetailScreen(
                     }
                 },
                 actions = {
+                    // Filter list icon with indicator
+                    BadgedBox(
+                        badge = {
+                            if (hasActiveFilters) {
+                                Badge()
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = { showFilterModal = true }) {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = "Filters",
+                                tint = if (hasActiveFilters)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                    
                     // Show view mode toggle for trad areas (regardless of schema availability)
                     if (uiState.area?.type == AreaType.TRAD) {
                         IconButton(onClick = { viewModel.toggleViewMode() }) {
@@ -548,26 +584,11 @@ fun AreaDetailScreen(
                         }
                     }
                     
-                    // Filter section
+                    // Filter section - now only search bar
                     item {
                         FilterSection(
                             searchQuery = uiState.searchQuery,
-                            minGrade = uiState.minGrade,
-                            maxGrade = uiState.maxGrade,
-                            grades = uiState.gradingSystem?.points?.keys?.toList(),
-                            showNewRoutesOnly = uiState.showNewRoutesOnly,
-                            selectedSectorId = uiState.selectedSectorId,
-                            sectors = uiState.sectors,
-                            climbedFilter = uiState.climbedFilter,
-                            groupingOption = uiState.groupingOption,
-                            onSearchQueryChange = { viewModel.updateSearchQuery(it) },
-                            onMinGradeChange = { viewModel.updateMinGrade(it) },
-                            onMaxGradeChange = { viewModel.updateMaxGrade(it) },
-                            onNewRoutesToggle = { viewModel.toggleNewRoutesFilter(it) },
-                            onSectorSelected = { viewModel.filterRoutesBySector(it) },
-                            onClimbedFilterChange = { viewModel.setClimbedFilter(it) },
-                            onGroupingOptionChange = { viewModel.setGroupingOption(it) },
-                            onClearFilters = { viewModel.clearFilters() }
+                            onSearchQueryChange = { viewModel.updateSearchQuery(it) }
                         )
                     }
                     
@@ -707,6 +728,30 @@ fun AreaDetailScreen(
                 favoriteRoutesViewModel = favoriteRoutesViewModel
             )
         }
+        
+        // Filter Modal Dialog
+        if (showFilterModal) {
+            FilterModalDialog(
+                minGrade = uiState.minGrade,
+                maxGrade = uiState.maxGrade,
+                grades = uiState.gradingSystem?.points?.keys?.toList(),
+                showNewRoutesOnly = uiState.showNewRoutesOnly,
+                selectedSectorId = uiState.selectedSectorId,
+                sectors = uiState.sectors,
+                climbedFilter = uiState.climbedFilter,
+                groupingOption = uiState.groupingOption,
+                showFavoritesOnly = uiState.showFavoritesOnly,
+                onMinGradeChange = { viewModel.updateMinGrade(it) },
+                onMaxGradeChange = { viewModel.updateMaxGrade(it) },
+                onNewRoutesToggle = { viewModel.toggleNewRoutesFilter(it) },
+                onSectorSelected = { viewModel.filterRoutesBySector(it) },
+                onClimbedFilterChange = { viewModel.setClimbedFilter(it) },
+                onGroupingOptionChange = { viewModel.setGroupingOption(it) },
+                onFavoritesToggle = { viewModel.toggleFavoritesFilter(it) },
+                onClearFilters = { viewModel.clearFilters() },
+                onDismiss = { showFilterModal = false }
+            )
+        }
     }
 }
 
@@ -714,6 +759,44 @@ fun AreaDetailScreen(
 @Composable
 fun FilterSection(
     searchQuery: String,
+    onSearchQueryChange: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Search bar only
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search routes...") },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary
+                )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterModalDialog(
     minGrade: String?,
     maxGrade: String?,
     grades: List<String>?,
@@ -722,265 +805,234 @@ fun FilterSection(
     sectors: List<com.example.topoclimb.data.Sector>,
     climbedFilter: com.example.topoclimb.viewmodel.ClimbedFilter,
     groupingOption: com.example.topoclimb.viewmodel.GroupingOption,
-    onSearchQueryChange: (String) -> Unit,
+    showFavoritesOnly: Boolean,
     onMinGradeChange: (String?) -> Unit,
     onMaxGradeChange: (String?) -> Unit,
     onNewRoutesToggle: (Boolean) -> Unit,
     onSectorSelected: (Int?) -> Unit,
     onClimbedFilterChange: (com.example.topoclimb.viewmodel.ClimbedFilter) -> Unit,
     onGroupingOptionChange: (com.example.topoclimb.viewmodel.GroupingOption) -> Unit,
-    onClearFilters: () -> Unit
+    onFavoritesToggle: (Boolean) -> Unit,
+    onClearFilters: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var showFilters by remember { mutableStateOf(false) }
-    val hasActiveFilters = searchQuery.isNotEmpty() || minGrade != null || maxGrade != null || showNewRoutesOnly || climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL
+    val hasActiveFilters = minGrade != null || maxGrade != null || showNewRoutesOnly || 
+        climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL || showFavoritesOnly
     
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Search bar with filter toggle
-            Row(
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Filters & Grouping") },
+        text = {
+            LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Search routes...") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary
+                // Grade filters
+                item {
+                    Text(
+                        text = "Grade Range",
+                        style = MaterialTheme.typography.titleSmall
                     )
-                )
-                
-                // Filter toggle button
-                IconButton(
-                    onClick = { showFilters = !showFilters },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = if (showFilters || hasActiveFilters) 
-                            MaterialTheme.colorScheme.primaryContainer 
-                        else 
-                            MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = if (showFilters) "Hide filters" else "Show filters",
-                        tint = if (showFilters || hasActiveFilters) 
-                            MaterialTheme.colorScheme.onPrimaryContainer 
-                        else 
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    GradeRangeSlider(
+                        minGrade = minGrade,
+                        maxGrade = maxGrade,
+                        grades = grades,
+                        onMinGradeChange = onMinGradeChange,
+                        onMaxGradeChange = onMaxGradeChange,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-            }
-            
-            // Filter options panel
-            if (showFilters) {
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Grade filters
-                Text(
-                    text = "Grade Range",
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Grade range slider
-                GradeRangeSlider(
-                    minGrade = minGrade,
-                    maxGrade = maxGrade,
-                    grades = grades,
-                    onMinGradeChange = onMinGradeChange,
-                    onMaxGradeChange = onMaxGradeChange,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
                 
                 // New routes filter
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Show only new routes (last week)",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Switch(
-                        checked = showNewRoutesOnly,
-                        onCheckedChange = onNewRoutesToggle
-                    )
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Show only new routes (last week)",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Switch(
+                            checked = showNewRoutesOnly,
+                            onCheckedChange = onNewRoutesToggle
+                        )
+                    }
                 }
                 
-                Spacer(modifier = Modifier.height(12.dp))
+                // Favorites filter
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Show only favorite routes",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Switch(
+                            checked = showFavoritesOnly,
+                            onCheckedChange = onFavoritesToggle
+                        )
+                    }
+                }
                 
                 // Climbed filter
-                Text(
-                    text = "Climbed Status",
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED,
-                        onClick = { 
-                            onClimbedFilterChange(
-                                if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) 
-                                    com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
-                                else 
-                                    com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED
-                            ) 
-                        },
-                        label = { Text("Climbed") },
-                        leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                        } else null,
-                        modifier = Modifier.weight(1f)
+                item {
+                    Text(
+                        text = "Climbed Status",
+                        style = MaterialTheme.typography.titleSmall
                     )
-                    FilterChip(
-                        selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
-                        onClick = { 
-                            onClimbedFilterChange(
-                                if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) 
-                                    com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
-                                else 
-                                    com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED
-                            ) 
-                        },
-                        label = { Text("Not Climbed") },
-                        leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                        } else null,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED,
+                            onClick = { 
+                                onClimbedFilterChange(
+                                    if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) 
+                                        com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
+                                    else 
+                                        com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED
+                                ) 
+                            },
+                            label = { Text("Climbed") },
+                            leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) {
+                                { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                            } else null,
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
+                            onClick = { 
+                                onClimbedFilterChange(
+                                    if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) 
+                                        com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
+                                    else 
+                                        com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED
+                                ) 
+                            },
+                            label = { Text("Not Climbed") },
+                            leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) {
+                                { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                            } else null,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
-                
-                Spacer(modifier = Modifier.height(12.dp))
                 
                 // Grouping options
-                Text(
-                    text = "Group Routes By",
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE,
-                        onClick = { 
-                            onGroupingOptionChange(
-                                if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) 
-                                    com.example.topoclimb.viewmodel.GroupingOption.NONE 
-                                else 
-                                    com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE
-                            ) 
-                        },
-                        label = { Text("Grade") },
-                        leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                        } else null,
-                        modifier = Modifier.weight(1f)
+                item {
+                    Text(
+                        text = "Group Routes By",
+                        style = MaterialTheme.typography.titleSmall
                     )
-                    FilterChip(
-                        selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR,
-                        onClick = { 
-                            onGroupingOptionChange(
-                                if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) 
-                                    com.example.topoclimb.viewmodel.GroupingOption.NONE 
-                                else 
-                                    com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR
-                            ) 
-                        },
-                        label = { Text("Sector") },
-                        leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) {
-                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                        } else null,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE,
+                            onClick = { 
+                                onGroupingOptionChange(
+                                    if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) 
+                                        com.example.topoclimb.viewmodel.GroupingOption.NONE 
+                                    else 
+                                        com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE
+                                ) 
+                            },
+                            label = { Text("Grade") },
+                            leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) {
+                                { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                            } else null,
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR,
+                            onClick = { 
+                                onGroupingOptionChange(
+                                    if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) 
+                                        com.example.topoclimb.viewmodel.GroupingOption.NONE 
+                                    else 
+                                        com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR
+                                ) 
+                            },
+                            label = { Text("Sector") },
+                            leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) {
+                                { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                            } else null,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
                 
-                Spacer(modifier = Modifier.height(12.dp))
-                
                 // Sector filter
-                Text(
-                    text = "Filter by Sector",
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                var expandedSectorDropdown by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expandedSectorDropdown,
-                    onExpandedChange = { expandedSectorDropdown = it }
-                ) {
-                    OutlinedTextField(
-                        value = sectors.find { it.id == selectedSectorId }?.name ?: "All sectors",
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSectorDropdown) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                item {
+                    Text(
+                        text = "Filter by Sector",
+                        style = MaterialTheme.typography.titleSmall
                     )
-                    ExposedDropdownMenu(
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    var expandedSectorDropdown by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
                         expanded = expandedSectorDropdown,
-                        onDismissRequest = { expandedSectorDropdown = false }
+                        onExpandedChange = { expandedSectorDropdown = it }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("All sectors") },
-                            onClick = {
-                                onSectorSelected(null)
-                                expandedSectorDropdown = false
-                            }
+                        OutlinedTextField(
+                            value = sectors.find { it.id == selectedSectorId }?.name ?: "All sectors",
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSectorDropdown) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                         )
-                        sectors.forEach { sector ->
+                        ExposedDropdownMenu(
+                            expanded = expandedSectorDropdown,
+                            onDismissRequest = { expandedSectorDropdown = false }
+                        ) {
                             DropdownMenuItem(
-                                text = { Text(sector.name) },
+                                text = { Text("All sectors") },
                                 onClick = {
-                                    onSectorSelected(sector.id)
+                                    onSectorSelected(null)
                                     expandedSectorDropdown = false
                                 }
                             )
+                            sectors.forEach { sector ->
+                                DropdownMenuItem(
+                                    text = { Text(sector.name) },
+                                    onClick = {
+                                        onSectorSelected(sector.id)
+                                        expandedSectorDropdown = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Clear filters button
-                if (hasActiveFilters) {
-                    Button(
-                        onClick = onClearFilters,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Clear all filters")
-                    }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Done")
+            }
+        },
+        dismissButton = if (hasActiveFilters) {
+            {
+                TextButton(onClick = onClearFilters) {
+                    Text("Clear All")
                 }
             }
-        }
-    }
+        } else null
+    )
 }
 
 @Composable
