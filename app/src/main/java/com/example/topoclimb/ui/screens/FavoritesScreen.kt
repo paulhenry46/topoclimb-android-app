@@ -306,12 +306,23 @@ private fun FavoriteRoutesTab(
                         com.example.topoclimb.utils.GradeUtils.pointsToGrade(it, gradingSystem)
                     }
                     
+                    // Format local ID as "Sector ID / Line ID" when both are available
+                    val localIdDisplay = when {
+                        routeWithMetadata.sectorLocalId != null && routeWithMetadata.lineLocalId != null ->
+                            "Sector ${routeWithMetadata.sectorLocalId} / Line ${routeWithMetadata.lineLocalId}"
+                        routeWithMetadata.sectorLocalId != null ->
+                            "Sector ${routeWithMetadata.sectorLocalId}"
+                        routeWithMetadata.lineLocalId != null ->
+                            "Line ${routeWithMetadata.lineLocalId}"
+                        else -> null
+                    }
+                    
                     RouteCard(
                         thumbnail = routeWithMetadata.thumbnail,
                         grade = gradeString,
                         color = routeWithMetadata.color,
                         name = routeWithMetadata.name,
-                        localId = routeWithMetadata.lineLocalId ?: routeWithMetadata.sectorLocalId,
+                        localId = localIdDisplay,
                         numberLogs = routeWithMetadata.numberLogs,
                         numberComments = routeWithMetadata.numberComments,
                         onClick = { onRouteClick(routeWithMetadata) }

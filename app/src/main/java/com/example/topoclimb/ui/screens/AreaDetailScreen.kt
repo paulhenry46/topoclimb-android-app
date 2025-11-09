@@ -3,8 +3,6 @@ package com.example.topoclimb.ui.screens
 import android.annotation.SuppressLint
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,8 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -1027,7 +1023,7 @@ fun GradeRangeSlider(
             modifier = Modifier.padding(bottom = 8.dp)
         )
         
-        // Range slider with gesture to prevent parent scrolling
+        // Range slider - The RangeSlider itself handles gesture conflicts properly
         RangeSlider(
             value = sliderRange,
             onValueChange = { range ->
@@ -1046,18 +1042,7 @@ fun GradeRangeSlider(
             },
             valueRange = 0f..(grades.size - 1).toFloat(),
             steps = grades.size - 2, // steps between start and end
-            modifier = Modifier
-                .fillMaxWidth()
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        awaitFirstDown(pass = PointerEventPass.Initial)
-                        // Consume all pointer events to prevent parent scrolling
-                        do {
-                            val event = awaitPointerEvent(pass = PointerEventPass.Initial)
-                            event.changes.forEach { it.consume() }
-                        } while (event.changes.any { it.pressed })
-                    }
-                }
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
