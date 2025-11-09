@@ -675,98 +675,41 @@ fun StatsCard(
                 }
             }
             
-            // Routes by grade chart
+            // Routes by grade - simple text list instead of chart
             if (stats.routesByGrade.isNotEmpty()) {
                 HorizontalDivider()
                 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.BarChart,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                Text(
+                    text = "Routes by Grade",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold
                     )
-                    Text(
-                        text = "Routes by Grade",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Bar chart
-                RoutesByGradeChart(
-                    routesByGrade = stats.routesByGrade,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun RoutesByGradeChart(
-    routesByGrade: Map<String, Int>,
-    modifier: Modifier = Modifier
-) {
-    val maxValue = routesByGrade.values.maxOrNull() ?: 1
-    val sortedEntries = routesByGrade.toList().sortedBy { it.first }
-    
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Bar chart
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            sortedEntries.forEach { (grade, count) ->
+                
+                // Display as simple text
+                val sortedGrades = stats.routesByGrade.toList().sortedBy { it.first }
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Count label above bar
-                    Text(
-                        text = count.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // Bar
-                    Box(
-                        modifier = Modifier
-                            .width(40.dp)
-                            .height(((count.toFloat() / maxValue) * 120).dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                    sortedGrades.forEach { (grade, count) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Grade $grade:",
+                                style = MaterialTheme.typography.bodyMedium
                             )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // Grade label below bar
-                    Text(
-                        text = grade,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        fontSize = 10.sp
-                    )
+                            Text(
+                                text = "$count route${if (count != 1) "s" else ""}",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
         }
