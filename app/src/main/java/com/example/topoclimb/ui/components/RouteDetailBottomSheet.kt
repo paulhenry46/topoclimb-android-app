@@ -209,6 +209,7 @@ private fun OverviewTab(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 400.dp, max = 600.dp)
             .verticalScroll(rememberScrollState())
     ) {
         // Photo with Circle SVG Overlay - Full width at the top
