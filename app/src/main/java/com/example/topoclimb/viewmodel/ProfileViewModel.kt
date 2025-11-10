@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.User
+import com.example.topoclimb.data.UserUpdateRequest
+import com.example.topoclimb.network.MultiBackendRetrofitManager
 import com.example.topoclimb.repository.BackendConfigRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,10 @@ data class ProfileUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isAuthenticated: Boolean = false,
-    val instanceName: String? = null
+    val instanceName: String? = null,
+    val isUpdating: Boolean = false,
+    val updateError: String? = null,
+    val updateSuccess: Boolean = false
 )
 
 class ProfileViewModel(
@@ -23,6 +28,7 @@ class ProfileViewModel(
 ) : AndroidViewModel(application) {
     
     private val repository = BackendConfigRepository(application)
+    private val retrofitManager = MultiBackendRetrofitManager()
     
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -39,7 +45,7 @@ class ProfileViewModel(
         val defaultBackend = repository.getDefaultBackend()
         
         if (defaultBackend != null && defaultBackend.isAuthenticated()) {
-            _uiState.value = ProfileUiState(
+            _uiState.value = _uiState.value.copy(
                 user = defaultBackend.user,
                 isAuthenticated = true,
                 instanceName = defaultBackend.name,
@@ -60,5 +66,52 @@ class ProfileViewModel(
         repository.reloadBackends()
         // Force update profile from current backend state
         updateProfile()
+    }
+    
+    fun updateUserInfo(name: String?, birthDate: String?, gender: String?) {
+        val defaultBackend = repository.getDefaultBackend()
+        
+        if (defaultBackend == null || !defaultBackend.isAuthenticated()) {
+            return
+        }
+        
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isUpdating = true, updateError = null, updateSuccess = false)
+            
+            try {
+                val apiService = retrofitManager.getApiService(defaultBackend)
+                val authToken = "Bearer ${defaultBackend.authToken}"
+                val request = UserUpdateRequest(
+                    name = name,
+                    birthDate = birthDate,
+                    gender = gender
+                )
+                
+                val response = apiService.updateUser(request, authToken)
+                
+                // Update the backend config with the new user data
+                repository.updateUserInBackend(defaultBackend.id, response.data)
+                
+                _uiState.value = _uiState.value.copy(
+                    user = response.data,
+                    isUpdating = false,
+                    updateError = null,
+                    updateSuccess = true
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isUpdating = false,
+                    updateError = e.message ?: "Failed to update profile",
+                    updateSuccess = false
+                )
+            }
+        }
+    }
+    
+    fun clearUpdateStatus() {
+        _uiState.value = _uiState.value.copy(
+            updateSuccess = false,
+            updateError = null
+        )
     }
 }

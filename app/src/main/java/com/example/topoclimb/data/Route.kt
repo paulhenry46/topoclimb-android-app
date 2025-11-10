@@ -24,7 +24,9 @@ data class Route(
     @SerializedName("number_logs")
     val numberLogs: Int? = 0, // Number of logs for this route
     @SerializedName("number_comments")
-    val numberComments: Int? = 0 // Number of comments on this route
+    val numberComments: Int? = 0, // Number of comments on this route
+    @SerializedName("removing_at")
+    val removingAt: String? = null // Date when route will be removed (format: 2025-09-06 00:00:00, 2025-09-06, or null)
 )
 
 /**
@@ -56,4 +58,5 @@ data class RouteWithMetadata(
     val tags: List<String>? get() = route.tags
     val numberLogs: Int? get() = route.numberLogs
     val numberComments: Int? get() = route.numberComments
+    val removingAt: String? get() = route.removingAt
 }

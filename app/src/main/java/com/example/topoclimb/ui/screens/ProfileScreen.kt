@@ -1,18 +1,20 @@
 package com.example.topoclimb.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +28,7 @@ import com.example.topoclimb.ui.theme.Orange40
 import com.example.topoclimb.ui.theme.Orange80
 import com.example.topoclimb.viewmodel.ProfileViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onManageBackendsClick: () -> Unit = {},
@@ -34,22 +37,47 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val user = uiState.user
     
-    // Refresh profile when the screen is displayed and periodically check for updates
-    LaunchedEffect(Unit) {
-        viewModel.refresh()
-        // Continue to check for updates every second while screen is visible
-        while (true) {
-            kotlinx.coroutines.delay(1000)
-            viewModel.refresh()
+    var isEditMode by remember { mutableStateOf(false) }
+    var editedName by remember { mutableStateOf("") }
+    var editedBirthDate by remember { mutableStateOf("") }
+    var editedGender by remember { mutableStateOf("") }
+    var showGenderDropdown by remember { mutableStateOf(false) }
+    
+    // Update edit fields when user changes
+    LaunchedEffect(user) {
+        if (user != null) {
+            editedName = user.name
+            editedBirthDate = user.birthDate?.take(10) ?: ""
+            editedGender = user.gender ?: ""
         }
     }
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    // Refresh profile when the screen is displayed
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+    
+    // Show success snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(uiState.updateSuccess) {
+        if (uiState.updateSuccess) {
+            snackbarHostState.showSnackbar("Profile updated successfully!")
+            viewModel.clearUpdateStatus()
+            isEditMode = false
+        }
+    }
+    
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         if (uiState.isAuthenticated && user != null) {
                 // Profile picture
                 AsyncImage(
@@ -93,7 +121,7 @@ fun ProfileScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                // User info card
+                // User info card with edit mode
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -101,26 +129,189 @@ fun ProfileScreen(
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
-                        Text(
-                            text = "Account Information",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Account Information",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            
+                            if (!isEditMode) {
+                                IconButton(onClick = { isEditMode = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit profile"
+                                    )
+                                }
+                            }
+                        }
+                        
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        user.birthDate?.let { birthDate ->
-                            if (birthDate.length >= 10) {
-                                InfoRow("Birth Date", birthDate.substring(0, 10), Icons.Default.Cake)
+                        if (isEditMode) {
+                            // Edit mode
+                            OutlinedTextField(
+                                value = editedName,
+                                onValueChange = { if (it.length <= 255) editedName = it },
+                                label = { Text("Name") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            OutlinedTextField(
+                                value = editedBirthDate,
+                                onValueChange = { editedBirthDate = it },
+                                label = { Text("Birth Date (YYYY-MM-DD)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                placeholder = { Text("YYYY-MM-DD") }
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Gender dropdown
+                            ExposedDropdownMenuBox(
+                                expanded = showGenderDropdown,
+                                onExpandedChange = { showGenderDropdown = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = when (editedGender.lowercase()) {
+                                        "male" -> "Male"
+                                        "female" -> "Female"
+                                        "other" -> "Other"
+                                        else -> "Not specified"
+                                    },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Gender") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showGenderDropdown) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = showGenderDropdown,
+                                    onDismissRequest = { showGenderDropdown = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Male") },
+                                        onClick = {
+                                            editedGender = "male"
+                                            showGenderDropdown = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Female") },
+                                        onClick = {
+                                            editedGender = "female"
+                                            showGenderDropdown = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Other") },
+                                        onClick = {
+                                            editedGender = "other"
+                                            showGenderDropdown = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Not specified") },
+                                        onClick = {
+                                            editedGender = ""
+                                            showGenderDropdown = false
+                                        }
+                                    )
+                                }
                             }
-                        }
-                        user.gender?.let { gender ->
-                            if (gender.isNotEmpty()) {
-                                InfoRow("Gender", gender.replaceFirstChar { char -> 
-                                    if (char.isLowerCase()) char.titlecase() else char.toString() 
-                                }, Icons.Default.Person)
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // Error message
+                            val currentUpdateError = uiState.updateError
+                            if (currentUpdateError != null) {
+                                Text(
+                                    text = currentUpdateError,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
                             }
-                        }
-                        if (user.createdAt.length >= 10) {
-                            InfoRow("Member Since", user.createdAt.substring(0, 10), Icons.Default.CalendarMonth)
+                            
+                            // Save/Cancel buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        isEditMode = false
+                                        editedName = user.name
+                                        editedBirthDate = user.birthDate?.take(10) ?: ""
+                                        editedGender = user.gender ?: ""
+                                        viewModel.clearUpdateStatus()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !uiState.isUpdating
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Cancel,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Cancel")
+                                }
+                                
+                                Button(
+                                    onClick = {
+                                        viewModel.updateUserInfo(
+                                            name = editedName.takeIf { it.isNotBlank() },
+                                            birthDate = editedBirthDate.takeIf { it.isNotBlank() },
+                                            gender = editedGender.takeIf { it.isNotBlank() }
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !uiState.isUpdating
+                                ) {
+                                    if (uiState.isUpdating) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(18.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.Save,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Save")
+                                    }
+                                }
+                            }
+                        } else {
+                            // View mode
+                            user.birthDate?.let { birthDate ->
+                                if (birthDate.length >= 10) {
+                                    InfoRow("Birth Date", birthDate.substring(0, 10), Icons.Default.Cake)
+                                }
+                            }
+                            user.gender?.let { gender ->
+                                if (gender.isNotEmpty()) {
+                                    InfoRow("Gender", gender.replaceFirstChar { char -> 
+                                        if (char.isLowerCase()) char.titlecase() else char.toString() 
+                                    }, Icons.Default.Person)
+                                }
+                            }
+                            if (user.createdAt.length >= 10) {
+                                InfoRow("Member Since", user.createdAt.substring(0, 10), Icons.Default.CalendarMonth)
+                            }
                         }
                     }
                 }
@@ -208,6 +399,7 @@ fun ProfileScreen(
             }
         }
     }
+}
 
 @Composable
 fun InfoRow(label: String, value: String, icon: ImageVector) {
