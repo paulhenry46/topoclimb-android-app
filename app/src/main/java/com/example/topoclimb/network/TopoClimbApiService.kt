@@ -93,5 +93,11 @@ interface TopoClimbApiService {
     
     @GET("user/logs")
     suspend fun getUserLogs(@Header("Authorization") authToken: String): UserLogsResponse
+    
+    @POST("user/update")
+    suspend fun updateUser(
+        @Body request: com.example.topoclimb.data.UserUpdateRequest,
+        @Header("Authorization") authToken: String
+    ): com.example.topoclimb.data.UserUpdateResponse
 }
 
