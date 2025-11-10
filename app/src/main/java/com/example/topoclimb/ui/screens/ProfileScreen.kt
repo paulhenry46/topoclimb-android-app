@@ -125,7 +125,7 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 // User stats card
-                if (uiState.userStats != null) {
+                uiState.userStats?.let { stats ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -163,21 +163,21 @@ fun ProfileScreen(
                                 StatsItem(
                                     icon = Icons.Default.Terrain,
                                     label = "Trad Level",
-                                    value = uiState.userStats.tradLevel,
+                                    value = stats.tradLevel,
                                     modifier = Modifier.weight(1f)
                                 )
                                 
                                 StatsItem(
                                     icon = Icons.Default.Landscape,
                                     label = "Bouldering",
-                                    value = uiState.userStats.boulderingLevel,
+                                    value = stats.boulderingLevel,
                                     modifier = Modifier.weight(1f)
                                 )
                                 
                                 StatsItem(
                                     icon = Icons.Default.TrendingUp,
                                     label = "Total Climbed",
-                                    value = "${uiState.userStats.totalClimbed}",
+                                    value = "${stats.totalClimbed}",
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -185,7 +185,9 @@ fun ProfileScreen(
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
-                } else if (uiState.isLoadingStats) {
+                }
+                
+                if (uiState.userStats == null && uiState.isLoadingStats) {
                     // Loading stats indicator
                     Card(
                         modifier = Modifier.fillMaxWidth(),
