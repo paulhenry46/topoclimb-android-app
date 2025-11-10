@@ -13,6 +13,9 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Terrain
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -120,6 +123,87 @@ fun ProfileScreen(
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))
+                
+                // User stats card
+                if (uiState.userStats != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Climbing Stats",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.TrendingUp,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                StatsItem(
+                                    icon = Icons.Default.Terrain,
+                                    label = "Trad Level",
+                                    value = uiState.userStats.tradLevel,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                
+                                StatsItem(
+                                    icon = Icons.Default.Landscape,
+                                    label = "Bouldering",
+                                    value = uiState.userStats.boulderingLevel,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                
+                                StatsItem(
+                                    icon = Icons.Default.TrendingUp,
+                                    label = "Total Climbed",
+                                    value = "${uiState.userStats.totalClimbed}",
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                } else if (uiState.isLoadingStats) {
+                    // Loading stats indicator
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 // User info card with edit mode
                 Card(
@@ -444,6 +528,37 @@ fun StatItem(label: String, value: String) {
             text = label,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.secondary
+        )
+    }
+}
+
+@Composable
+fun StatsItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(32.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
         )
     }
 }

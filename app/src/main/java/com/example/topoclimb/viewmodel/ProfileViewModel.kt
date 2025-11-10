@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.User
+import com.example.topoclimb.data.UserStats
 import com.example.topoclimb.data.UserUpdateRequest
 import com.example.topoclimb.network.MultiBackendRetrofitManager
 import com.example.topoclimb.repository.BackendConfigRepository
@@ -14,13 +15,16 @@ import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     val user: User? = null,
+    val userStats: UserStats? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val isAuthenticated: Boolean = false,
     val instanceName: String? = null,
     val isUpdating: Boolean = false,
     val updateError: String? = null,
-    val updateSuccess: Boolean = false
+    val updateSuccess: Boolean = false,
+    val isLoadingStats: Boolean = false,
+    val statsError: String? = null
 )
 
 class ProfileViewModel(
@@ -66,6 +70,37 @@ class ProfileViewModel(
         repository.reloadBackends()
         // Force update profile from current backend state
         updateProfile()
+        // Fetch user stats
+        fetchUserStats()
+    }
+    
+    private fun fetchUserStats() {
+        val defaultBackend = repository.getDefaultBackend()
+        
+        if (defaultBackend == null || !defaultBackend.isAuthenticated()) {
+            return
+        }
+        
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingStats = true, statsError = null)
+            
+            try {
+                val apiService = retrofitManager.getApiService(defaultBackend)
+                val authToken = "Bearer ${defaultBackend.authToken}"
+                val response = apiService.getUserStats(authToken)
+                
+                _uiState.value = _uiState.value.copy(
+                    userStats = response.data,
+                    isLoadingStats = false,
+                    statsError = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoadingStats = false,
+                    statsError = e.message ?: "Failed to load user stats"
+                )
+            }
+        }
     }
     
     fun updateUserInfo(name: String?, birthDate: String?, gender: String?) {
