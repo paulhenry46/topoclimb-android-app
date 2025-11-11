@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * User statistics data model
+ * Note: routes_by_grade can be either an empty array [] or an object {"6a":2,"5c":2}
  */
 data class UserStats(
     @SerializedName("trad_level")
@@ -13,12 +14,5 @@ data class UserStats(
     @SerializedName("total_climbed")
     val totalClimbed: Int,
     @SerializedName("routes_by_grade")
-    val routesByGrade: Map<String, Int>? = null
-)
-
-/**
- * Response from /user/stats endpoint
- */
-data class UserStatsResponse(
-    val data: UserStats
+    val routesByGrade: Any? = null // Can be array or map, using Any for now
 )

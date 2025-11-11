@@ -101,6 +101,6 @@ interface TopoClimbApiService {
     ): com.example.topoclimb.data.UserUpdateResponse
     
     @GET("user/stats")
-    suspend fun getUserStats(@Header("Authorization") authToken: String): com.example.topoclimb.data.UserStatsResponse
+    suspend fun getUserStats(@Header("Authorization") authToken: String): com.example.topoclimb.data.UserStats
 }
 

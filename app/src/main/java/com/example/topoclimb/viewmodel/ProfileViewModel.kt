@@ -87,10 +87,10 @@ class ProfileViewModel(
             try {
                 val apiService = retrofitManager.getApiService(defaultBackend)
                 val authToken = "Bearer ${defaultBackend.authToken}"
-                val response = apiService.getUserStats(authToken)
+                val stats = apiService.getUserStats(authToken)
                 
                 _uiState.value = _uiState.value.copy(
-                    userStats = response.data,
+                    userStats = stats,
                     isLoadingStats = false,
                     statsError = null
                 )
