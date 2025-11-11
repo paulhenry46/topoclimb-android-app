@@ -114,6 +114,7 @@ fun QRCodeScannerDialog(
     }
 }
 
+@androidx.camera.core.ExperimentalGetImage
 @Composable
 private fun CameraPreview(
     onQRCodeScanned: (String) -> Unit
