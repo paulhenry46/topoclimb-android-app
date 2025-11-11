@@ -20,6 +20,8 @@ data class BackendManagementUiState(
     val showRestartWarning: Boolean = false,
     val loginInProgress: Boolean = false,
     val loginError: String? = null,
+    val registerInProgress: Boolean = false,
+    val registerError: String? = null,
     val instanceMeta: com.example.topoclimb.data.InstanceMeta? = null,
     val metaLoading: Boolean = false
 )
@@ -131,7 +133,7 @@ class BackendManagementViewModel(
     }
     
     fun clearMessages() {
-        _uiState.value = _uiState.value.copy(error = null, successMessage = null, loginError = null)
+        _uiState.value = _uiState.value.copy(error = null, successMessage = null, loginError = null, registerError = null)
     }
     
     fun dismissRestartWarning() {
@@ -153,7 +155,7 @@ class BackendManagementViewModel(
                 }
                 
                 val apiService = retrofitManager.getApiService(backend)
-                val response = apiService.login(LoginRequest(email, password))
+                val response = apiService.login(com.example.topoclimb.data.LoginRequest(email, password))
                 
                 repository.authenticateBackend(backendId, response.token, response.user)
                     .onSuccess {
@@ -180,6 +182,53 @@ class BackendManagementViewModel(
                 _uiState.value = _uiState.value.copy(
                     loginInProgress = false,
                     loginError = e.message ?: "Login failed"
+                )
+            }
+        }
+    }
+    
+    fun register(backendId: String, name: String, email: String, password: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(registerInProgress = true, registerError = null)
+            
+            try {
+                val backend = repository.getBackend(backendId)
+                if (backend == null) {
+                    _uiState.value = _uiState.value.copy(
+                        registerInProgress = false,
+                        registerError = "Backend not found"
+                    )
+                    return@launch
+                }
+                
+                val apiService = retrofitManager.getApiService(backend)
+                val response = apiService.register(com.example.topoclimb.data.RegisterRequest(name, email, password))
+                
+                repository.authenticateBackend(backendId, response.token, response.user)
+                    .onSuccess {
+                        _uiState.value = _uiState.value.copy(
+                            registerInProgress = false,
+                            successMessage = "Successfully registered and logged in as ${response.user.name}"
+                        )
+                        // Load user's logged routes after successful registration
+                        try {
+                            val userLogsResponse = apiService.getUserLogs("Bearer ${response.token}")
+                            RouteDetailViewModel.updateSharedLoggedRoutes(userLogsResponse.data.toSet())
+                        } catch (e: Exception) {
+                            // Silently fail if we can't load logs
+                            println("Failed to load user logs after registration: ${e.message}")
+                        }
+                    }
+                    .onFailure { exception ->
+                        _uiState.value = _uiState.value.copy(
+                            registerInProgress = false,
+                            registerError = exception.message ?: "Failed to save authentication"
+                        )
+                    }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    registerInProgress = false,
+                    registerError = e.message ?: "Registration failed"
                 )
             }
         }

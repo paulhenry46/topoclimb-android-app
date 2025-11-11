@@ -38,6 +38,9 @@ interface TopoClimbApiService {
     @POST("login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
     
+    @POST("register")
+    suspend fun register(@Body request: com.example.topoclimb.data.RegisterRequest): AuthResponse
+    
     @GET("sites")
     suspend fun getSites(): SitesResponse
     
@@ -102,5 +105,8 @@ interface TopoClimbApiService {
     
     @GET("user/stats")
     suspend fun getUserStats(@Header("Authorization") authToken: String): com.example.topoclimb.data.UserStats
+    
+    @GET("user/qrcode")
+    suspend fun getUserQRCode(@Header("Authorization") authToken: String): com.example.topoclimb.data.QRCodeResponse
 }
 

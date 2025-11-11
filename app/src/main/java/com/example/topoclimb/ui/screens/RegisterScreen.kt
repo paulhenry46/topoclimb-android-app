@@ -21,15 +21,15 @@ import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
+fun RegisterScreen(
     backendName: String,
     onBackClick: () -> Unit,
-    onLoginClick: (email: String, password: String) -> Unit,
-    onRegisterClick: () -> Unit = {},
+    onRegisterClick: (name: String, email: String, password: String) -> Unit,
     isLoading: Boolean = false,
     error: String? = null,
     logoUrl: String? = null
 ) {
+    var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -46,7 +46,7 @@ fun LoginScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Login to $backendName") },
+                title = { Text("Register to $backendName") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -77,10 +77,21 @@ fun LoginScreen(
             }
             
             Text(
-                text = "Sign in to your account",
+                text = "Create your account",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
+            
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isLoading
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
             
             OutlinedTextField(
                 value = email,
@@ -130,9 +141,9 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             Button(
-                onClick = { onLoginClick(email, password) },
+                onClick = { onRegisterClick(name, email, password) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading && email.isNotBlank() && password.isNotBlank() && emailError == null
+                enabled = !isLoading && name.isNotBlank() && email.isNotBlank() && password.isNotBlank() && emailError == null
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -140,18 +151,8 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Sign In")
+                    Text("Register")
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            OutlinedButton(
-                onClick = onRegisterClick,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
-            ) {
-                Text("Register")
             }
         }
     }
