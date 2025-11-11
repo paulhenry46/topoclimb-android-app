@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
@@ -17,9 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.topoclimb.R
 import com.example.topoclimb.data.Federated
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.viewmodel.SitesViewModel
@@ -29,7 +32,8 @@ import com.example.topoclimb.viewmodel.SitesViewModel
 fun SitesScreen(
     onSiteClick: (String, Int) -> Unit,
     viewModel: SitesViewModel = viewModel(),
-    favoriteOnly: Boolean = false
+    favoriteOnly: Boolean = false,
+    onManageInstancesClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
@@ -118,6 +122,13 @@ fun SitesScreen(
                                     isFavorite = federatedSite.data.id == uiState.favoriteSiteId,
                                     onFavoriteClick = { viewModel.toggleFavorite(federatedSite.data.id) }
                                 )
+                            }
+                            
+                            // Add "Site not found" card only for all sites page (not favorites)
+                            if (!favoriteOnly) {
+                                item {
+                                    SiteNotFoundCard(onManageInstancesClick = onManageInstancesClick)
+                                }
                             }
                         }
                     }
@@ -223,6 +234,59 @@ fun SiteItem(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SiteNotFoundCard(onManageInstancesClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clickable(onClick = onManageInstancesClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // Drawing and text section
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.bino_montain),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "The site you're looking for is not here?",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "You can find new sites by adding a new Topoclimb instance.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Chevron icon at the bottom right
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Go to instance manager",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
     }
 }
