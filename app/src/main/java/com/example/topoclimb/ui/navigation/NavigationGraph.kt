@@ -35,7 +35,10 @@ fun NavigationGraph(
                 onSiteClick = { backendId, siteId ->
                     navController.navigate("site/$backendId/$siteId")
                 },
-                viewModel = viewModel(viewModelStoreOwner = parentEntry)
+                viewModel = viewModel(viewModelStoreOwner = parentEntry),
+                onManageInstancesClick = {
+                    navController.navigate("backends")
+                }
             )
         }
         
