@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
@@ -247,46 +247,52 @@ fun SiteNotFoundCard(onManageInstancesClick: () -> Unit) {
             .clickable(onClick = onManageInstancesClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.Bottom
+                .padding(16.dp)
         ) {
-            // Drawing and text section
-            Column(
+            // Drawing takes full width and most of the height
+            Icon(
+                painter = painterResource(id = R.drawable.bino_montain),
+                contentDescription = null,
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
+                    .fillMaxWidth()
+                    .weight(1f),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Text and chevron row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "The site you're looking for is not here?",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "You can find new sites by adding a new Topoclimb instance.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                // Chevron icon vertically centered between title and text
                 Icon(
-                    painter = painterResource(id = R.drawable.bino_montain),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "The site you're looking for is not here?",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "You can find new sites by adding a new Topoclimb instance.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Go to instance manager",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
-            
-            // Chevron icon at the bottom right
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Go to instance manager",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp)
-            )
         }
     }
 }
