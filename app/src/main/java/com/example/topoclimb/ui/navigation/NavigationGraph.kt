@@ -1,6 +1,11 @@
 package com.example.topoclimb.ui.navigation
 
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -122,6 +127,9 @@ fun NavigationGraph(
             ProfileScreen(
                 onManageBackendsClick = {
                     navController.navigate("backends")
+                },
+                onNavigateToQRCode = { backendId ->
+                    navController.navigate("qrcode/$backendId")
                 }
             )
         }
@@ -189,6 +197,9 @@ fun NavigationGraph(
                 onLoginClick = { email, password ->
                     viewModel.login(backendId, email, password)
                 },
+                onRegisterClick = {
+                    navController.navigate("register/$backendId/$backendName")
+                },
                 isLoading = uiState.loginInProgress,
                 error = uiState.loginError,
                 logoUrl = uiState.instanceMeta?.pictureUrl
@@ -203,6 +214,152 @@ fun NavigationGraph(
                     },
                     userName = loggedInUserName
                 )
+            }
+        }
+        
+        composable(
+            route = "register/{backendId}/{backendName}",
+            arguments = listOf(
+                navArgument("backendId") {
+                    type = NavType.StringType
+                },
+                navArgument("backendName") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val backendName = backStackEntry.arguments?.getString("backendName") ?: return@composable
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("backends")
+            }
+            val viewModel: BackendManagementViewModel = viewModel(
+                viewModelStoreOwner = parentEntry
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            
+            var showRegisterSuccess by remember { mutableStateOf(false) }
+            var registeredUserName by remember { mutableStateOf("") }
+            
+            // Fetch instance metadata for logo
+            LaunchedEffect(backendId) {
+                val backend = uiState.backends.find { it.id == backendId }
+                backend?.let {
+                    viewModel.fetchInstanceMeta(it.baseUrl)
+                }
+            }
+            
+            LaunchedEffect(uiState.successMessage) {
+                if (uiState.successMessage?.contains("registered") == true) {
+                    // Extract user name from success message
+                    val userName = uiState.successMessage?.substringAfter("as ")?.trim() ?: "User"
+                    registeredUserName = userName
+                    showRegisterSuccess = true
+                }
+            }
+            
+            com.example.topoclimb.ui.screens.RegisterScreen(
+                backendName = backendName,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onRegisterClick = { name, email, password ->
+                    viewModel.register(backendId, name, email, password)
+                },
+                isLoading = uiState.registerInProgress,
+                error = uiState.registerError,
+                logoUrl = uiState.instanceMeta?.pictureUrl
+            )
+            
+            // Show register success screen
+            if (showRegisterSuccess) {
+                com.example.topoclimb.ui.components.LoginSuccessScreen(
+                    onDismiss = {
+                        showRegisterSuccess = false
+                        navController.popBackStack()
+                        navController.popBackStack()
+                    },
+                    userName = registeredUserName
+                )
+            }
+        }
+        
+        composable(
+            route = "qrcode/{backendId}",
+            arguments = listOf(
+                navArgument("backendId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(BottomNavItem.Profile.route)
+            }
+            val viewModel: com.example.topoclimb.viewmodel.ProfileViewModel = viewModel(
+                viewModelStoreOwner = parentEntry
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            
+            // Fetch QR code when screen is displayed
+            LaunchedEffect(backendId) {
+                viewModel.fetchQRCode(backendId)
+            }
+            
+            // Clear QR code when leaving the screen
+            DisposableEffect(Unit) {
+                onDispose {
+                    viewModel.clearQRCode()
+                }
+            }
+            
+            // Get backend info
+            val backend = uiState.authenticatedBackends.find { it.id == backendId }
+            
+            if (backend != null && backend.user != null) {
+                com.example.topoclimb.ui.screens.QRCodeScreen(
+                    userName = backend.user.name,
+                    userGender = backend.user.gender,
+                    userBirthDate = backend.user.birthDate,
+                    instanceName = backend.name,
+                    qrCodeUrl = uiState.qrCodeUrl,
+                    isLoading = uiState.isLoadingQRCode,
+                    error = uiState.qrCodeError,
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
+            } else {
+                // Fallback if backend not found
+                @OptIn(ExperimentalMaterial3Api::class)
+                @Composable
+                fun FallbackScreen() {
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = { Text("QR Code") },
+                                navigationIcon = {
+                                    IconButton(onClick = { navController.popBackStack() }) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.ArrowBack,
+                                            contentDescription = "Back"
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    ) { padding ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(padding),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Instance not found or not authenticated")
+                        }
+                    }
+                }
+                FallbackScreen()
             }
         }
     }

@@ -37,6 +37,7 @@ import com.example.topoclimb.viewmodel.ProfileViewModel
 @Composable
 fun ProfileScreen(
     onManageBackendsClick: () -> Unit = {},
+    onNavigateToQRCode: (String) -> Unit = {},
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -512,6 +513,44 @@ fun ProfileScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Go to Instance Manager")
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            // QR Code section for authenticated instances
+            if (uiState.authenticatedBackends.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "QR Codes",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = "View your QR code for each authenticated instance",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        uiState.authenticatedBackends.forEach { backend ->
+                            OutlinedButton(
+                                onClick = { onNavigateToQRCode(backend.id) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Text(backend.name)
+                            }
                         }
                     }
                 }

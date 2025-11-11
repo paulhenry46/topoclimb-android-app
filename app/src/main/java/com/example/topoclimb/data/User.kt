@@ -45,3 +45,19 @@ data class AuthResponse(
     val user: User,
     val token: String
 )
+
+/**
+ * Register request body
+ */
+data class RegisterRequest(
+    val name: String,
+    val email: String,
+    val password: String
+)
+
+/**
+ * QR Code response
+ */
+data class QRCodeResponse(
+    val url: String
+)

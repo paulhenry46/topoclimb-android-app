@@ -266,7 +266,7 @@ fun BackendItem(
                         }
                     } else {
                         TextButton(onClick = onLogin) {
-                            Text("Login")
+                            Text("Login / Register")
                         }
                     }
                 }

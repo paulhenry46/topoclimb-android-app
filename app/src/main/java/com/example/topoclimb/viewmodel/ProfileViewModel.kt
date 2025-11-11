@@ -24,7 +24,11 @@ data class ProfileUiState(
     val updateError: String? = null,
     val updateSuccess: Boolean = false,
     val isLoadingStats: Boolean = false,
-    val statsError: String? = null
+    val statsError: String? = null,
+    val qrCodeUrl: String? = null,
+    val isLoadingQRCode: Boolean = false,
+    val qrCodeError: String? = null,
+    val authenticatedBackends: List<com.example.topoclimb.data.BackendConfig> = emptyList()
 )
 
 class ProfileViewModel(
@@ -41,8 +45,14 @@ class ProfileViewModel(
         viewModelScope.launch {
             repository.backends.collect { backends ->
                 updateProfile()
+                updateAuthenticatedBackends(backends)
             }
         }
+    }
+    
+    private fun updateAuthenticatedBackends(backends: List<com.example.topoclimb.data.BackendConfig>) {
+        val authenticated = backends.filter { it.isAuthenticated() }
+        _uiState.value = _uiState.value.copy(authenticatedBackends = authenticated)
     }
     
     private fun updateProfile() {
@@ -147,6 +157,46 @@ class ProfileViewModel(
         _uiState.value = _uiState.value.copy(
             updateSuccess = false,
             updateError = null
+        )
+    }
+    
+    fun fetchQRCode(backendId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingQRCode = true, qrCodeError = null, qrCodeUrl = null)
+            
+            try {
+                val backend = repository.getBackend(backendId)
+                if (backend == null || !backend.isAuthenticated()) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingQRCode = false,
+                        qrCodeError = "Not authenticated to this instance"
+                    )
+                    return@launch
+                }
+                
+                val apiService = retrofitManager.getApiService(backend)
+                val authToken = "Bearer ${backend.authToken}"
+                val response = apiService.getUserQRCode(authToken)
+                
+                _uiState.value = _uiState.value.copy(
+                    qrCodeUrl = response.url,
+                    isLoadingQRCode = false,
+                    qrCodeError = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoadingQRCode = false,
+                    qrCodeError = e.message ?: "Failed to load QR code"
+                )
+            }
+        }
+    }
+    
+    fun clearQRCode() {
+        _uiState.value = _uiState.value.copy(
+            qrCodeUrl = null,
+            isLoadingQRCode = false,
+            qrCodeError = null
         )
     }
 }
