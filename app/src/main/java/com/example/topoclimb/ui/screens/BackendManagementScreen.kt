@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.data.BackendConfig
+import com.example.topoclimb.ui.components.QRCodeScannerDialog
 import com.example.topoclimb.viewmodel.BackendManagementViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -298,6 +300,7 @@ fun AddBackendDialog(
     var name by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var urlError by remember { mutableStateOf<String?>(null) }
+    var showQRScanner by remember { mutableStateOf(false) }
     
     val instanceMeta = uiState.instanceMeta
     
@@ -323,24 +326,40 @@ fun AddBackendDialog(
         title = { Text("Add TopoClimb Instance") },
         text = {
             Column {
-                OutlinedTextField(
-                    value = url,
-                    onValueChange = {
-                        url = it
-                        urlError = validateUrl(it)
-                    },
-                    label = { Text("Website URL") },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("https://api.example.com/") },
-                    isError = urlError != null,
-                    supportingText = {
-                        if (urlError != null) {
-                            Text(urlError!!, color = MaterialTheme.colorScheme.error)
-                        } else {
-                            Text("Must end with /")
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = url,
+                        onValueChange = {
+                            url = it
+                            urlError = validateUrl(it)
+                        },
+                        label = { Text("Website URL") },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("https://api.example.com/") },
+                        isError = urlError != null,
+                        supportingText = {
+                            if (urlError != null) {
+                                Text(urlError!!, color = MaterialTheme.colorScheme.error)
+                            } else {
+                                Text("Must end with /")
+                            }
                         }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { showQRScanner = true },
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = "Scan QR Code",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
-                )
+                }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -424,6 +443,20 @@ fun AddBackendDialog(
             }
         }
     )
+    
+    // QR Code Scanner Dialog
+    if (showQRScanner) {
+        QRCodeScannerDialog(
+            onDismiss = { showQRScanner = false },
+            onQRCodeScanned = { scannedUrl ->
+                // Process scanned URL - ensure it ends with /
+                val processedUrl = if (!scannedUrl.endsWith("/")) "$scannedUrl/" else scannedUrl
+                url = processedUrl
+                urlError = validateUrl(processedUrl)
+                showQRScanner = false
+            }
+        )
+    }
 }
 
 @Composable
