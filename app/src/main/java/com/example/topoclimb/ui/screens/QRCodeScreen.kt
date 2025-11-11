@@ -1,5 +1,6 @@
 package com.example.topoclimb.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -7,9 +8,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
 import java.time.LocalDate
 import java.time.Period
 import java.time.format.DateTimeFormatter
@@ -113,14 +118,26 @@ fun QRCodeScreen(
                         )
                     }
                     qrCodeUrl != null -> {
-                        AsyncImage(
-                            model = qrCodeUrl,
-                            contentDescription = "User QR Code",
+                        // Box with white background for QR code
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth(0.8f)
-                                .aspectRatio(1f),
-                            contentScale = ContentScale.Fit
-                        )
+                                .aspectRatio(1f)
+                                .background(Color.White)
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val context = LocalContext.current
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(qrCodeUrl)
+                                    .decoderFactory(SvgDecoder.Factory())
+                                    .build(),
+                                contentDescription = "User QR Code",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
                     }
                     else -> {
                         Text(
