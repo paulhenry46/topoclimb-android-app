@@ -1,10 +1,13 @@
 package com.example.topoclimb.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Cake
@@ -15,7 +18,6 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Landscape
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +47,7 @@ fun ProfileScreen(
     var editedBirthDate by remember { mutableStateOf("") }
     var editedGender by remember { mutableStateOf("") }
     var showGenderDropdown by remember { mutableStateOf(false) }
+    var showStatsHelpDialog by remember { mutableStateOf(false) }
     
     // Update edit fields when user changes
     LaunchedEffect(user) {
@@ -146,12 +149,16 @@ fun ProfileScreen(
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
-                                Icon(
-                                    imageVector = Icons.Default.TrendingUp,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                                IconButton(
+                                    onClick = { showStatsHelpDialog = true }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                                        contentDescription = "Stats help",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
                             
                             Spacer(modifier = Modifier.height(16.dp))
@@ -175,17 +182,74 @@ fun ProfileScreen(
                                 )
                                 
                                 StatsItem(
-                                    icon = Icons.Default.TrendingUp,
+                                    icon = Icons.AutoMirrored.Filled.TrendingUp,
                                     label = "Total Climbed",
                                     value = "${stats.totalClimbed}",
                                     modifier = Modifier.weight(1f)
                                 )
+                            }
+                            
+                            // Routes by grade chart
+                            stats.routesByGrade?.let { routesByGrade ->
+                                val gradeMap = parseRoutesbyGrade(routesByGrade)
+                                if (gradeMap.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    
+                                    Text(
+                                        text = "Routes by Grade",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    RoutesByGradeChart(gradeMap)
+                                }
                             }
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                 }
+                
+                // Stats help dialog
+                if (showStatsHelpDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showStatsHelpDialog = false },
+                        title = { Text("How Stats are Calculated") },
+                        text = {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "Total Climbed",
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text(
+                                    text = "This takes into account all routes climbed, whether traditional or bouldering, including those that have been dismantled since you completed them. A route climbed with lead and top rope is only counted once.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = "Bouldering Level and Trad Level",
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text(
+                                    text = "We take the 3 hardest routes you've ever done, and then we take the lowest rating from those three. So, to have a level of 7a, you'll need to climb 3 routes with a minimum level of 7a.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showStatsHelpDialog = false }) {
+                                Text("OK")
+                            }
+                        }
+                    )
+                }
+                
                 
                 if (uiState.userStats == null && uiState.isLoadingStats) {
                     // Loading stats indicator
@@ -562,5 +626,97 @@ fun StatsItem(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer
         )
+    }
+}
+
+/**
+ * Parse routes by grade from API response
+ * Handles both [] (empty array) and {"6a":2,"5c":2} (object) formats
+ */
+fun parseRoutesbyGrade(routesByGrade: Any?): Map<String, Int> {
+    if (routesByGrade == null) return emptyMap()
+    
+    return try {
+        when (routesByGrade) {
+            is Map<*, *> -> {
+                // Convert map to Map<String, Int>
+                routesByGrade.entries
+                    .mapNotNull { entry ->
+                        val key = entry.key as? String
+                        val value = when (val v = entry.value) {
+                            is Number -> v.toInt()
+                            is String -> v.toIntOrNull()
+                            else -> null
+                        }
+                        if (key != null && value != null) key to value else null
+                    }
+                    .toMap()
+            }
+            is List<*> -> {
+                // Empty list case
+                if (routesByGrade.isEmpty()) emptyMap() else emptyMap()
+            }
+            else -> emptyMap()
+        }
+    } catch (e: Exception) {
+        emptyMap()
+    }
+}
+
+@Composable
+fun RoutesByGradeChart(gradeMap: Map<String, Int>) {
+    if (gradeMap.isEmpty()) return
+    
+    // Sort grades by natural order
+    val sortedGrades = gradeMap.entries.sortedBy { it.key }
+    val maxValue = sortedGrades.maxOfOrNull { it.value } ?: 1
+    
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            sortedGrades.forEach { (grade, count) ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    // Count label above bar
+                    Text(
+                        text = count.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(((count.toFloat() / maxValue) * 100).dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Grade label
+                    Text(
+                        text = grade,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        }
     }
 }
