@@ -26,9 +26,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.topoclimb.R
 import com.example.topoclimb.ui.theme.Orange40
 import com.example.topoclimb.ui.theme.Orange80
 import com.example.topoclimb.viewmodel.ProfileViewModel
@@ -470,50 +472,38 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             } else {
                 // Not authenticated state with improved UI
-                Card(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Orange80
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    Icon(
+                        painter = painterResource(id = R.drawable.unauth),
+                        contentDescription = null,
+                        modifier = Modifier.size(120.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Not logged in",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Login to a TopoClimb Instance to see your profile and stats.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(
+                        onClick = onManageBackendsClick,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Face,
+                            Icons.Default.Settings,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = androidx.compose.ui.graphics.Color.Black
+                            modifier = Modifier.size(20.dp)
                         )
-                        Text(
-                            text = "Not Logged In",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = androidx.compose.ui.graphics.Color.Black
-                        )
-                        Text(
-                            text = "Login to a TopoClimb instance to see your profile",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = androidx.compose.ui.graphics.Color.Black
-                        )
-                        Button(
-                            onClick = onManageBackendsClick,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Orange40,
-                                contentColor = androidx.compose.ui.graphics.Color.White
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Go to Instance Manager")
-                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Go to Instance Manager")
                     }
                 }
                 
