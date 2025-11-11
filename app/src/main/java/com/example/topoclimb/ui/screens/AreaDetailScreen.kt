@@ -130,13 +130,7 @@ fun AreaDetailScreen(
                 },
                 actions = {
                     // Filter list icon with indicator
-                    BadgedBox(
-                        badge = {
-                            if (hasActiveFilters) {
-                                Badge()
-                            }
-                        }
-                    ) {
+                    Box {
                         IconButton(onClick = { showFilterModal = true }) {
                             Icon(
                                 imageVector = Icons.Default.FilterList,
@@ -145,6 +139,13 @@ fun AreaDetailScreen(
                                     MaterialTheme.colorScheme.primary
                                 else
                                     MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        if (hasActiveFilters) {
+                            Badge(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = (-8).dp, y = 8.dp)
                             )
                         }
                     }

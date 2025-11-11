@@ -1,5 +1,7 @@
 package com.example.topoclimb.ui.screens
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -31,6 +33,26 @@ fun QRCodeScreen(
     error: String?,
     onBackClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    
+    // Set screen brightness to max when entering QR code screen, restore on exit
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        val window = activity?.window
+        val layoutParams = window?.attributes
+        val originalBrightness = layoutParams?.screenBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        
+        // Set brightness to maximum
+        layoutParams?.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
+        window?.attributes = layoutParams
+        
+        onDispose {
+            // Restore original brightness
+            layoutParams?.screenBrightness = originalBrightness
+            window?.attributes = layoutParams
+        }
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
