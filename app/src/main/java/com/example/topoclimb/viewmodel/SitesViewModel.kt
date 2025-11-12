@@ -39,20 +39,6 @@ class SitesViewModel(
     val uiState: StateFlow<SitesUiState> = _uiState.asStateFlow()
     
     init {
-        // Monitor network connectivity
-        viewModelScope.launch {
-            networkManager.isNetworkAvailable.collect { isOnline ->
-                _uiState.value = _uiState.value.copy(isOfflineMode = !isOnline)
-                if (isOnline) {
-                    // When coming back online, reload sites
-                    loadSites()
-                } else {
-                    // Load from offline cache
-                    loadOfflineSites()
-                }
-            }
-        }
-        
         // Monitor offline sites changes
         viewModelScope.launch {
             offlineModeManager.offlineSites.collect { offlineSites ->
@@ -60,7 +46,6 @@ class SitesViewModel(
             }
         }
         
-        loadSites()
         // Listen to backend configuration changes and refresh sites
         viewModelScope.launch {
             backendConfigRepository.backends
@@ -69,6 +54,20 @@ class SitesViewModel(
                     // Reload sites when backends change
                     loadSites()
                 }
+        }
+        
+        // Monitor network connectivity - this will trigger initial load
+        viewModelScope.launch {
+            networkManager.isNetworkAvailable.collect { isOnline ->
+                _uiState.value = _uiState.value.copy(isOfflineMode = !isOnline)
+                if (isOnline) {
+                    // When online, reload sites from network
+                    loadSites()
+                } else {
+                    // Load from offline cache when offline
+                    loadOfflineSites()
+                }
+            }
         }
     }
     
