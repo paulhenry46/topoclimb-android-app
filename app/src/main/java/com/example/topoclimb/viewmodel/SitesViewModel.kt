@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Federated
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.repository.FederatedTopoClimbRepository
+import com.example.topoclimb.repository.OfflineRepository
+import com.example.topoclimb.utils.NetworkConnectivityManager
+import com.example.topoclimb.utils.OfflineModeManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +20,9 @@ data class SitesUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
-    val favoriteSiteId: Int? = null
+    val favoriteSiteId: Int? = null,
+    val offlineSites: Set<Int> = emptySet(),
+    val isOfflineMode: Boolean = false
 )
 
 class SitesViewModel(
@@ -25,12 +30,36 @@ class SitesViewModel(
 ) : AndroidViewModel(application) {
     
     private val repository = FederatedTopoClimbRepository(application)
+    private val offlineRepository = OfflineRepository(application)
+    private val offlineModeManager = OfflineModeManager(application)
+    private val networkManager = NetworkConnectivityManager(application)
     private val backendConfigRepository = repository.getBackendConfigRepository()
     
     private val _uiState = MutableStateFlow(SitesUiState())
     val uiState: StateFlow<SitesUiState> = _uiState.asStateFlow()
     
     init {
+        // Monitor network connectivity
+        viewModelScope.launch {
+            networkManager.isNetworkAvailable.collect { isOnline ->
+                _uiState.value = _uiState.value.copy(isOfflineMode = !isOnline)
+                if (isOnline) {
+                    // When coming back online, reload sites
+                    loadSites()
+                } else {
+                    // Load from offline cache
+                    loadOfflineSites()
+                }
+            }
+        }
+        
+        // Monitor offline sites changes
+        viewModelScope.launch {
+            offlineModeManager.offlineSites.collect { offlineSites ->
+                _uiState.value = _uiState.value.copy(offlineSites = offlineSites)
+            }
+        }
+        
         loadSites()
         // Listen to backend configuration changes and refresh sites
         viewModelScope.launch {
@@ -55,12 +84,28 @@ class SitesViewModel(
                     )
                 }
                 .onFailure { exception ->
+                    // If network fails, try loading from offline cache
+                    loadOfflineSites()
                     _uiState.value = _uiState.value.copy(
                         error = exception.message ?: "Unknown error",
                         isLoading = false,
                         isRefreshing = false
                     )
                 }
+        }
+    }
+    
+    private fun loadOfflineSites() {
+        viewModelScope.launch {
+            val cachedSites = offlineRepository.getCachedSites()
+            if (cachedSites.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    sites = cachedSites,
+                    isLoading = false,
+                    isRefreshing = false,
+                    error = null
+                )
+            }
         }
     }
     
@@ -87,5 +132,47 @@ class SitesViewModel(
         _uiState.value = _uiState.value.copy(
             favoriteSiteId = if (_uiState.value.favoriteSiteId == siteId) null else siteId
         )
+    }
+    
+    fun toggleOfflineMode(siteId: Int, backendId: String, backendName: String) {
+        viewModelScope.launch {
+            if (offlineModeManager.isSiteOfflineEnabled(siteId)) {
+                // Remove from offline mode
+                offlineModeManager.removeOfflineSite(siteId)
+                offlineRepository.removeCachedSite(siteId)
+            } else {
+                // Add to offline mode and cache the site data
+                offlineModeManager.addOfflineSite(siteId)
+                // Cache the site and its data
+                cacheSiteData(siteId, backendId, backendName)
+            }
+        }
+    }
+    
+    private suspend fun cacheSiteData(siteId: Int, backendId: String, backendName: String) {
+        try {
+            // Fetch and cache site details
+            val siteResult = repository.getSite(backendId, siteId)
+            siteResult.onSuccess { federatedSite ->
+                offlineRepository.cacheSite(federatedSite.data, backendId, backendName)
+                
+                // Fetch and cache areas
+                val areasResult = repository.getAreasBySite(backendId, siteId)
+                areasResult.onSuccess { federatedAreas ->
+                    val areas = federatedAreas.map { it.data }
+                    offlineRepository.cacheAreas(areas)
+                }
+                
+                // Fetch and cache routes for this site
+                val routesResult = repository.getRoutes(siteId = siteId)
+                routesResult.onSuccess { federatedRoutes ->
+                    val routes = federatedRoutes.map { it.data }
+                    offlineRepository.cacheRoutes(routes)
+                }
+            }
+        } catch (e: Exception) {
+            // Silently fail - the site might not be fully cached
+            println("Failed to cache site data: ${e.message}")
+        }
     }
 }

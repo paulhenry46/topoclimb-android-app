@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
@@ -47,7 +48,21 @@ fun SitesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") }
+                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") },
+                actions = {
+                    // Show offline indicator if in offline mode
+                    if (uiState.isOfflineMode) {
+                        IconButton(onClick = {
+                            // Could show offline dialog here if needed
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.CloudOff,
+                                contentDescription = "Offline mode",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { padding ->
@@ -120,7 +135,15 @@ fun SitesScreen(
                                     backendName = federatedSite.backend.backendName,
                                     onClick = { onSiteClick(federatedSite.backend.backendId, federatedSite.data.id) },
                                     isFavorite = federatedSite.data.id == uiState.favoriteSiteId,
-                                    onFavoriteClick = { viewModel.toggleFavorite(federatedSite.data.id) }
+                                    onFavoriteClick = { viewModel.toggleFavorite(federatedSite.data.id) },
+                                    isOfflineEnabled = uiState.offlineSites.contains(federatedSite.data.id),
+                                    onOfflineToggle = {
+                                        viewModel.toggleOfflineMode(
+                                            federatedSite.data.id,
+                                            federatedSite.backend.backendId,
+                                            federatedSite.backend.backendName
+                                        )
+                                    }
                                 )
                             }
                             
@@ -144,7 +167,9 @@ fun SiteItem(
     backendName: String,
     onClick: () -> Unit,
     isFavorite: Boolean = false,
-    onFavoriteClick: () -> Unit = {}
+    onFavoriteClick: () -> Unit = {},
+    isOfflineEnabled: Boolean = false,
+    onOfflineToggle: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -179,7 +204,7 @@ fun SiteItem(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Logo and favorite button row
+                // Logo and action buttons row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -197,16 +222,37 @@ fun SiteItem(
                         )
                     }
                     
-                    // Favorite star button
-                    IconButton(
-                        onClick = onFavoriteClick,
-                        modifier = Modifier.size(48.dp)
+                    // Action buttons (offline and favorite)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
-                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
+                        // Offline mode toggle button
+                        IconButton(
+                            onClick = onOfflineToggle,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                painter = if (isOfflineEnabled) {
+                                    painterResource(id = android.R.drawable.stat_sys_download_done)
+                                } else {
+                                    painterResource(id = android.R.drawable.stat_sys_download)
+                                },
+                                contentDescription = if (isOfflineEnabled) "Disable offline mode" else "Enable offline mode",
+                                tint = if (isOfflineEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        
+                        // Favorite star button
+                        IconButton(
+                            onClick = onFavoriteClick,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
+                                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                                tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
                 
