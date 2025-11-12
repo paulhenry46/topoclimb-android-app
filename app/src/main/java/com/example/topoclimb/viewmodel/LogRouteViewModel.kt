@@ -9,6 +9,7 @@ import com.example.topoclimb.data.Site
 import com.example.topoclimb.network.RetrofitInstance
 import com.example.topoclimb.repository.BackendConfigRepository
 import com.example.topoclimb.repository.FederatedTopoClimbRepository
+import com.example.topoclimb.utils.NetworkConnectivityManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,16 +19,27 @@ data class LogRouteUiState(
     val gradingSystem: GradingSystem? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val isSuccess: Boolean = false
+    val isSuccess: Boolean = false,
+    val isOfflineMode: Boolean = false
 )
 
 class LogRouteViewModel(application: Application) : AndroidViewModel(application) {
     
     private val backendConfigRepository = BackendConfigRepository(application)
     private val federatedRepository = FederatedTopoClimbRepository(application)
+    private val networkManager = NetworkConnectivityManager(application)
     
     private val _uiState = MutableStateFlow(LogRouteUiState())
     val uiState: StateFlow<LogRouteUiState> = _uiState.asStateFlow()
+    
+    init {
+        // Monitor network connectivity
+        viewModelScope.launch {
+            networkManager.isNetworkAvailable.collect { isOnline ->
+                _uiState.value = _uiState.value.copy(isOfflineMode = !isOnline)
+            }
+        }
+    }
     
     /**
      * Load the grading system for a specific site
@@ -65,6 +77,15 @@ class LogRouteViewModel(application: Application) : AndroidViewModel(application
         videoUrl: String?
     ) {
         viewModelScope.launch {
+            // Check if we're in offline mode
+            if (_uiState.value.isOfflineMode) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Cannot log routes in offline mode. Please connect to the internet."
+                )
+                return@launch
+            }
+            
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {

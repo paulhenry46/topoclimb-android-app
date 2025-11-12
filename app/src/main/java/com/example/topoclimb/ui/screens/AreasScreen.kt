@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Federated
+import com.example.topoclimb.ui.components.OfflineModeIndicator
 import com.example.topoclimb.viewmodel.AreasViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +28,11 @@ fun AreasScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Climbing Areas") }
+                title = { Text("Climbing Areas") },
+                actions = {
+                    // Offline mode indicator
+                    OfflineModeIndicator()
+                }
             )
         }
     ) { padding ->

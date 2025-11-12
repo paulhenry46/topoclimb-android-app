@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Contest
+import com.example.topoclimb.ui.components.OfflineModeIndicator
 import com.example.topoclimb.viewmodel.SiteDetailViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -70,6 +71,10 @@ fun SiteDetailScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    // Offline mode indicator
+                    OfflineModeIndicator()
                 }
             )
         },

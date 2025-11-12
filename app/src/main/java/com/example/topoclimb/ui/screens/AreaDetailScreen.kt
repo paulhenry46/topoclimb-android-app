@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.AreaType
+import com.example.topoclimb.ui.components.OfflineModeIndicator
 import com.example.topoclimb.ui.components.RouteCard
 import com.example.topoclimb.ui.components.SchemaView
 import com.example.topoclimb.utils.GradeUtils
@@ -169,6 +170,9 @@ fun AreaDetailScreen(
                             )
                         }
                     }
+                    
+                    // Offline mode indicator
+                    OfflineModeIndicator()
                 }
             )
         }
