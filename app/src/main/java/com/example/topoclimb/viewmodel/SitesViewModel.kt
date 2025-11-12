@@ -39,34 +39,50 @@ class SitesViewModel(
     val uiState: StateFlow<SitesUiState> = _uiState.asStateFlow()
     
     init {
+        // Start initial load immediately
+        loadSites()
+        
         // Monitor offline sites changes
         viewModelScope.launch {
-            offlineModeManager.offlineSites.collect { offlineSites ->
-                _uiState.value = _uiState.value.copy(offlineSites = offlineSites)
+            try {
+                offlineModeManager.offlineSites.collect { offlineSites ->
+                    _uiState.value = _uiState.value.copy(offlineSites = offlineSites)
+                }
+            } catch (e: Exception) {
+                println("Error collecting offline sites: ${e.message}")
             }
         }
         
         // Listen to backend configuration changes and refresh sites
         viewModelScope.launch {
-            backendConfigRepository.backends
-                .drop(1) // Skip the first emission to avoid double loading on init
-                .collect {
-                    // Reload sites when backends change
-                    loadSites()
-                }
+            try {
+                backendConfigRepository.backends
+                    .drop(1) // Skip the first emission to avoid double loading on init
+                    .collect {
+                        // Reload sites when backends change
+                        loadSites()
+                    }
+            } catch (e: Exception) {
+                println("Error collecting backend changes: ${e.message}")
+            }
         }
         
-        // Monitor network connectivity - this will trigger initial load
+        // Monitor network connectivity
         viewModelScope.launch {
-            networkManager.isNetworkAvailable.collect { isOnline ->
-                _uiState.value = _uiState.value.copy(isOfflineMode = !isOnline)
-                if (isOnline) {
-                    // When online, reload sites from network
-                    loadSites()
-                } else {
-                    // Load from offline cache when offline
-                    loadOfflineSites()
-                }
+            try {
+                networkManager.isNetworkAvailable
+                    .drop(1) // Skip initial emission since we already called loadSites()
+                    .collect { isOnline ->
+                        _uiState.value = _uiState.value.copy(isOfflineMode = !isOnline)
+                        if (isOnline) {
+                            // When coming back online, reload sites from network
+                            loadSites()
+                        }
+                        // Note: We don't load offline sites here on offline transition
+                        // because loadSites() already handles fallback to cache on failure
+                    }
+            } catch (e: Exception) {
+                println("Error monitoring network: ${e.message}")
             }
         }
     }
@@ -96,13 +112,21 @@ class SitesViewModel(
     
     private fun loadOfflineSites() {
         viewModelScope.launch {
-            val cachedSites = offlineRepository.getCachedSites()
-            if (cachedSites.isNotEmpty()) {
+            try {
+                val cachedSites = offlineRepository.getCachedSites()
+                if (cachedSites.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        sites = cachedSites,
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = null
+                    )
+                }
+            } catch (e: Exception) {
+                println("Error loading offline sites: ${e.message}")
                 _uiState.value = _uiState.value.copy(
-                    sites = cachedSites,
                     isLoading = false,
-                    isRefreshing = false,
-                    error = null
+                    isRefreshing = false
                 )
             }
         }
