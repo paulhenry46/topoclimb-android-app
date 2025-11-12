@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
@@ -232,10 +234,10 @@ fun SiteItem(
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
-                                painter = if (isOfflineEnabled) {
-                                    painterResource(id = android.R.drawable.stat_sys_download_done)
+                                imageVector = if (isOfflineEnabled) {
+                                    Icons.Filled.CloudDone
                                 } else {
-                                    painterResource(id = android.R.drawable.stat_sys_download)
+                                    Icons.Filled.CloudDownload
                                 },
                                 contentDescription = if (isOfflineEnabled) "Disable offline mode" else "Enable offline mode",
                                 tint = if (isOfflineEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
