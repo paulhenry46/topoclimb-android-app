@@ -29,7 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.example.topoclimb.R
 import com.example.topoclimb.ui.theme.Orange40
 import com.example.topoclimb.ui.theme.Orange80
@@ -89,16 +89,28 @@ fun ProfileScreen(
         ) {
         if (uiState.isAuthenticated && user != null) {
                 // Profile picture
-                AsyncImage(
-                    model = user.profilePhotoUrl,
-                    contentDescription = "Profile picture",
+                Box(
                     modifier = Modifier
                         .size(120.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                    placeholder = rememberVectorPainter(Icons.Default.Settings),
-                    error = rememberVectorPainter(Icons.Default.Face)
-                )
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SubcomposeAsyncImage(
+                        model = user.profilePhotoUrl,
+                        contentDescription = "Profile picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = {
+                            Icon(
+                                imageVector = Icons.Default.Face,
+                                contentDescription = "Default profile",
+                                modifier = Modifier.size(60.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -140,17 +152,18 @@ fun ProfileScreen(
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 16.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.Top
                             ) {
                                 Text(
                                     text = "Climbing Stats",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(top = 12.dp)
                                 )
                                 IconButton(
                                     onClick = { showStatsHelpDialog = true }
@@ -280,16 +293,17 @@ fun ProfileScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 16.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.Top
                         ) {
                             Text(
                                 text = "Account Information",
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(top = 12.dp)
                             )
                             
                             if (!isEditMode) {
