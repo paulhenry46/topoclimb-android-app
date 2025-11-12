@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,6 +35,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.example.topoclimb.R
 import com.example.topoclimb.ui.theme.Orange40
 import com.example.topoclimb.ui.theme.Orange80
+import com.example.topoclimb.viewmodel.OfflineModeViewModel
 import com.example.topoclimb.viewmodel.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +47,18 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val user = uiState.user
+    
+    // Get offline mode view model
+    val context = LocalContext.current
+    val offlineModeViewModel: OfflineModeViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return OfflineModeViewModel.getInstance(context.applicationContext as android.app.Application) as T
+            }
+        }
+    )
+    var offlineModeEnabled by remember { mutableStateOf(offlineModeViewModel.isOfflineModeFeatureEnabled()) }
     
     var isEditMode by remember { mutableStateOf(false) }
     var editedName by remember { mutableStateOf("") }
@@ -574,6 +589,47 @@ fun ProfileScreen(
                         text = "Settings",
                         style = MaterialTheme.typography.titleMedium
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Offline Mode Setting
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudOff,
+                                contentDescription = "Offline Mode",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "Enable Offline Mode",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = "Cache data for offline access",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = offlineModeEnabled,
+                            onCheckedChange = { enabled ->
+                                offlineModeEnabled = enabled
+                                offlineModeViewModel.setOfflineModeEnabled(enabled)
+                            }
+                        )
+                    }
+                    
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Button(
