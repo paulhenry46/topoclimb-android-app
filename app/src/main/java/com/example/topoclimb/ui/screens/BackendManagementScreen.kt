@@ -328,7 +328,7 @@ fun AddBackendDialog(
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top
                 ) {
                     OutlinedTextField(
                         value = url,
@@ -350,7 +350,8 @@ fun AddBackendDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
-                        onClick = { showQRScanner = true }
+                        onClick = { showQRScanner = true },
+                        modifier = Modifier.padding(top = 8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.QrCodeScanner,

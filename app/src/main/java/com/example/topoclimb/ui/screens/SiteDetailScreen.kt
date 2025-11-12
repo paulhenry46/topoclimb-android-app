@@ -10,9 +10,12 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -53,6 +56,7 @@ fun SiteDetailScreen(
     viewModel: SiteDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     
     LaunchedEffect(backendId, siteId) {
         viewModel.loadSiteDetails(backendId, siteId)
@@ -67,6 +71,12 @@ fun SiteDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(bottom = 80.dp) // Position above bottom nav bar
             )
         }
     ) { padding ->
@@ -190,7 +200,8 @@ fun SiteDetailScreen(
                                                     ContactInfoRow(
                                                         icon = Icons.Default.Email,
                                                         label = "Email",
-                                                        value = email
+                                                        value = email,
+                                                        snackbarHostState = snackbarHostState
                                                     )
                                                 }
                                                 
@@ -198,7 +209,8 @@ fun SiteDetailScreen(
                                                     ContactInfoRow(
                                                         icon = Icons.Default.Phone,
                                                         label = "Phone",
-                                                        value = phone
+                                                        value = phone,
+                                                        snackbarHostState = snackbarHostState
                                                     )
                                                 }
                                                 
@@ -206,7 +218,8 @@ fun SiteDetailScreen(
                                                     ContactInfoRow(
                                                         icon = Icons.Default.Language,
                                                         label = "Website",
-                                                        value = website
+                                                        value = website,
+                                                        snackbarHostState = snackbarHostState
                                                     )
                                                 }
                                                 
@@ -214,7 +227,8 @@ fun SiteDetailScreen(
                                                     ContactInfoRow(
                                                         icon = Icons.Default.LocationOn,
                                                         label = "Address",
-                                                        value = address
+                                                        value = address,
+                                                        snackbarHostState = snackbarHostState
                                                     )
                                                 }
                                                 
@@ -222,7 +236,8 @@ fun SiteDetailScreen(
                                                     ContactInfoRow(
                                                         icon = Icons.Default.Place,
                                                         label = "Coordinates",
-                                                        value = coordinates
+                                                        value = coordinates,
+                                                        snackbarHostState = snackbarHostState
                                                     )
                                                 }
                                             }
@@ -242,11 +257,36 @@ fun SiteDetailScreen(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
-                        items(uiState.areas) { federatedArea ->
-                            SiteAreaItem(
-                                area = federatedArea.data,
-                                onSeeTopoClick = { onAreaClick(federatedArea.backend.backendId, federatedArea.data.id) }
-                            )
+                        
+                        // Group areas into rows of 2
+                        val areaRows = uiState.areas.chunked(2)
+                        items(areaRows.size) { index ->
+                            val rowAreas = areaRows[index]
+                            val isLastRow = index == areaRows.size - 1
+                            val hasOddNumberOfAreas = rowAreas.size == 1
+                            
+                            if (isLastRow && hasOddNumberOfAreas) {
+                                // Last row with single item takes full width
+                                SiteAreaItem(
+                                    area = rowAreas[0].data,
+                                    onSeeTopoClick = { onAreaClick(rowAreas[0].backend.backendId, rowAreas[0].data.id) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                // Normal row with 2 items
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    rowAreas.forEach { federatedArea ->
+                                        SiteAreaItem(
+                                            area = federatedArea.data,
+                                            onSeeTopoClick = { onAreaClick(federatedArea.backend.backendId, federatedArea.data.id) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                     
@@ -295,25 +335,29 @@ fun SiteDetailScreen(
 @Composable
 fun SiteAreaItem(
     area: Area,
-    onSeeTopoClick: () -> Unit = {}
+    onSeeTopoClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .clickable { onSeeTopoClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = area.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
+                    style = MaterialTheme.typography.titleMedium
                 )
                 
                 // Area type badge
                 area.type?.let { type ->
+                    Spacer(modifier = Modifier.height(4.dp))
                     val (badgeText, badgeColor) = when (type.lowercase()) {
                         "bouldering", "boulder" -> "Boulder" to MaterialTheme.colorScheme.primary
                         "traditional", "trad", "sport" -> "Trad" to MaterialTheme.colorScheme.secondary
@@ -322,8 +366,7 @@ fun SiteAreaItem(
                     
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = badgeColor,
-                        modifier = Modifier.padding(start = 8.dp)
+                        color = badgeColor
                     ) {
                         Text(
                             text = badgeText,
@@ -334,13 +377,13 @@ fun SiteAreaItem(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onSeeTopoClick,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("See Topo")
-            }
+            
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "View area",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -513,12 +556,12 @@ enum class ContestState {
 fun ContactInfoRow(
     icon: ImageVector,
     label: String,
-    value: String
+    value: String,
+    snackbarHostState: SnackbarHostState
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
     
     // Determine the action based on label
     val onClick: (() -> Unit)? = when (label) {
@@ -559,41 +602,35 @@ fun ContactInfoRow(
         }
     }
     
-    Box {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onClick ?: {},
-                    onLongClick = onLongClick,
-                    enabled = true
-                )
-                .padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick ?: {},
+                onLongClick = onLongClick,
+                enabled = true
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (onClick != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
         )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (onClick != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
