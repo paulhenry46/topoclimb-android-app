@@ -192,6 +192,13 @@ class SitesViewModel(
                     val routes = federatedRoutes.map { it.data }
                     offlineRepository.cacheRoutes(routes)
                 }
+                
+                // Fetch and cache contests for this site
+                val contestsResult = repository.getContestsBySite(backendId, siteId)
+                contestsResult.onSuccess { federatedContests ->
+                    val contests = federatedContests.map { it.data }
+                    offlineRepository.cacheContests(contests)
+                }
             }
         } catch (e: Exception) {
             // Silently fail - the site might not be fully cached

@@ -58,6 +58,8 @@ class SiteDetailViewModel(
                     networkSuccess = false
                     // Try loading from offline cache
                     loadOfflineSiteDetails(siteId)
+                    loadOfflineAreas(siteId)
+                    loadOfflineContests(siteId)
                     if (_uiState.value.site == null) {
                         _uiState.value = _uiState.value.copy(
                             error = exception.message ?: "Failed to load site details",
@@ -133,6 +135,27 @@ class SiteDetailViewModel(
             )
         } catch (e: Exception) {
             println("Failed to load offline areas: ${e.message}")
+        }
+    }
+    
+    private suspend fun loadOfflineContests(siteId: Int) {
+        try {
+            val cachedContests = offlineRepository.getCachedContests(siteId)
+            _uiState.value = _uiState.value.copy(
+                contests = cachedContests.map { contest ->
+                    Federated(
+                        data = contest,
+                        backend = com.example.topoclimb.data.BackendMetadata(
+                            backendId = "",
+                            backendName = "Offline",
+                            baseUrl = ""
+                        )
+                    )
+                },
+                isOfflineData = true
+            )
+        } catch (e: Exception) {
+            println("Failed to load offline contests: ${e.message}")
         }
     }
     

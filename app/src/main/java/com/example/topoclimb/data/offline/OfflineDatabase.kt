@@ -9,9 +9,10 @@ import androidx.room.RoomDatabase
     entities = [
         OfflineSiteEntity::class,
         OfflineAreaEntity::class,
-        OfflineRouteEntity::class
+        OfflineRouteEntity::class,
+        OfflineContestEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class OfflineDatabase : RoomDatabase() {
@@ -19,6 +20,7 @@ abstract class OfflineDatabase : RoomDatabase() {
     abstract fun offlineSiteDao(): OfflineSiteDao
     abstract fun offlineAreaDao(): OfflineAreaDao
     abstract fun offlineRouteDao(): OfflineRouteDao
+    abstract fun offlineContestDao(): OfflineContestDao
     
     companion object {
         @Volatile
@@ -30,7 +32,9 @@ abstract class OfflineDatabase : RoomDatabase() {
                     context.applicationContext,
                     OfflineDatabase::class.java,
                     "topoclimb_offline_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration() // Allow database migration
+                .build()
                 INSTANCE = instance
                 instance
             }
