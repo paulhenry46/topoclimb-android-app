@@ -39,6 +39,11 @@ class OfflineModeViewModel(application: Application) : AndroidViewModel(applicat
                 if (wasOnline && !isAvailable) {
                     _showOfflineDialog.value = true
                 }
+                
+                // Dismiss dialog when transitioning from offline to online
+                if (!wasOnline && isAvailable) {
+                    _showOfflineDialog.value = false
+                }
             }
         }
         

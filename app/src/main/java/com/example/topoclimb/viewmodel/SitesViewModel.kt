@@ -135,19 +135,36 @@ class SitesViewModel(
     fun refreshSites() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
-            repository.getSites()
-                .onSuccess { sites ->
-                    _uiState.value = _uiState.value.copy(
-                        sites = sites,
-                        isRefreshing = false
-                    )
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        error = exception.message ?: "Unknown error",
-                        isRefreshing = false
-                    )
-                }
+            
+            // Check if we're online
+            val isOnline = networkManager.checkCurrentConnectivity()
+            
+            if (isOnline) {
+                // Load from network when online
+                repository.getSites()
+                    .onSuccess { sites ->
+                        _uiState.value = _uiState.value.copy(
+                            sites = sites,
+                            isRefreshing = false
+                        )
+                    }
+                    .onFailure { exception ->
+                        // Network request failed, try loading from offline cache
+                        loadOfflineSites()
+                        _uiState.value = _uiState.value.copy(
+                            error = if (_uiState.value.sites.isEmpty()) {
+                                exception.message ?: "Unknown error"
+                            } else null,
+                            isRefreshing = false
+                        )
+                    }
+            } else {
+                // Load from offline cache when offline
+                loadOfflineSites()
+                _uiState.value = _uiState.value.copy(
+                    isRefreshing = false
+                )
+            }
         }
     }
     
@@ -174,35 +191,54 @@ class SitesViewModel(
     
     private suspend fun cacheSiteData(siteId: Int, backendId: String, backendName: String) {
         try {
+            println("DEBUG: Starting to cache site data for siteId=$siteId, backendId=$backendId")
+            
             // Fetch and cache site details
             val siteResult = repository.getSite(backendId, siteId)
             siteResult.onSuccess { federatedSite ->
                 offlineRepository.cacheSite(federatedSite.data, backendId, backendName)
+                println("DEBUG: Cached site details for siteId=$siteId")
                 
                 // Fetch and cache areas
                 val areasResult = repository.getAreasBySite(backendId, siteId)
                 areasResult.onSuccess { federatedAreas ->
                     val areas = federatedAreas.map { it.data }
+                    println("DEBUG: Fetched ${areas.size} areas for siteId=$siteId")
+                    areas.forEach { area ->
+                        println("DEBUG: Area ${area.id} - ${area.name} (siteId=${area.siteId})")
+                    }
                     offlineRepository.cacheAreas(areas)
+                    println("DEBUG: Cached ${areas.size} areas for siteId=$siteId")
+                }.onFailure { e ->
+                    println("DEBUG: Failed to fetch areas: ${e.message}")
                 }
                 
                 // Fetch and cache routes for this site
                 val routesResult = repository.getRoutes(siteId = siteId)
                 routesResult.onSuccess { federatedRoutes ->
                     val routes = federatedRoutes.map { it.data }
+                    println("DEBUG: Cached ${routes.size} routes for siteId=$siteId")
                     offlineRepository.cacheRoutes(routes)
+                }.onFailure { e ->
+                    println("DEBUG: Failed to fetch routes: ${e.message}")
                 }
                 
                 // Fetch and cache contests for this site
                 val contestsResult = repository.getContestsBySite(backendId, siteId)
                 contestsResult.onSuccess { federatedContests ->
                     val contests = federatedContests.map { it.data }
+                    println("DEBUG: Cached ${contests.size} contests for siteId=$siteId")
                     offlineRepository.cacheContests(contests)
+                }.onFailure { e ->
+                    println("DEBUG: Failed to fetch contests: ${e.message}")
                 }
+            }.onFailure { e ->
+                println("DEBUG: Failed to fetch site details: ${e.message}")
             }
         } catch (e: Exception) {
             // Silently fail - the site might not be fully cached
             println("Failed to cache site data: ${e.message}")
+            e.printStackTrace()
         }
     }
 }
