@@ -47,13 +47,6 @@ fun TopoClimbApp() {
         }
     }
     
-    // Show offline dialog when going offline
-    LaunchedEffect(isOfflineModeActive) {
-        if (isOfflineModeActive) {
-            offlineModeViewModel.showOfflineDialog()
-        }
-    }
-    
     Scaffold(
         bottomBar = {
             BottomNavigationBar(navController)

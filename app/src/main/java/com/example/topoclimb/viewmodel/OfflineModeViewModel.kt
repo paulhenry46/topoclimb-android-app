@@ -32,7 +32,13 @@ class OfflineModeViewModel(application: Application) : AndroidViewModel(applicat
         // Monitor network connectivity
         viewModelScope.launch {
             networkManager.isNetworkAvailable.collect { isAvailable ->
+                val wasOnline = _isOnline.value
                 _isOnline.value = isAvailable
+                
+                // Show dialog when transitioning from online to offline
+                if (wasOnline && !isAvailable) {
+                    _showOfflineDialog.value = true
+                }
             }
         }
         
