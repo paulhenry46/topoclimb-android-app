@@ -28,6 +28,7 @@ import coil.compose.AsyncImage
 import com.example.topoclimb.R
 import com.example.topoclimb.data.Federated
 import com.example.topoclimb.data.Site
+import com.example.topoclimb.ui.components.OfflineModeIndicator
 import com.example.topoclimb.viewmodel.SitesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,18 +53,8 @@ fun SitesScreen(
             TopAppBar(
                 title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") },
                 actions = {
-                    // Show offline indicator if in offline mode
-                    if (uiState.isOfflineMode) {
-                        IconButton(onClick = {
-                            // Could show offline dialog here if needed
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.CloudOff,
-                                contentDescription = "Offline mode",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
+                    // Show offline indicator
+                    OfflineModeIndicator()
                 }
             )
         }

@@ -58,8 +58,6 @@ class SiteDetailViewModel(
                     networkSuccess = false
                     // Try loading from offline cache
                     loadOfflineSiteDetails(siteId)
-                    loadOfflineAreas(siteId)
-                    loadOfflineContests(siteId)
                     if (_uiState.value.site == null) {
                         _uiState.value = _uiState.value.copy(
                             error = exception.message ?: "Failed to load site details",
@@ -71,25 +69,29 @@ class SiteDetailViewModel(
                 }
             
             if (networkSuccess) {
-                // Load areas
+                // Load areas from network
                 repository.getAreasBySite(backendId, siteId)
                     .onSuccess { areas ->
                         _uiState.value = _uiState.value.copy(areas = areas)
                     }
                     .onFailure { exception ->
-                        // Try loading from offline cache
+                        // Try loading from offline cache if network fails
                         loadOfflineAreas(siteId)
                     }
                 
-                // Load contests  
+                // Load contests from network
                 repository.getContestsBySite(backendId, siteId)
                     .onSuccess { contests ->
                         _uiState.value = _uiState.value.copy(contests = contests)
                     }
                     .onFailure { exception ->
-                        // Don't fail the whole screen if contests fail to load
-                        _uiState.value = _uiState.value.copy(contests = emptyList())
+                        // Try loading from offline cache if network fails
+                        loadOfflineContests(siteId)
                     }
+            } else {
+                // Network failed, load everything from offline cache
+                loadOfflineAreas(siteId)
+                loadOfflineContests(siteId)
             }
             
             _uiState.value = _uiState.value.copy(isLoading = false, isRefreshing = false)
