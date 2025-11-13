@@ -122,21 +122,28 @@ class SiteDetailViewModel(
     private suspend fun loadOfflineAreas(siteId: Int) {
         try {
             val cachedAreas = offlineRepository.getCachedAreas(siteId)
-            _uiState.value = _uiState.value.copy(
-                areas = cachedAreas.map { area ->
-                    Federated(
-                        data = area,
-                        backend = com.example.topoclimb.data.BackendMetadata(
-                            backendId = "",
-                            backendName = "Offline",
-                            baseUrl = ""
+            println("DEBUG: Loading offline areas for site $siteId, found ${cachedAreas.size} areas")
+            if (cachedAreas.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    areas = cachedAreas.map { area ->
+                        println("DEBUG: Mapping area ${area.id} - ${area.name}")
+                        Federated(
+                            data = area,
+                            backend = com.example.topoclimb.data.BackendMetadata(
+                                backendId = "",
+                                backendName = "Offline",
+                                baseUrl = ""
+                            )
                         )
-                    )
-                },
-                isOfflineData = true
-            )
+                    },
+                    isOfflineData = true
+                )
+            } else {
+                println("DEBUG: No cached areas found for site $siteId")
+            }
         } catch (e: Exception) {
             println("Failed to load offline areas: ${e.message}")
+            e.printStackTrace()
         }
     }
     

@@ -1,6 +1,7 @@
 package com.example.topoclimb.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.AreaType
@@ -9,6 +10,7 @@ import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
 import com.example.topoclimb.data.SectorSchema
+import com.example.topoclimb.repository.OfflineRepository
 import com.example.topoclimb.repository.TopoClimbRepository
 import com.example.topoclimb.utils.GradeUtils
 import kotlinx.coroutines.Dispatchers
@@ -69,8 +71,9 @@ enum class GroupingOption {
     BY_SECTOR   // Group by sector
 }
 
-class AreaDetailViewModel : ViewModel() {
+class AreaDetailViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TopoClimbRepository()
+    private val offlineRepository = OfflineRepository(application)
     private val httpClient = OkHttpClient()
     
     private val _uiState = MutableStateFlow(AreaDetailUiState())
@@ -97,10 +100,35 @@ class AreaDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = AreaDetailUiState(isLoading = true, backendId = backendId, siteId = siteId, areaId = areaId)
             
-            // Now passing siteId to avoid fetching it from area relationship
+            // Try to load from network first
             val result = fetchAreaData(siteId, areaId)
             
             if (result.isFailure) {
+                // Try loading from offline cache
+                val offlineResult = loadOfflineAreaData(siteId, areaId)
+                if (offlineResult != null) {
+                    val (area, routes) = offlineResult
+                    _uiState.value = AreaDetailUiState(
+                        isLoading = false,
+                        isRefreshing = false,
+                        area = area,
+                        routes = routes,
+                        routesWithMetadata = emptyList(),
+                        sectors = emptyList(),
+                        error = null,
+                        backendId = backendId,
+                        siteId = siteId,
+                        areaId = areaId,
+                        gradingSystem = null,
+                        siteName = null
+                    )
+                    // Cache routes for filtering
+                    allRoutesCache = routes
+                    allRoutesWithMetadataCache = emptyList()
+                    return@launch
+                }
+                
+                // No offline data available
                 _uiState.value = AreaDetailUiState(
                     isLoading = false,
                     isRefreshing = false,
@@ -147,6 +175,25 @@ class AreaDetailViewModel : ViewModel() {
                     filterRoutesBySector(firstSchemaId)
                 }
             }
+        }
+    }
+    
+    private suspend fun loadOfflineAreaData(siteId: Int, areaId: Int): Pair<Area, List<Route>>? {
+        return try {
+            val cachedArea = offlineRepository.getCachedArea(areaId)
+            val cachedRoutes = offlineRepository.getCachedRoutes(siteId)
+            
+            if (cachedArea != null) {
+                println("DEBUG: Loaded offline area $areaId with ${cachedRoutes.size} routes from site $siteId")
+                Pair(cachedArea, cachedRoutes)
+            } else {
+                println("DEBUG: No offline data for area $areaId")
+                null
+            }
+        } catch (e: Exception) {
+            println("Failed to load offline area data: ${e.message}")
+            e.printStackTrace()
+            null
         }
     }
     
