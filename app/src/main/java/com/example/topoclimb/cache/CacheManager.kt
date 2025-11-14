@@ -36,6 +36,12 @@ class CacheManager(context: Context) {
         val allValid = sites.all { isValid(it.cachedAt, ONE_WEEK_MS) }
         return if (allValid) sites.map { it.toSite() } else null
     }
+    
+    suspend fun getCachedSitesIgnoreExpiration(backendId: String): List<Site>? {
+        val sites = db.siteDao().getAllSites(backendId)
+        if (sites.isEmpty()) return null
+        return sites.map { it.toSite() }
+    }
 
     suspend fun cacheSites(sites: List<Site>, backendId: String) {
         val entities = sites.map { SiteEntity.fromSite(it, backendId) }
@@ -45,6 +51,11 @@ class CacheManager(context: Context) {
     suspend fun getCachedSite(siteId: Int, backendId: String): Site? {
         val site = db.siteDao().getSiteById(siteId, backendId) ?: return null
         return if (isValid(site.cachedAt, ONE_WEEK_MS)) site.toSite() else null
+    }
+    
+    suspend fun getCachedSiteIgnoreExpiration(siteId: Int, backendId: String): Site? {
+        val site = db.siteDao().getSiteById(siteId, backendId) ?: return null
+        return site.toSite()
     }
 
     suspend fun cacheSite(site: Site, backendId: String) {
@@ -66,6 +77,12 @@ class CacheManager(context: Context) {
         
         val allValid = areas.all { isValid(it.cachedAt, ONE_WEEK_MS) }
         return if (allValid) areas.map { it.toArea() } else null
+    }
+    
+    suspend fun getCachedAreasBySiteIgnoreExpiration(siteId: Int, backendId: String): List<Area>? {
+        val areas = db.areaDao().getAreasBySite(siteId, backendId)
+        if (areas.isEmpty()) return null
+        return areas.map { it.toArea() }
     }
 
     suspend fun cacheAreas(areas: List<Area>, backendId: String) {
@@ -156,6 +173,12 @@ class CacheManager(context: Context) {
         
         val allValid = contests.all { isValid(it.cachedAt, ONE_WEEK_MS) }
         return if (allValid) contests.map { it.toContest() } else null
+    }
+    
+    suspend fun getCachedContestsBySiteIgnoreExpiration(siteId: Int, backendId: String): List<Contest>? {
+        val contests = db.contestDao().getContestsBySite(siteId, backendId)
+        if (contests.isEmpty()) return null
+        return contests.map { it.toContest() }
     }
 
     suspend fun cacheContests(contests: List<Contest>, backendId: String) {

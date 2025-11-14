@@ -47,7 +47,7 @@ class TopoClimbRepository(private val context: Context? = null, private val back
         } catch (e: Exception) {
             // If network fails, try to return cached data even if expired
             if (cachePreferences?.isCacheEnabled == true) {
-                val cached = cacheManager?.getCachedSites(backendId)
+                val cached = cacheManager?.getCachedSitesIgnoreExpiration(backendId)
                 if (cached != null) {
                     return Result.success(SitesResponse(cached))
                 }
@@ -78,7 +78,7 @@ class TopoClimbRepository(private val context: Context? = null, private val back
         } catch (e: Exception) {
             // If network fails, try to return cached data even if expired
             if (cachePreferences?.isCacheEnabled == true) {
-                val cached = cacheManager?.getCachedSite(id, backendId)
+                val cached = cacheManager?.getCachedSiteIgnoreExpiration(id, backendId)
                 if (cached != null) {
                     return Result.success(cached)
                 }

@@ -70,7 +70,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
                         } catch (e: Exception) {
                             // If network fails, try to return cached data even if expired
                             if (cachePreferences.isCacheEnabled) {
-                                val cached = cacheManager.getCachedSites(backend.id)
+                                val cached = cacheManager.getCachedSitesIgnoreExpiration(backend.id)
                                 cached?.map { site ->
                                     Federated(
                                         data = site,
@@ -131,7 +131,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
         } catch (e: Exception) {
             // If network fails, try to return cached data even if expired
             if (cachePreferences.isCacheEnabled) {
-                val cached = cacheManager.getCachedSite(siteId, backendId)
+                val cached = cacheManager.getCachedSiteIgnoreExpiration(siteId, backendId)
                 if (cached != null) {
                     return Result.success(
                         Federated(
@@ -333,7 +333,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
         } catch (e: Exception) {
             // If network fails, try to return cached data even if expired
             if (cachePreferences.isCacheEnabled) {
-                val cached = cacheManager.getCachedAreasBySite(siteId, backendId)
+                val cached = cacheManager.getCachedAreasBySiteIgnoreExpiration(siteId, backendId)
                 if (cached != null) {
                     return Result.success(
                         cached.map { area ->
@@ -393,7 +393,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
         } catch (e: Exception) {
             // If network fails, try to return cached data even if expired
             if (cachePreferences.isCacheEnabled) {
-                val cached = cacheManager.getCachedContestsBySite(siteId, backendId)
+                val cached = cacheManager.getCachedContestsBySiteIgnoreExpiration(siteId, backendId)
                 if (cached != null) {
                     return Result.success(
                         cached.map { contest ->
