@@ -21,7 +21,7 @@ import com.example.topoclimb.cache.entity.*
     version = 1,
     exportSchema = false
 )
-@TypeConverters(StringListConverter::class)
+@TypeConverters(StringListConverter::class, StringMapConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun siteDao(): SiteDao
     abstract fun areaDao(): AreaDao

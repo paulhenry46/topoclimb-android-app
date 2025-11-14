@@ -20,3 +20,20 @@ class StringListConverter {
         }
     }
 }
+
+class StringMapConverter {
+    private val gson = Gson()
+
+    @TypeConverter
+    fun fromStringMap(value: Map<String, Int>?): String? {
+        return value?.let { gson.toJson(it) }
+    }
+
+    @TypeConverter
+    fun toStringMap(value: String?): Map<String, Int>? {
+        return value?.let {
+            val type = object : TypeToken<Map<String, Int>>() {}.type
+            gson.fromJson(it, type)
+        }
+    }
+}

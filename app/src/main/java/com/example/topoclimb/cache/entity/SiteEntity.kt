@@ -2,10 +2,13 @@ package com.example.topoclimb.cache.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.example.topoclimb.cache.database.StringMapConverter
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Site
 
 @Entity(tableName = "sites")
+@TypeConverters(StringMapConverter::class)
 data class SiteEntity(
     @PrimaryKey val id: Int,
     val backendId: String, // To support federation
@@ -19,8 +22,9 @@ data class SiteEntity(
     val profilePicture: String?,
     val banner: String?,
     val defaultCotation: Boolean?,
-    val gradingSystemId: Int?,
-    val gradingSystemName: String?,
+    val gradingSystemFree: Boolean?,
+    val gradingSystemHint: String?,
+    val gradingSystemPoints: Map<String, Int>?,
     val createdAt: String?,
     val updatedAt: String?,
     val email: String?,
@@ -42,8 +46,8 @@ data class SiteEntity(
             profilePicture = profilePicture,
             banner = banner,
             defaultCotation = defaultCotation,
-            gradingSystem = if (gradingSystemId != null && gradingSystemName != null) {
-                GradingSystem(gradingSystemId, gradingSystemName)
+            gradingSystem = if (gradingSystemFree != null || gradingSystemHint != null || gradingSystemPoints != null) {
+                GradingSystem(gradingSystemFree, gradingSystemHint, gradingSystemPoints)
             } else null,
             createdAt = createdAt,
             updatedAt = updatedAt,
@@ -69,8 +73,9 @@ data class SiteEntity(
                 profilePicture = site.profilePicture,
                 banner = site.banner,
                 defaultCotation = site.defaultCotation,
-                gradingSystemId = site.gradingSystem?.id,
-                gradingSystemName = site.gradingSystem?.name,
+                gradingSystemFree = site.gradingSystem?.free,
+                gradingSystemHint = site.gradingSystem?.hint,
+                gradingSystemPoints = site.gradingSystem?.points,
                 createdAt = site.createdAt,
                 updatedAt = site.updatedAt,
                 email = site.email,

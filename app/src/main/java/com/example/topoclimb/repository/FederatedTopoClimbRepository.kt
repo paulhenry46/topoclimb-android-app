@@ -96,10 +96,10 @@ class FederatedTopoClimbRepository(private val context: Context) {
      * @param forceRefresh: if true, bypass cache and fetch from network
      */
     suspend fun getSite(backendId: String, siteId: Int, forceRefresh: Boolean = false): Result<Federated<Site>> {
-        return try {
-            val backend = backendConfigRepository.getBackend(backendId)
-                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+        val backend = backendConfigRepository.getBackend(backendId)
+            ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
+        return try {
             // Cache-first strategy
             if (!forceRefresh && cachePreferences.isCacheEnabled) {
                 val cached = cacheManager.getCachedSite(siteId, backendId)
@@ -294,10 +294,10 @@ class FederatedTopoClimbRepository(private val context: Context) {
      * @param forceRefresh: if true, bypass cache and fetch from network
      */
     suspend fun getAreasBySite(backendId: String, siteId: Int, forceRefresh: Boolean = false): Result<List<Federated<Area>>> {
-        return try {
-            val backend = backendConfigRepository.getBackend(backendId)
-                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+        val backend = backendConfigRepository.getBackend(backendId)
+            ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
+        return try {
             // Cache-first strategy
             if (!forceRefresh && cachePreferences.isCacheEnabled) {
                 val cached = cacheManager.getCachedAreasBySite(siteId, backendId)
@@ -354,10 +354,10 @@ class FederatedTopoClimbRepository(private val context: Context) {
      * @param forceRefresh: if true, bypass cache and fetch from network
      */
     suspend fun getContestsBySite(backendId: String, siteId: Int, forceRefresh: Boolean = false): Result<List<Federated<Contest>>> {
-        return try {
-            val backend = backendConfigRepository.getBackend(backendId)
-                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+        val backend = backendConfigRepository.getBackend(backendId)
+            ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
+        return try {
             // Cache-first strategy
             if (!forceRefresh && cachePreferences.isCacheEnabled) {
                 val cached = cacheManager.getCachedContestsBySite(siteId, backendId)
