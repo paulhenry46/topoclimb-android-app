@@ -131,10 +131,9 @@ class TopoClimbRepository(private val context: Context? = null, private val back
             // Network fallback
             val response = api.getArea(id)
             
-            // Cache the result if cache is enabled
-            if (cachePreferences?.isCacheEnabled == true) {
-                cacheManager?.cacheArea(response.data, backendId)
-            }
+            // Don't cache single areas here since they're cached via getAreasBySite
+            // Caching here could overwrite correctly cached areas with incomplete data
+            // (e.g., if API doesn't populate siteId for single area requests)
             
             Result.success(response.data)
         } catch (e: Exception) {
@@ -236,11 +235,24 @@ class TopoClimbRepository(private val context: Context? = null, private val back
         }
     }
     
-    suspend fun getRoutesByLine(lineId: Int): Result<List<Route>> {
+    suspend fun getRoutesByLine(lineId: Int, forceRefresh: Boolean = false): Result<List<Route>> {
         return try {
+            // Note: Routes don't have lineId field, so we can't efficiently cache by line
+            // For now, we fetch from network and cache the routes (which will be cached by siteId)
+            // This is suboptimal but avoids schema changes
+            
+            // Network call
             val response = api.getRoutesByLine(lineId)
+            
+            // Cache the routes if cache is enabled (they'll be cached by siteId)
+            if (cachePreferences?.isCacheEnabled == true) {
+                cacheManager?.cacheRoutes(response.data, backendId)
+            }
+            
             Result.success(response.data)
         } catch (e: Exception) {
+            // No good way to retrieve routes by lineId from cache without lineId in schema
+            // Just fail the request
             Result.failure(e)
         }
     }
