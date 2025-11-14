@@ -175,93 +175,29 @@ class TopoClimbRepository(private val context: Context? = null, private val back
     
     suspend fun getSectorsByArea(areaId: Int, forceRefresh: Boolean = false): Result<List<Sector>> {
         return try {
-            // Cache-first strategy
-            if (!forceRefresh && cachePreferences?.isCacheEnabled == true) {
-                val cached = cacheManager?.getCachedSectorsByArea(areaId, backendId)
-                if (cached != null) {
-                    return Result.success(cached)
-                }
-            }
-            
-            // Network fallback
             val response = api.getSectorsByArea(areaId)
-            
-            // Cache the result if cache is enabled
-            if (cachePreferences?.isCacheEnabled == true) {
-                cacheManager?.cacheSectorsByArea(response.data, areaId, backendId)
-            }
-            
             Result.success(response.data)
         } catch (e: Exception) {
-            // If network fails, try to return cached data even if expired
-            if (cachePreferences?.isCacheEnabled == true) {
-                val cached = cacheManager?.getCachedSectorsByAreaIgnoreExpiration(areaId, backendId)
-                if (cached != null) {
-                    return Result.success(cached)
-                }
-            }
             Result.failure(e)
         }
     }
     
     suspend fun getLinesBySector(sectorId: Int, forceRefresh: Boolean = false): Result<List<Line>> {
         return try {
-            // Cache-first strategy
-            if (!forceRefresh && cachePreferences?.isCacheEnabled == true) {
-                val cached = cacheManager?.getCachedLinesBySector(sectorId, backendId)
-                if (cached != null) {
-                    return Result.success(cached)
-                }
-            }
-            
-            // Network fallback
             val response = api.getLinesBySector(sectorId)
-            
-            // Cache the result if cache is enabled
-            if (cachePreferences?.isCacheEnabled == true) {
-                cacheManager?.cacheLinesBySector(response.data, sectorId, backendId)
-            }
-            
             Result.success(response.data)
         } catch (e: Exception) {
-            // If network fails, try to return cached data even if expired
-            if (cachePreferences?.isCacheEnabled == true) {
-                val cached = cacheManager?.getCachedLinesBySectorIgnoreExpiration(sectorId, backendId)
-                if (cached != null) {
-                    return Result.success(cached)
-                }
-            }
             Result.failure(e)
         }
     }
     
     suspend fun getRoutesByLine(lineId: Int, forceRefresh: Boolean = false): Result<List<Route>> {
         return try {
-            // Cache-first strategy
-            if (!forceRefresh && cachePreferences?.isCacheEnabled == true) {
-                val cached = cacheManager?.getCachedRoutesByLine(lineId, backendId)
-                if (cached != null) {
-                    return Result.success(cached)
-                }
-            }
-            
-            // Network call
+            // Simple approach: just fetch from API
+            // Caching by lineId was causing issues, so keep it simple
             val response = api.getRoutesByLine(lineId)
-            
-            // Cache the routes by lineId for proper hierarchy
-            if (cachePreferences?.isCacheEnabled == true) {
-                cacheManager?.cacheRoutesByLine(response.data, lineId, backendId)
-            }
-            
             Result.success(response.data)
         } catch (e: Exception) {
-            // If network fails, try to return cached data even if expired
-            if (cachePreferences?.isCacheEnabled == true) {
-                val cached = cacheManager?.getCachedRoutesByLineIgnoreExpiration(lineId, backendId)
-                if (cached != null) {
-                    return Result.success(cached)
-                }
-            }
             Result.failure(e)
         }
     }
