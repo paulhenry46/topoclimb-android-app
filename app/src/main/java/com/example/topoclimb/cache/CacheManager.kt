@@ -181,10 +181,10 @@ class CacheManager(context: Context) {
     }
     
     suspend fun cacheSectorsByArea(sectors: List<Sector>, areaId: Int, backendId: String) {
+        // Note: Sectors should already have correct areaId set by the repository before calling this
+        // This method just caches them as-is
         val entities = sectors.map { sector ->
-            // Ensure areaId is set correctly for sectors fetched via getSectorsByArea
-            val sectorWithAreaId = sector.copy(areaId = areaId)
-            SectorEntity.fromSector(sectorWithAreaId, backendId)
+            SectorEntity.fromSector(sector, backendId)
         }
         db.sectorDao().insertSectors(entities)
     }

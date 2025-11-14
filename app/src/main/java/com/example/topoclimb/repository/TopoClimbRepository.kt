@@ -186,12 +186,17 @@ class TopoClimbRepository(private val context: Context? = null, private val back
             // Network call
             val response = api.getSectorsByArea(areaId)
             
+            // Fix sectors to ensure they have the correct areaId
+            // The API might not populate this field, so we set it explicitly
+            val sectorsWithCorrectAreaId = response.data.map { it.copy(areaId = areaId) }
+            
             // Cache the result if cache is enabled
             if (cachePreferences?.isCacheEnabled == true) {
-                cacheManager?.cacheSectorsByArea(response.data, areaId, backendId)
+                cacheManager?.cacheSectorsByArea(sectorsWithCorrectAreaId, areaId, backendId)
             }
             
-            Result.success(response.data)
+            // Return the fixed sectors (not the raw API response)
+            Result.success(sectorsWithCorrectAreaId)
         } catch (e: Exception) {
             // If network fails, try to return cached data even if expired
             if (cachePreferences?.isCacheEnabled == true) {
