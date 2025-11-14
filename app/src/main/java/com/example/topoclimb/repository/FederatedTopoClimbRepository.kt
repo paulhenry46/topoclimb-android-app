@@ -85,7 +85,12 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 }.awaitAll().flatten()
             }
             
-            Result.success(sites)
+            // If all backends failed and returned empty, return failure instead of empty success
+            if (sites.isEmpty()) {
+                Result.failure(IllegalStateException("No sites available - all backends failed or returned no data"))
+            } else {
+                Result.success(sites)
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

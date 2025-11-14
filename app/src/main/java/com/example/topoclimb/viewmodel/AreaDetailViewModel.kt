@@ -73,11 +73,13 @@ enum class GroupingOption {
 class AreaDetailViewModel(
     application: Application
 ) : AndroidViewModel(application) {
-    private val repository = TopoClimbRepository(application)
     private val httpClient = OkHttpClient()
     
     private val _uiState = MutableStateFlow(AreaDetailUiState())
     val uiState: StateFlow<AreaDetailUiState> = _uiState.asStateFlow()
+    
+    // Repository is created dynamically with the correct backendId
+    private var repository: TopoClimbRepository? = null
     
     // Store all routes before filtering
     private var allRoutesCache: List<Route> = emptyList()
@@ -98,6 +100,9 @@ class AreaDetailViewModel(
     
     fun loadAreaDetails(backendId: String, siteId: Int, areaId: Int) {
         viewModelScope.launch {
+            // Create repository with the correct backendId
+            repository = TopoClimbRepository(getApplication(), backendId)
+            
             _uiState.value = AreaDetailUiState(isLoading = true, backendId = backendId, siteId = siteId, areaId = areaId)
             
             // Now passing siteId to avoid fetching it from area relationship
@@ -205,8 +210,11 @@ class AreaDetailViewModel(
      */
     private suspend fun fetchAreaData(siteId: Int, areaId: Int): Result<AreaData> {
         return try {
+            // Ensure repository is initialized
+            val repo = repository ?: return Result.failure(IllegalStateException("Repository not initialized"))
+            
             // Load area details
-            val areaResult = repository.getArea(areaId)
+            val areaResult = repo.getArea(areaId)
             if (areaResult.isFailure) {
                 return Result.failure(areaResult.exceptionOrNull() ?: Exception("Failed to load area"))
             }
@@ -216,25 +224,25 @@ class AreaDetailViewModel(
             // Load site using the directly provided siteId (optimization from nested navigation)
             var gradingSystem: GradingSystem? = null
             var siteName: String? = null
-            val siteResult = repository.getSite(siteId)
+            val siteResult = repo.getSite(siteId)
             gradingSystem = siteResult.getOrNull()?.gradingSystem
             siteName = siteResult.getOrNull()?.name
             
             // Load sectors for the area
-            val sectorsResult = repository.getSectorsByArea(areaId)
+            val sectorsResult = repo.getSectorsByArea(areaId)
             val sectors = sectorsResult.getOrNull() ?: emptyList()
             
             // Load routes with sector and line metadata using the chain:
             // getSectorsByArea -> getLinesBySector -> getRoutesByLine
             val allRoutesWithMetadata = mutableListOf<RouteWithMetadata>()
             for (sector in sectors) {
-                val linesResult = repository.getLinesBySector(sector.id)
+                val linesResult = repo.getLinesBySector(sector.id)
                 if (linesResult.isSuccess) {
                     val lines = linesResult.getOrNull() ?: emptyList()
                     
                     // Fetch routes for each line and enrich with metadata
                     for (line in lines) {
-                        val routesResult = repository.getRoutesByLine(line.id)
+                        val routesResult = repo.getRoutesByLine(line.id)
                         if (routesResult.isSuccess) {
                             val routes = routesResult.getOrNull() ?: emptyList()
                             routes.forEach { route ->
@@ -291,7 +299,7 @@ class AreaDetailViewModel(
             var schemaError: String? = null
             
             if (area?.type == AreaType.TRAD) {
-                val schemasResult = repository.getAreaSchemas(areaId)
+                val schemasResult = repo.getAreaSchemas(areaId)
                 if (schemasResult.isSuccess) {
                     allSchemas = schemasResult.getOrNull() ?: emptyList()
                     schemas = allSchemas.filter { it.paths != null && it.bg != null }
