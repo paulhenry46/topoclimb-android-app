@@ -28,6 +28,7 @@ data class RouteEntity(
     val numberLogs: Int?,
     val numberComments: Int?,
     val removingAt: String?,
+    val lineId: Int?, // Parent lineId for proper caching hierarchy
     val cachedAt: Long
 ) {
     fun toRoute(): Route {
@@ -55,7 +56,7 @@ data class RouteEntity(
     }
 
     companion object {
-        fun fromRoute(route: Route, backendId: String): RouteEntity {
+        fun fromRoute(route: Route, backendId: String, lineId: Int? = null): RouteEntity {
             return RouteEntity(
                 id = route.id,
                 backendId = backendId,
@@ -76,6 +77,7 @@ data class RouteEntity(
                 numberLogs = route.numberLogs,
                 numberComments = route.numberComments,
                 removingAt = route.removingAt,
+                lineId = lineId,
                 cachedAt = System.currentTimeMillis()
             )
         }

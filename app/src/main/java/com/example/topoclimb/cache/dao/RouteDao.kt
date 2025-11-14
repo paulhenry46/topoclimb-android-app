@@ -10,6 +10,9 @@ interface RouteDao {
 
     @Query("SELECT * FROM routes WHERE siteId = :siteId AND backendId = :backendId")
     suspend fun getRoutesBySite(siteId: Int, backendId: String): List<RouteEntity>
+    
+    @Query("SELECT * FROM routes WHERE lineId = :lineId AND backendId = :backendId")
+    suspend fun getRoutesByLine(lineId: Int, backendId: String): List<RouteEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRoute(route: RouteEntity)

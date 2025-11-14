@@ -128,13 +128,35 @@ class CacheManager(context: Context) {
         val allValid = routes.all { isValid(it.cachedAt, THREE_DAYS_MS) }
         return if (allValid) routes.map { it.toRoute() } else null
     }
+    
+    suspend fun getCachedRoutesByLine(lineId: Int, backendId: String): List<Route>? {
+        val routes = db.routeDao().getRoutesByLine(lineId, backendId)
+        if (routes.isEmpty()) return null
+        
+        // Route list: 3 days expiration for list, but 1 week for individual cached routes
+        val allValid = routes.all { isValid(it.cachedAt, ONE_WEEK_MS) }
+        return if (allValid) routes.map { it.toRoute() } else null
+    }
+    
+    suspend fun getCachedRoutesByLineIgnoreExpiration(lineId: Int, backendId: String): List<Route>? {
+        val routes = db.routeDao().getRoutesByLine(lineId, backendId)
+        if (routes.isEmpty()) return null
+        return routes.map { it.toRoute() }
+    }
 
-    suspend fun cacheRoute(route: Route, backendId: String) {
-        db.routeDao().insertRoute(RouteEntity.fromRoute(route, backendId))
+    suspend fun cacheRoute(route: Route, backendId: String, lineId: Int? = null) {
+        db.routeDao().insertRoute(RouteEntity.fromRoute(route, backendId, lineId))
     }
 
     suspend fun cacheRoutes(routes: List<Route>, backendId: String) {
         val entities = routes.map { RouteEntity.fromRoute(it, backendId) }
+        db.routeDao().insertRoutes(entities)
+    }
+    
+    suspend fun cacheRoutesByLine(routes: List<Route>, lineId: Int, backendId: String) {
+        val entities = routes.map { route ->
+            RouteEntity.fromRoute(route, backendId, lineId)
+        }
         db.routeDao().insertRoutes(entities)
     }
 

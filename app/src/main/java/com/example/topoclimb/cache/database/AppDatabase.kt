@@ -18,7 +18,7 @@ import com.example.topoclimb.cache.entity.*
         SectorSchemaEntity::class,
         ContestEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(StringListConverter::class, StringMapConverter::class)
@@ -41,7 +41,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "topoclimb_cache_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration() // For development - will clear cache on schema change
+                .build()
                 INSTANCE = instance
                 instance
             }

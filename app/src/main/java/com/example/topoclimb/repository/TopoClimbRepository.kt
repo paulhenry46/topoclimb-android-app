@@ -237,22 +237,31 @@ class TopoClimbRepository(private val context: Context? = null, private val back
     
     suspend fun getRoutesByLine(lineId: Int, forceRefresh: Boolean = false): Result<List<Route>> {
         return try {
-            // Note: Routes don't have lineId field, so we can't efficiently cache by line
-            // For now, we fetch from network and cache the routes (which will be cached by siteId)
-            // This is suboptimal but avoids schema changes
+            // Cache-first strategy
+            if (!forceRefresh && cachePreferences?.isCacheEnabled == true) {
+                val cached = cacheManager?.getCachedRoutesByLine(lineId, backendId)
+                if (cached != null) {
+                    return Result.success(cached)
+                }
+            }
             
             // Network call
             val response = api.getRoutesByLine(lineId)
             
-            // Cache the routes if cache is enabled (they'll be cached by siteId)
+            // Cache the routes by lineId for proper hierarchy
             if (cachePreferences?.isCacheEnabled == true) {
-                cacheManager?.cacheRoutes(response.data, backendId)
+                cacheManager?.cacheRoutesByLine(response.data, lineId, backendId)
             }
             
             Result.success(response.data)
         } catch (e: Exception) {
-            // No good way to retrieve routes by lineId from cache without lineId in schema
-            // Just fail the request
+            // If network fails, try to return cached data even if expired
+            if (cachePreferences?.isCacheEnabled == true) {
+                val cached = cacheManager?.getCachedRoutesByLineIgnoreExpiration(lineId, backendId)
+                if (cached != null) {
+                    return Result.success(cached)
+                }
+            }
             Result.failure(e)
         }
     }
