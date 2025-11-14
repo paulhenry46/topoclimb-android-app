@@ -588,6 +588,41 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Manage TopoClimb Instances")
                     }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Cache settings toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Enable Caching",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = "Cache data locally for faster access",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.isCacheEnabled,
+                            onCheckedChange = { viewModel.toggleCache(it) }
+                        )
+                    }
+                    
+                    if (uiState.isCacheEnabled) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { viewModel.clearCache() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Clear Cache")
+                        }
+                    }
                 }
             }
         }

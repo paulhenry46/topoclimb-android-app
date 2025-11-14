@@ -3,6 +3,8 @@ package com.example.topoclimb.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.topoclimb.cache.CacheManager
+import com.example.topoclimb.cache.CachePreferences
 import com.example.topoclimb.data.User
 import com.example.topoclimb.data.UserStats
 import com.example.topoclimb.data.UserUpdateRequest
@@ -28,7 +30,8 @@ data class ProfileUiState(
     val qrCodeUrl: String? = null,
     val isLoadingQRCode: Boolean = false,
     val qrCodeError: String? = null,
-    val authenticatedBackends: List<com.example.topoclimb.data.BackendConfig> = emptyList()
+    val authenticatedBackends: List<com.example.topoclimb.data.BackendConfig> = emptyList(),
+    val isCacheEnabled: Boolean = true
 )
 
 class ProfileViewModel(
@@ -37,11 +40,16 @@ class ProfileViewModel(
     
     private val repository = BackendConfigRepository(application)
     private val retrofitManager = MultiBackendRetrofitManager()
+    private val cacheManager = CacheManager(application)
+    private val cachePreferences = CachePreferences(application)
     
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
     
     init {
+        // Load cache preference
+        _uiState.value = _uiState.value.copy(isCacheEnabled = cachePreferences.isCacheEnabled)
+        
         viewModelScope.launch {
             repository.backends.collect { backends ->
                 updateProfile()
@@ -198,5 +206,25 @@ class ProfileViewModel(
             isLoadingQRCode = false,
             qrCodeError = null
         )
+    }
+    
+    fun toggleCache(enabled: Boolean) {
+        cachePreferences.isCacheEnabled = enabled
+        _uiState.value = _uiState.value.copy(isCacheEnabled = enabled)
+        
+        // If cache is disabled, clear it
+        if (!enabled) {
+            clearCache()
+        }
+    }
+    
+    fun clearCache() {
+        viewModelScope.launch {
+            try {
+                cacheManager.clearAllCache()
+            } catch (e: Exception) {
+                // Silently fail - cache clearing is not critical
+            }
+        }
     }
 }

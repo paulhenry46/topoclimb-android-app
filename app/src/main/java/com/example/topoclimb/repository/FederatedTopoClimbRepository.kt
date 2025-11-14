@@ -2,6 +2,8 @@ package com.example.topoclimb.repository
 
 import android.content.Context
 import com.example.topoclimb.AppConfig
+import com.example.topoclimb.cache.CacheManager
+import com.example.topoclimb.cache.CachePreferences
 import com.example.topoclimb.data.*
 import com.example.topoclimb.network.MultiBackendRetrofitManager
 import kotlinx.coroutines.async
@@ -11,16 +13,21 @@ import kotlinx.coroutines.coroutineScope
 /**
  * Repository that aggregates data from multiple federated backends
  * Each resource is wrapped in a Federated<T> object with backend metadata
+ * 
+ * Implements cache-first strategy with network fallback
  */
-class FederatedTopoClimbRepository(context: Context) {
+class FederatedTopoClimbRepository(private val context: Context) {
     
     private val backendConfigRepository = BackendConfigRepository(context)
     private val retrofitManager = MultiBackendRetrofitManager(AppConfig.ENABLE_LOGGING)
+    private val cacheManager = CacheManager(context)
+    private val cachePreferences = CachePreferences(context)
     
     /**
      * Get sites from all enabled backends
+     * @param forceRefresh: if true, bypass cache and fetch from network
      */
-    suspend fun getSites(): Result<List<Federated<Site>>> {
+    suspend fun getSites(forceRefresh: Boolean = false): Result<List<Federated<Site>>> {
         return try {
             val enabledBackends = backendConfigRepository.getEnabledBackends()
             
@@ -32,8 +39,28 @@ class FederatedTopoClimbRepository(context: Context) {
                 enabledBackends.map { backend ->
                     async {
                         try {
+                            // Cache-first strategy (unless force refresh or cache disabled)
+                            if (!forceRefresh && cachePreferences.isCacheEnabled) {
+                                val cached = cacheManager.getCachedSites(backend.id)
+                                if (cached != null) {
+                                    return@async cached.map { site ->
+                                        Federated(
+                                            data = site,
+                                            backend = backend.toMetadata()
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Network fallback
                             val api = retrofitManager.getApiService(backend)
                             val response = api.getSites()
+                            
+                            // Cache the result if cache is enabled
+                            if (cachePreferences.isCacheEnabled) {
+                                cacheManager.cacheSites(response.data, backend.id)
+                            }
+                            
                             response.data.map { site ->
                                 Federated(
                                     data = site,
@@ -41,7 +68,18 @@ class FederatedTopoClimbRepository(context: Context) {
                                 )
                             }
                         } catch (e: Exception) {
-                            emptyList<Federated<Site>>()
+                            // If network fails, try to return cached data even if expired
+                            if (cachePreferences.isCacheEnabled) {
+                                val cached = cacheManager.getCachedSites(backend.id)
+                                cached?.map { site ->
+                                    Federated(
+                                        data = site,
+                                        backend = backend.toMetadata()
+                                    )
+                                } ?: emptyList()
+                            } else {
+                                emptyList<Federated<Site>>()
+                            }
                         }
                     }
                 }.awaitAll().flatten()
@@ -55,14 +93,34 @@ class FederatedTopoClimbRepository(context: Context) {
     
     /**
      * Get a specific site from a specific backend
+     * @param forceRefresh: if true, bypass cache and fetch from network
      */
-    suspend fun getSite(backendId: String, siteId: Int): Result<Federated<Site>> {
+    suspend fun getSite(backendId: String, siteId: Int, forceRefresh: Boolean = false): Result<Federated<Site>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
+            // Cache-first strategy
+            if (!forceRefresh && cachePreferences.isCacheEnabled) {
+                val cached = cacheManager.getCachedSite(siteId, backendId)
+                if (cached != null) {
+                    return Result.success(
+                        Federated(
+                            data = cached,
+                            backend = backend.toMetadata()
+                        )
+                    )
+                }
+            }
+            
+            // Network fallback
             val api = retrofitManager.getApiService(backend)
             val response = api.getSite(siteId)
+            
+            // Cache the result if cache is enabled
+            if (cachePreferences.isCacheEnabled) {
+                cacheManager.cacheSite(response.data, backendId)
+            }
             
             Result.success(
                 Federated(
@@ -71,6 +129,18 @@ class FederatedTopoClimbRepository(context: Context) {
                 )
             )
         } catch (e: Exception) {
+            // If network fails, try to return cached data even if expired
+            if (cachePreferences.isCacheEnabled) {
+                val cached = cacheManager.getCachedSite(siteId, backendId)
+                if (cached != null) {
+                    return Result.success(
+                        Federated(
+                            data = cached,
+                            backend = backend.toMetadata()
+                        )
+                    )
+                }
+            }
             Result.failure(e)
         }
     }
@@ -221,14 +291,36 @@ class FederatedTopoClimbRepository(context: Context) {
     
     /**
      * Get areas by site from a specific backend
+     * @param forceRefresh: if true, bypass cache and fetch from network
      */
-    suspend fun getAreasBySite(backendId: String, siteId: Int): Result<List<Federated<Area>>> {
+    suspend fun getAreasBySite(backendId: String, siteId: Int, forceRefresh: Boolean = false): Result<List<Federated<Area>>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
+            // Cache-first strategy
+            if (!forceRefresh && cachePreferences.isCacheEnabled) {
+                val cached = cacheManager.getCachedAreasBySite(siteId, backendId)
+                if (cached != null) {
+                    return Result.success(
+                        cached.map { area ->
+                            Federated(
+                                data = area,
+                                backend = backend.toMetadata()
+                            )
+                        }
+                    )
+                }
+            }
+            
+            // Network fallback
             val api = retrofitManager.getApiService(backend)
             val response = api.getAreasBySite(siteId)
+            
+            // Cache the result if cache is enabled
+            if (cachePreferences.isCacheEnabled) {
+                cacheManager.cacheAreas(response.data, backendId)
+            }
             
             Result.success(
                 response.data.map { area ->
@@ -239,20 +331,56 @@ class FederatedTopoClimbRepository(context: Context) {
                 }
             )
         } catch (e: Exception) {
+            // If network fails, try to return cached data even if expired
+            if (cachePreferences.isCacheEnabled) {
+                val cached = cacheManager.getCachedAreasBySite(siteId, backendId)
+                if (cached != null) {
+                    return Result.success(
+                        cached.map { area ->
+                            Federated(
+                                data = area,
+                                backend = backend.toMetadata()
+                            )
+                        }
+                    )
+                }
+            }
             Result.failure(e)
         }
     }
     
     /**
      * Get contests by site from a specific backend
+     * @param forceRefresh: if true, bypass cache and fetch from network
      */
-    suspend fun getContestsBySite(backendId: String, siteId: Int): Result<List<Federated<Contest>>> {
+    suspend fun getContestsBySite(backendId: String, siteId: Int, forceRefresh: Boolean = false): Result<List<Federated<Contest>>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
+            // Cache-first strategy
+            if (!forceRefresh && cachePreferences.isCacheEnabled) {
+                val cached = cacheManager.getCachedContestsBySite(siteId, backendId)
+                if (cached != null) {
+                    return Result.success(
+                        cached.map { contest ->
+                            Federated(
+                                data = contest,
+                                backend = backend.toMetadata()
+                            )
+                        }
+                    )
+                }
+            }
+            
+            // Network fallback
             val api = retrofitManager.getApiService(backend)
             val response = api.getContestsBySite(siteId)
+            
+            // Cache the result if cache is enabled
+            if (cachePreferences.isCacheEnabled) {
+                cacheManager.cacheContests(response.data, backendId)
+            }
             
             Result.success(
                 response.data.map { contest ->
@@ -263,6 +391,20 @@ class FederatedTopoClimbRepository(context: Context) {
                 }
             )
         } catch (e: Exception) {
+            // If network fails, try to return cached data even if expired
+            if (cachePreferences.isCacheEnabled) {
+                val cached = cacheManager.getCachedContestsBySite(siteId, backendId)
+                if (cached != null) {
+                    return Result.success(
+                        cached.map { contest ->
+                            Federated(
+                                data = contest,
+                                backend = backend.toMetadata()
+                            )
+                        }
+                    )
+                }
+            }
             Result.failure(e)
         }
     }
@@ -368,5 +510,26 @@ class FederatedTopoClimbRepository(context: Context) {
      */
     fun getBackendConfigRepository(): BackendConfigRepository {
         return backendConfigRepository
+    }
+    
+    /**
+     * Get cache manager for direct cache operations
+     */
+    fun getCacheManager(): CacheManager {
+        return cacheManager
+    }
+    
+    /**
+     * Get cache preferences
+     */
+    fun getCachePreferences(): CachePreferences {
+        return cachePreferences
+    }
+    
+    /**
+     * Clear all cached data
+     */
+    suspend fun clearAllCache() {
+        cacheManager.clearAllCache()
     }
 }

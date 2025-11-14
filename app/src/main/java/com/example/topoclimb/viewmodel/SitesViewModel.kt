@@ -46,7 +46,7 @@ class SitesViewModel(
     fun loadSites() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            repository.getSites()
+            repository.getSites(forceRefresh = false) // Use cache
                 .onSuccess { sites ->
                     _uiState.value = _uiState.value.copy(
                         sites = sites,
@@ -67,7 +67,7 @@ class SitesViewModel(
     fun refreshSites() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
-            repository.getSites()
+            repository.getSites(forceRefresh = true) // Force network refresh
                 .onSuccess { sites ->
                     _uiState.value = _uiState.value.copy(
                         sites = sites,

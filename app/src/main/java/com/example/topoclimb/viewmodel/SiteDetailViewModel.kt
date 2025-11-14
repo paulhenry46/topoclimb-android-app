@@ -42,8 +42,8 @@ class SiteDetailViewModel(
                 siteId = siteId
             )
             
-            // Load site details
-            repository.getSite(backendId, siteId)
+            // Load site details (with cache)
+            repository.getSite(backendId, siteId, forceRefresh = false)
                 .onSuccess { site ->
                     _uiState.value = _uiState.value.copy(site = site)
                 }
@@ -56,8 +56,8 @@ class SiteDetailViewModel(
                     return@launch
                 }
             
-            // Load areas
-            repository.getAreasBySite(backendId, siteId)
+            // Load areas (with cache)
+            repository.getAreasBySite(backendId, siteId, forceRefresh = false)
                 .onSuccess { areas ->
                     _uiState.value = _uiState.value.copy(areas = areas)
                 }
@@ -66,8 +66,8 @@ class SiteDetailViewModel(
                     _uiState.value = _uiState.value.copy(areas = emptyList())
                 }
             
-            // Load contests
-            repository.getContestsBySite(backendId, siteId)
+            // Load contests (with cache)
+            repository.getContestsBySite(backendId, siteId, forceRefresh = false)
                 .onSuccess { contests ->
                     _uiState.value = _uiState.value.copy(contests = contests)
                 }
@@ -87,8 +87,8 @@ class SiteDetailViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
             
-            // Load site details
-            repository.getSite(backendId, siteId)
+            // Force refresh from network
+            repository.getSite(backendId, siteId, forceRefresh = true)
                 .onSuccess { site ->
                     _uiState.value = _uiState.value.copy(site = site)
                 }
@@ -100,8 +100,8 @@ class SiteDetailViewModel(
                     return@launch
                 }
             
-            // Load areas
-            repository.getAreasBySite(backendId, siteId)
+            // Force refresh areas
+            repository.getAreasBySite(backendId, siteId, forceRefresh = true)
                 .onSuccess { areas ->
                     _uiState.value = _uiState.value.copy(areas = areas)
                 }
@@ -110,8 +110,8 @@ class SiteDetailViewModel(
                     _uiState.value = _uiState.value.copy(areas = emptyList())
                 }
             
-            // Load contests
-            repository.getContestsBySite(backendId, siteId)
+            // Force refresh contests
+            repository.getContestsBySite(backendId, siteId, forceRefresh = true)
                 .onSuccess { contests ->
                     _uiState.value = _uiState.value.copy(contests = contests)
                 }
