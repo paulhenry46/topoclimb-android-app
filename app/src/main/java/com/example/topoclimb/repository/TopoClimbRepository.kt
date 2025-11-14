@@ -175,9 +175,31 @@ class TopoClimbRepository(private val context: Context? = null, private val back
     
     suspend fun getSectorsByArea(areaId: Int, forceRefresh: Boolean = false): Result<List<Sector>> {
         return try {
+            // Cache-first strategy
+            if (!forceRefresh && cachePreferences?.isCacheEnabled == true) {
+                val cached = cacheManager?.getCachedSectorsByArea(areaId, backendId)
+                if (cached != null) {
+                    return Result.success(cached)
+                }
+            }
+            
+            // Network call
             val response = api.getSectorsByArea(areaId)
+            
+            // Cache the result if cache is enabled
+            if (cachePreferences?.isCacheEnabled == true) {
+                cacheManager?.cacheSectorsByArea(response.data, areaId, backendId)
+            }
+            
             Result.success(response.data)
         } catch (e: Exception) {
+            // If network fails, try to return cached data even if expired
+            if (cachePreferences?.isCacheEnabled == true) {
+                val cached = cacheManager?.getCachedSectorsByAreaIgnoreExpiration(areaId, backendId)
+                if (cached != null) {
+                    return Result.success(cached)
+                }
+            }
             Result.failure(e)
         }
     }

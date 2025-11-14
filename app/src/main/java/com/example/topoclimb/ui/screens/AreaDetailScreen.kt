@@ -114,6 +114,9 @@ fun AreaDetailScreen(
     // State for filter modal
     var showFilterModal by remember { mutableStateOf(false) }
     
+    // State for debug modal
+    var showDebugModal by remember { mutableStateOf(false) }
+    
     // Check if there are active filters (excluding search query)
     val hasActiveFilters = uiState.minGrade != null || uiState.maxGrade != null || 
         uiState.showNewRoutesOnly || uiState.climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL || 
@@ -171,6 +174,15 @@ fun AreaDetailScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            // Debug FAB to show cached sectors
+            FloatingActionButton(
+                onClick = { showDebugModal = true },
+                containerColor = MaterialTheme.colorScheme.secondary
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = "Debug Cache")
+            }
         }
     ) { padding ->
         when {
@@ -751,6 +763,80 @@ fun AreaDetailScreen(
                 onFavoritesToggle = { viewModel.toggleFavoritesFilter(it) },
                 onClearFilters = { viewModel.clearFilters() },
                 onDismiss = { showFilterModal = false }
+            )
+        }
+        
+        // Debug modal to show cached sectors
+        if (showDebugModal) {
+            AlertDialog(
+                onDismissRequest = { showDebugModal = false },
+                title = { Text("Cached Sectors Debug") },
+                text = {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp)
+                    ) {
+                        item {
+                            Text(
+                                "Area ID: $areaId",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Backend ID: $backendId",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "Cached Sectors:",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        
+                        items(uiState.sectors) { sector ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        "ID: ${sector.id}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        "Name: ${sector.name}",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        "Area ID: ${sector.areaId}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                        
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Total: ${uiState.sectors.size} sectors",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showDebugModal = false }) {
+                        Text("Close")
+                    }
+                }
             )
         }
     }
