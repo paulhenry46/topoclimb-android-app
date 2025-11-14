@@ -319,7 +319,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
             
             // Cache the result if cache is enabled
             if (cachePreferences.isCacheEnabled) {
-                cacheManager.cacheAreas(response.data, backendId)
+                cacheManager.cacheAreasBySite(response.data, siteId, backendId)
             }
             
             Result.success(
@@ -379,7 +379,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
             
             // Cache the result if cache is enabled
             if (cachePreferences.isCacheEnabled) {
-                cacheManager.cacheContests(response.data, backendId)
+                cacheManager.cacheContestsBySite(response.data, siteId, backendId)
             }
             
             Result.success(

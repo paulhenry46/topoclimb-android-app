@@ -89,6 +89,15 @@ class CacheManager(context: Context) {
         val entities = areas.map { AreaEntity.fromArea(it, backendId) }
         db.areaDao().insertAreas(entities)
     }
+    
+    suspend fun cacheAreasBySite(areas: List<Area>, siteId: Int, backendId: String) {
+        val entities = areas.map { area ->
+            // Ensure siteId is set correctly for areas fetched via getAreasBySite
+            val areaWithSiteId = area.copy(siteId = siteId)
+            AreaEntity.fromArea(areaWithSiteId, backendId)
+        }
+        db.areaDao().insertAreas(entities)
+    }
 
     suspend fun getCachedArea(areaId: Int, backendId: String): Area? {
         val area = db.areaDao().getAreaById(areaId, backendId) ?: return null
@@ -183,6 +192,15 @@ class CacheManager(context: Context) {
 
     suspend fun cacheContests(contests: List<Contest>, backendId: String) {
         val entities = contests.map { ContestEntity.fromContest(it, backendId) }
+        db.contestDao().insertContests(entities)
+    }
+    
+    suspend fun cacheContestsBySite(contests: List<Contest>, siteId: Int, backendId: String) {
+        val entities = contests.map { contest ->
+            // Ensure siteId is set correctly for contests fetched via getContestsBySite
+            val contestWithSiteId = contest.copy(siteId = siteId)
+            ContestEntity.fromContest(contestWithSiteId, backendId)
+        }
         db.contestDao().insertContests(entities)
     }
 
