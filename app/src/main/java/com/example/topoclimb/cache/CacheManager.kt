@@ -103,6 +103,11 @@ class CacheManager(context: Context) {
         val area = db.areaDao().getAreaById(areaId, backendId) ?: return null
         return if (isValid(area.cachedAt, THREE_DAYS_MS)) area.toArea() else null
     }
+    
+    suspend fun getCachedAreaIgnoreExpiration(areaId: Int, backendId: String): Area? {
+        val area = db.areaDao().getAreaById(areaId, backendId) ?: return null
+        return area.toArea()
+    }
 
     suspend fun cacheArea(area: Area, backendId: String) {
         db.areaDao().insertArea(AreaEntity.fromArea(area, backendId))
@@ -141,9 +146,24 @@ class CacheManager(context: Context) {
         val allValid = sectors.all { isValid(it.cachedAt, THREE_DAYS_MS) }
         return if (allValid) sectors.map { it.toSector() } else null
     }
+    
+    suspend fun getCachedSectorsByAreaIgnoreExpiration(areaId: Int, backendId: String): List<Sector>? {
+        val sectors = db.sectorDao().getSectorsByArea(areaId, backendId)
+        if (sectors.isEmpty()) return null
+        return sectors.map { it.toSector() }
+    }
 
     suspend fun cacheSectors(sectors: List<Sector>, backendId: String) {
         val entities = sectors.map { SectorEntity.fromSector(it, backendId) }
+        db.sectorDao().insertSectors(entities)
+    }
+    
+    suspend fun cacheSectorsByArea(sectors: List<Sector>, areaId: Int, backendId: String) {
+        val entities = sectors.map { sector ->
+            // Ensure areaId is set correctly for sectors fetched via getSectorsByArea
+            val sectorWithAreaId = sector.copy(areaId = areaId)
+            SectorEntity.fromSector(sectorWithAreaId, backendId)
+        }
         db.sectorDao().insertSectors(entities)
     }
 
@@ -155,9 +175,24 @@ class CacheManager(context: Context) {
         val allValid = lines.all { isValid(it.cachedAt, THREE_DAYS_MS) }
         return if (allValid) lines.map { it.toLine() } else null
     }
+    
+    suspend fun getCachedLinesBySectorIgnoreExpiration(sectorId: Int, backendId: String): List<Line>? {
+        val lines = db.lineDao().getLinesBySector(sectorId, backendId)
+        if (lines.isEmpty()) return null
+        return lines.map { it.toLine() }
+    }
 
     suspend fun cacheLines(lines: List<Line>, backendId: String) {
         val entities = lines.map { LineEntity.fromLine(it, backendId) }
+        db.lineDao().insertLines(entities)
+    }
+    
+    suspend fun cacheLinesBySector(lines: List<Line>, sectorId: Int, backendId: String) {
+        val entities = lines.map { line ->
+            // Ensure sectorId is set correctly for lines fetched via getLinesBySector
+            val lineWithSectorId = line.copy(sectorId = sectorId)
+            LineEntity.fromLine(lineWithSectorId, backendId)
+        }
         db.lineDao().insertLines(entities)
     }
 
@@ -168,6 +203,12 @@ class CacheManager(context: Context) {
         
         val allValid = schemas.all { isValid(it.cachedAt, THREE_DAYS_MS) }
         return if (allValid) schemas.map { it.toSectorSchema() } else null
+    }
+    
+    suspend fun getCachedSchemasByAreaIgnoreExpiration(areaId: Int, backendId: String): List<SectorSchema>? {
+        val schemas = db.sectorSchemaDao().getSchemasByArea(areaId, backendId)
+        if (schemas.isEmpty()) return null
+        return schemas.map { it.toSectorSchema() }
     }
 
     suspend fun cacheSchemas(schemas: List<SectorSchema>, areaId: Int, backendId: String) {

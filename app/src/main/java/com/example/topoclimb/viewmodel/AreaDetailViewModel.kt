@@ -1,6 +1,7 @@
 package com.example.topoclimb.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.AreaType
@@ -69,8 +70,10 @@ enum class GroupingOption {
     BY_SECTOR   // Group by sector
 }
 
-class AreaDetailViewModel : ViewModel() {
-    private val repository = TopoClimbRepository()
+class AreaDetailViewModel(
+    application: Application
+) : AndroidViewModel(application) {
+    private val repository = TopoClimbRepository(application)
     private val httpClient = OkHttpClient()
     
     private val _uiState = MutableStateFlow(AreaDetailUiState())
