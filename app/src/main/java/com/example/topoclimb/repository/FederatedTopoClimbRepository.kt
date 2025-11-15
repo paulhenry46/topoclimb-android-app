@@ -44,8 +44,9 @@ class FederatedTopoClimbRepository(private val context: Context) {
     /**
      * Get sites from all enabled backends (offline-first)
      * Returns cached data first, then refreshes from network
+     * @param forceRefresh If true, always refresh from network regardless of cache age
      */
-    suspend fun getSites(): Result<List<Federated<Site>>> {
+    suspend fun getSites(forceRefresh: Boolean = false): Result<List<Federated<Site>>> {
         return try {
             val enabledBackends = backendConfigRepository.getEnabledBackends()
             
@@ -54,6 +55,10 @@ class FederatedTopoClimbRepository(private val context: Context) {
             }
             
             // Get cached sites from Room
+            val cachedSiteEntities = enabledBackends.flatMap { backend ->
+                database.siteDao().getAllSites(backend.id)
+            }
+            
             val cachedSites = enabledBackends.flatMap { backend ->
                 database.siteDao().getAllSites(backend.id).map { entity ->
                     Federated(
@@ -63,10 +68,16 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 }
             }
             
-            // If network available, refresh data in background (non-blocking)
+            // If network available and (forceRefresh OR cache is stale), refresh data in background (non-blocking)
             if (NetworkUtils.isNetworkAvailable(context)) {
-                backgroundScope.launch {
-                    refreshSitesFromNetwork(enabledBackends)
+                val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedSiteEntities) { it.lastUpdated }
+                if (shouldRefresh) {
+                    backgroundScope.launch {
+                        refreshSitesFromNetwork(enabledBackends)
+                    }
+                    android.util.Log.d("OfflineFirst", "Background refresh: Updating sites (forceRefresh=$forceRefresh)")
+                } else {
+                    android.util.Log.d("OfflineFirst", "Skipping refresh for sites - cache is fresh")
                 }
             }
             
@@ -165,11 +176,13 @@ class FederatedTopoClimbRepository(private val context: Context) {
     
     /**
      * Get routes from all enabled backends (offline-first)
+     * @param forceRefresh If true, always refresh from network regardless of cache age
      */
     suspend fun getRoutes(
         siteId: Int? = null,
         grade: String? = null,
-        type: String? = null
+        type: String? = null,
+        forceRefresh: Boolean = false
     ): Result<List<Federated<Route>>> {
         return try {
             val enabledBackends = backendConfigRepository.getEnabledBackends()
@@ -203,10 +216,23 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 filtered
             }
             
-            // If network available, refresh data in background (non-blocking)
+            // If network available and (forceRefresh OR cache is stale), refresh data in background (non-blocking)
             if (NetworkUtils.isNetworkAvailable(context)) {
-                backgroundScope.launch {
-                    refreshRoutesFromNetwork(enabledBackends, siteId, grade, type)
+                val cachedEntities = enabledBackends.flatMap { backend ->
+                    if (siteId != null) {
+                        database.routeDao().getRoutesBySite(siteId, backend.id)
+                    } else {
+                        database.routeDao().getAllRoutes(backend.id)
+                    }
+                }
+                val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedEntities) { it.lastUpdated }
+                if (shouldRefresh) {
+                    backgroundScope.launch {
+                        refreshRoutesFromNetwork(enabledBackends, siteId, grade, type)
+                    }
+                    android.util.Log.d("OfflineFirst", "Background refresh: Updating routes (forceRefresh=$forceRefresh)")
+                } else {
+                    android.util.Log.d("OfflineFirst", "Skipping refresh for routes - cache is fresh")
                 }
             }
             
@@ -247,8 +273,9 @@ class FederatedTopoClimbRepository(private val context: Context) {
     
     /**
      * Get a specific route from a specific backend (offline-first)
+     * @param forceRefresh If true, always refresh from network regardless of cache age
      */
-    suspend fun getRoute(backendId: String, routeId: Int): Result<Federated<Route>> {
+    suspend fun getRoute(backendId: String, routeId: Int, forceRefresh: Boolean = false): Result<Federated<Route>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
@@ -256,16 +283,26 @@ class FederatedTopoClimbRepository(private val context: Context) {
             // Get cached route from Room
             val cachedRoute = database.routeDao().getRoute(routeId, backendId)
             
-            // If network available, refresh data in background (non-blocking)
+            // Refresh data in background if:
+            // 1. Network is available AND
+            // 2. We have cached data AND
+            // 3. Either forceRefresh is true OR cache is stale (> 24 hours)
             if (NetworkUtils.isNetworkAvailable(context) && cachedRoute != null) {
-                backgroundScope.launch {
-                    try {
-                        val api = retrofitManager.getApiService(backend)
-                        val response = api.getRoute(routeId)
-                        database.routeDao().insertRoute(response.data.toEntity(backendId))
-                    } catch (e: Exception) {
-                        // Silently fail - we already returned cached data
+                val shouldRefresh = forceRefresh || CacheUtils.isCacheStale(cachedRoute.lastUpdated)
+                if (shouldRefresh) {
+                    backgroundScope.launch {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getRoute(routeId)
+                            database.routeDao().insertRoute(response.data.toEntity(backendId))
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated route $routeId (forceRefresh=$forceRefresh)")
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                            android.util.Log.e("OfflineFirst", "Background refresh failed for route $routeId", e)
+                        }
                     }
+                } else {
+                    android.util.Log.d("OfflineFirst", "Skipping refresh for route $routeId - cache is fresh")
                 }
             }
             
@@ -298,8 +335,9 @@ class FederatedTopoClimbRepository(private val context: Context) {
     
     /**
      * Get areas from all enabled backends (offline-first)
+     * @param forceRefresh If true, always refresh from network regardless of cache age
      */
-    suspend fun getAreas(): Result<List<Federated<Area>>> {
+    suspend fun getAreas(forceRefresh: Boolean = false): Result<List<Federated<Area>>> {
         return try {
             val enabledBackends = backendConfigRepository.getEnabledBackends()
             
@@ -317,10 +355,19 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 }
             }
             
-            // If network available, refresh data in background
+            // If network available and (forceRefresh OR cache is stale), refresh data in background
             if (NetworkUtils.isNetworkAvailable(context)) {
-                backgroundScope.launch {
-                    refreshAreasFromNetwork(enabledBackends)
+                val cachedEntities = enabledBackends.flatMap { backend ->
+                    database.areaDao().getAllAreas(backend.id)
+                }
+                val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedEntities) { it.lastUpdated }
+                if (shouldRefresh) {
+                    backgroundScope.launch {
+                        refreshAreasFromNetwork(enabledBackends)
+                    }
+                    android.util.Log.d("OfflineFirst", "Background refresh: Updating areas (forceRefresh=$forceRefresh)")
+                } else {
+                    android.util.Log.d("OfflineFirst", "Skipping refresh for areas - cache is fresh")
                 }
             }
             
@@ -356,8 +403,9 @@ class FederatedTopoClimbRepository(private val context: Context) {
     
     /**
      * Get a specific area from a specific backend (offline-first)
+     * @param forceRefresh If true, always refresh from network regardless of cache age
      */
-    suspend fun getArea(backendId: String, areaId: Int): Result<Federated<Area>> {
+    suspend fun getArea(backendId: String, areaId: Int, forceRefresh: Boolean = false): Result<Federated<Area>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
@@ -365,16 +413,26 @@ class FederatedTopoClimbRepository(private val context: Context) {
             // Get cached area from Room
             val cachedArea = database.areaDao().getArea(areaId, backendId)
             
-            // If network available, refresh data in background (non-blocking)
+            // Refresh data in background if:
+            // 1. Network is available AND
+            // 2. We have cached data AND
+            // 3. Either forceRefresh is true OR cache is stale (> 24 hours)
             if (NetworkUtils.isNetworkAvailable(context) && cachedArea != null) {
-                backgroundScope.launch {
-                    try {
-                        val api = retrofitManager.getApiService(backend)
-                        val response = api.getArea(areaId)
-                        database.areaDao().insertArea(response.data.toEntity(backendId))
-                    } catch (e: Exception) {
-                        // Silently fail - we already returned cached data
+                val shouldRefresh = forceRefresh || CacheUtils.isCacheStale(cachedArea.lastUpdated)
+                if (shouldRefresh) {
+                    backgroundScope.launch {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getArea(areaId)
+                            database.areaDao().insertArea(response.data.toEntity(backendId))
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated area $areaId (forceRefresh=$forceRefresh)")
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                            android.util.Log.e("OfflineFirst", "Background refresh failed for area $areaId", e)
+                        }
                     }
+                } else {
+                    android.util.Log.d("OfflineFirst", "Skipping refresh for area $areaId - cache is fresh")
                 }
             }
             
