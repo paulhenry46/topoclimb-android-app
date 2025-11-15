@@ -86,30 +86,35 @@ class TopoClimbRepository(private val context: Context? = null) {
             
             // If no cache and online, fetch synchronously first
             if (cachedSectors.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
-                android.util.Log.d("OfflineFirst", "No cache for area $areaId, fetching from network")
-                val response = api.getSectorsByArea(areaId)
-                android.util.Log.d("OfflineFirst", "API returned ${response.data.size} sectors for area $areaId")
-                
-                // Convert to entities with null checks and logging, override areaId
-                val entities = response.data.mapNotNull { sector ->
-                    try {
-                        sector.toEntity(defaultBackendId, areaId)  // Pass correct areaId
-                    } catch (e: Exception) {
-                        android.util.Log.e("OfflineFirst", "Failed to convert sector ${sector.id} to entity: ${e.message}. Sector data: id=${sector.id}, name='${sector.name}', areaId=${sector.areaId}")
-                        null  // Skip sectors that can't be converted
+                try {
+                    android.util.Log.d("OfflineFirst", "No cache for area $areaId, fetching from network")
+                    val response = api.getSectorsByArea(areaId)
+                    android.util.Log.d("OfflineFirst", "API returned ${response.data.size} sectors for area $areaId")
+                    
+                    // Convert to entities with null checks and logging, override areaId
+                    val entities = response.data.mapNotNull { sector ->
+                        try {
+                            sector.toEntity(defaultBackendId, areaId)  // Pass correct areaId
+                        } catch (e: Exception) {
+                            android.util.Log.e("OfflineFirst", "Failed to convert sector ${sector.id} to entity: ${e.message}. Sector data: id=${sector.id}, name='${sector.name}', areaId=${sector.areaId}")
+                            null  // Skip sectors that can't be converted
+                        }
                     }
-                }
-                
-                if (entities.isNotEmpty()) {
+                    
+                    // Cache even if empty - this marks that we fetched and got nothing
                     database.sectorDao().insertSectors(entities)
                     android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} sectors for area $areaId")
                     // Log a sample to verify correct areaId
                     entities.firstOrNull()?.let { 
                         android.util.Log.d("OfflineFirst", "Sample cached sector: id=${it.id}, name='${it.name}', areaId=${it.areaId} (should be $areaId)")
                     }
+                    
+                    return Result.success(response.data)
+                } catch (e: Exception) {
+                    // Network error - return empty gracefully (no cache available)
+                    android.util.Log.w("OfflineFirst", "Network error fetching sectors for area $areaId, returning empty: ${e.message}")
+                    return Result.success(emptyList())
                 }
-                
-                return Result.success(response.data)
             }
             
             // If no cache and offline, return empty
@@ -137,10 +142,9 @@ class TopoClimbRepository(private val context: Context? = null) {
                                     null
                                 }
                             }
-                            if (entities.isNotEmpty()) {
-                                database.sectorDao().insertSectors(entities)
-                                android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} sectors for area $areaId (forceRefresh=$forceRefresh)")
-                            }
+                            // Cache even if empty
+                            database.sectorDao().insertSectors(entities)
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} sectors for area $areaId (forceRefresh=$forceRefresh)")
                         } catch (e: Exception) {
                             android.util.Log.e("OfflineFirst", "Background refresh failed for sectors", e)
                         }
@@ -152,8 +156,9 @@ class TopoClimbRepository(private val context: Context? = null) {
             
             Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("OfflineFirst", "Error in getSectorsByArea", e)
-            Result.failure(e)
+            // Unexpected error - log but return empty instead of failure
+            android.util.Log.e("OfflineFirst", "Error in getSectorsByArea for area $areaId, returning empty: ${e.message}", e)
+            Result.success(emptyList())
         }
     }
     
@@ -174,30 +179,35 @@ class TopoClimbRepository(private val context: Context? = null) {
             
             // If no cache and online, fetch synchronously first
             if (cachedLines.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
-                android.util.Log.d("OfflineFirst", "No cache for sector $sectorId, fetching from network")
-                val response = api.getLinesBySector(sectorId)
-                android.util.Log.d("OfflineFirst", "API returned ${response.data.size} lines for sector $sectorId")
-                
-                // Convert to entities with null checks and logging, override sectorId
-                val entities = response.data.mapNotNull { line ->
-                    try {
-                        line.toEntity(defaultBackendId, sectorId)  // Pass correct sectorId
-                    } catch (e: Exception) {
-                        android.util.Log.e("OfflineFirst", "Failed to convert line ${line.id} to entity: ${e.message}. Line data: id=${line.id}, name='${line.name}', sectorId=${line.sectorId}")
-                        null  // Skip lines that can't be converted
+                try {
+                    android.util.Log.d("OfflineFirst", "No cache for sector $sectorId, fetching from network")
+                    val response = api.getLinesBySector(sectorId)
+                    android.util.Log.d("OfflineFirst", "API returned ${response.data.size} lines for sector $sectorId")
+                    
+                    // Convert to entities with null checks and logging, override sectorId
+                    val entities = response.data.mapNotNull { line ->
+                        try {
+                            line.toEntity(defaultBackendId, sectorId)  // Pass correct sectorId
+                        } catch (e: Exception) {
+                            android.util.Log.e("OfflineFirst", "Failed to convert line ${line.id} to entity: ${e.message}. Line data: id=${line.id}, name='${line.name}', sectorId=${line.sectorId}")
+                            null  // Skip lines that can't be converted
+                        }
                     }
-                }
-                
-                if (entities.isNotEmpty()) {
+                    
+                    // Cache even if empty - this marks that we fetched and got nothing
                     database.lineDao().insertLines(entities)
                     android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} lines for sector $sectorId")
                     // Log a sample to verify correct sectorId
                     entities.firstOrNull()?.let {
                         android.util.Log.d("OfflineFirst", "Sample cached line: id=${it.id}, name='${it.name}', sectorId=${it.sectorId} (should be $sectorId)")
                     }
+                    
+                    return Result.success(response.data)
+                } catch (e: Exception) {
+                    // Network error - return empty gracefully (no cache available)
+                    android.util.Log.w("OfflineFirst", "Network error fetching lines for sector $sectorId, returning empty: ${e.message}")
+                    return Result.success(emptyList())
                 }
-                
-                return Result.success(response.data)
             }
             
             // If no cache and offline, return empty
@@ -225,10 +235,9 @@ class TopoClimbRepository(private val context: Context? = null) {
                                     null
                                 }
                             }
-                            if (entities.isNotEmpty()) {
-                                database.lineDao().insertLines(entities)
-                                android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} lines for sector $sectorId (forceRefresh=$forceRefresh)")
-                            }
+                            // Cache even if empty
+                            database.lineDao().insertLines(entities)
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} lines for sector $sectorId (forceRefresh=$forceRefresh)")
                         } catch (e: Exception) {
                             android.util.Log.e("OfflineFirst", "Background refresh failed for lines", e)
                         }
@@ -240,8 +249,9 @@ class TopoClimbRepository(private val context: Context? = null) {
             
             Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("OfflineFirst", "Error in getLinesBySector", e)
-            Result.failure(e)
+            // Unexpected error - log but return empty instead of failure
+            android.util.Log.e("OfflineFirst", "Error in getLinesBySector for sector $sectorId, returning empty: ${e.message}", e)
+            Result.success(emptyList())
         }
     }
     
