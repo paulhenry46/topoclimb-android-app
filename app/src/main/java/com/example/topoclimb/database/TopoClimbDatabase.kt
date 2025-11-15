@@ -46,6 +46,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
                 )
                 .fallbackToDestructiveMigration()
                 .build()
+                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 2 with composite primary keys)")
                 INSTANCE = instance
                 instance
             }
