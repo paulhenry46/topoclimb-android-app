@@ -8,9 +8,11 @@ import androidx.room.TypeConverters
 import com.example.topoclimb.database.converters.GradingSystemConverter
 import com.example.topoclimb.database.converters.StringListConverter
 import com.example.topoclimb.database.dao.AreaDao
+import com.example.topoclimb.database.dao.ContestDao
 import com.example.topoclimb.database.dao.RouteDao
 import com.example.topoclimb.database.dao.SiteDao
 import com.example.topoclimb.database.entities.AreaEntity
+import com.example.topoclimb.database.entities.ContestEntity
 import com.example.topoclimb.database.entities.RouteEntity
 import com.example.topoclimb.database.entities.SiteEntity
 
@@ -18,9 +20,10 @@ import com.example.topoclimb.database.entities.SiteEntity
     entities = [
         SiteEntity::class,
         AreaEntity::class,
-        RouteEntity::class
+        RouteEntity::class,
+        ContestEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(
@@ -32,6 +35,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
     abstract fun siteDao(): SiteDao
     abstract fun areaDao(): AreaDao
     abstract fun routeDao(): RouteDao
+    abstract fun contestDao(): ContestDao
     
     companion object {
         @Volatile
@@ -46,7 +50,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
                 )
                 .fallbackToDestructiveMigration()
                 .build()
-                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 2 with composite primary keys)")
+                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 3 with composite primary keys and Contest caching)")
                 INSTANCE = instance
                 instance
             }

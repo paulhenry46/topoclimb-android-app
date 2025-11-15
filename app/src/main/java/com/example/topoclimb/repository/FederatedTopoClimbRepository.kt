@@ -5,6 +5,7 @@ import com.example.topoclimb.AppConfig
 import com.example.topoclimb.data.*
 import com.example.topoclimb.database.TopoClimbDatabase
 import com.example.topoclimb.database.entities.toArea
+import com.example.topoclimb.database.entities.toContest
 import com.example.topoclimb.database.entities.toEntity
 import com.example.topoclimb.database.entities.toRoute
 import com.example.topoclimb.database.entities.toSite
@@ -510,26 +511,79 @@ class FederatedTopoClimbRepository(private val context: Context) {
     }
     
     /**
-     * Get contests by site from a specific backend
-     * Contests are not cached as they change frequently
+     * Get contests by site from a specific backend (offline-first)
      */
     suspend fun getContestsBySite(backendId: String, siteId: Int): Result<List<Federated<Contest>>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
-            val api = retrofitManager.getApiService(backend)
-            val response = api.getContestsBySite(siteId)
+            // Get cached contests from Room
+            val cachedContests = database.contestDao().getContestsBySite(siteId, backendId)
+            android.util.Log.d("OfflineFirst", "getContestsBySite - siteId: $siteId, backendId: $backendId, cached count: ${cachedContests.size}")
             
-            Result.success(
-                response.data.map { contest ->
-                    Federated(
-                        data = contest,
-                        backend = backend.toMetadata()
-                    )
+            // If we have cached data, return it and refresh in background
+            if (cachedContests.isNotEmpty()) {
+                android.util.Log.d("OfflineFirst", "Returning ${cachedContests.size} cached contests for site $siteId")
+                // Launch background refresh if online
+                if (NetworkUtils.isNetworkAvailable(context)) {
+                    coroutineScope {
+                        launch {
+                            try {
+                                val api = retrofitManager.getApiService(backend)
+                                val response = api.getContestsBySite(siteId)
+                                // Use the correctSiteId parameter when caching because API may return incorrect siteId
+                                val entities = response.data.map { it.toEntity(backendId, siteId) }
+                                android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} contests for site $siteId")
+                                database.contestDao().insertContests(entities)
+                            } catch (e: Exception) {
+                                // Silently fail - we already returned cached data
+                                android.util.Log.e("OfflineFirst", "Background refresh failed for contests", e)
+                            }
+                        }
+                    }
                 }
-            )
+                
+                return Result.success(
+                    cachedContests.map { entity ->
+                        Federated(
+                            data = entity.toContest(),
+                            backend = backend.toMetadata()
+                        )
+                    }
+                )
+            }
+            
+            // No cache - fetch from network if available
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                android.util.Log.d("OfflineFirst", "No cache for site $siteId contests, fetching from network")
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getContestsBySite(siteId)
+                    // Use the correctSiteId parameter when caching because API may return incorrect siteId
+                    val entities = response.data.map { it.toEntity(backendId, siteId) }
+                    android.util.Log.d("OfflineFirst", "Fetched ${entities.size} contests from network, caching for site $siteId")
+                    database.contestDao().insertContests(entities)
+                    android.util.Log.d("OfflineFirst", "Successfully cached ${entities.size} contests")
+                    return Result.success(
+                        response.data.map { contest ->
+                            Federated(
+                                data = contest,
+                                backend = backend.toMetadata()
+                            )
+                        }
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch or cache contests for site $siteId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            // No cache and offline - return empty list
+            android.util.Log.w("OfflineFirst", "No cache and offline for site $siteId contests - returning empty")
+            Result.success(emptyList())
         } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getContestsBySite for site $siteId", e)
             Result.failure(e)
         }
     }
