@@ -3,22 +3,39 @@ package com.example.topoclimb.repository
 import android.content.Context
 import com.example.topoclimb.AppConfig
 import com.example.topoclimb.data.*
+import com.example.topoclimb.database.TopoClimbDatabase
+import com.example.topoclimb.database.entities.toArea
+import com.example.topoclimb.database.entities.toEntity
+import com.example.topoclimb.database.entities.toRoute
+import com.example.topoclimb.database.entities.toSite
 import com.example.topoclimb.network.MultiBackendRetrofitManager
+import com.example.topoclimb.utils.NetworkUtils
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 
 /**
  * Repository that aggregates data from multiple federated backends
  * Each resource is wrapped in a Federated<T> object with backend metadata
+ * 
+ * Follows offline-first architecture:
+ * - Returns cached data from Room immediately
+ * - Fetches fresh data from API in background when online
+ * - Updates Room cache with API response
  */
-class FederatedTopoClimbRepository(context: Context) {
+class FederatedTopoClimbRepository(private val context: Context) {
     
     private val backendConfigRepository = BackendConfigRepository(context)
     private val retrofitManager = MultiBackendRetrofitManager(AppConfig.ENABLE_LOGGING)
+    private val database = TopoClimbDatabase.getDatabase(context)
     
     /**
-     * Get sites from all enabled backends
+     * Get sites from all enabled backends (offline-first)
+     * Returns cached data first, then refreshes from network
      */
     suspend fun getSites(): Result<List<Federated<Site>>> {
         return try {
@@ -28,55 +45,111 @@ class FederatedTopoClimbRepository(context: Context) {
                 return Result.failure(IllegalStateException("No enabled backends"))
             }
             
-            val sites = coroutineScope {
-                enabledBackends.map { backend ->
-                    async {
-                        try {
-                            val api = retrofitManager.getApiService(backend)
-                            val response = api.getSites()
-                            response.data.map { site ->
-                                Federated(
-                                    data = site,
-                                    backend = backend.toMetadata()
-                                )
-                            }
-                        } catch (e: Exception) {
-                            emptyList<Federated<Site>>()
-                        }
-                    }
-                }.awaitAll().flatten()
+            // Get cached sites from Room
+            val cachedSites = enabledBackends.flatMap { backend ->
+                database.siteDao().getAllSites(backend.id).map { entity ->
+                    Federated(
+                        data = entity.toSite(),
+                        backend = backend.toMetadata()
+                    )
+                }
             }
             
-            Result.success(sites)
+            // If network available, refresh data in background
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                coroutineScope {
+                    launch {
+                        refreshSitesFromNetwork(enabledBackends)
+                    }
+                }
+            }
+            
+            // Return cached data (or empty list if no cache)
+            Result.success(cachedSites)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
     /**
-     * Get a specific site from a specific backend
+     * Refresh sites from network and update cache
+     */
+    private suspend fun refreshSitesFromNetwork(backends: List<BackendConfig>) {
+        try {
+            coroutineScope {
+                backends.map { backend ->
+                    async {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getSites()
+                            val entities = response.data.map { it.toEntity(backend.id) }
+                            database.siteDao().insertSites(entities)
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                        }
+                    }
+                }.awaitAll()
+            }
+        } catch (e: Exception) {
+            // Ignore network errors when refreshing
+        }
+    }
+    
+    /**
+     * Get a specific site from a specific backend (offline-first)
      */
     suspend fun getSite(backendId: String, siteId: Int): Result<Federated<Site>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
-            val api = retrofitManager.getApiService(backend)
-            val response = api.getSite(siteId)
+            // Get cached site from Room
+            val cachedSite = database.siteDao().getSite(siteId, backendId)
             
-            Result.success(
-                Federated(
-                    data = response.data,
-                    backend = backend.toMetadata()
+            // If network available, refresh data in background
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                coroutineScope {
+                    launch {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getSite(siteId)
+                            database.siteDao().insertSite(response.data.toEntity(backendId))
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                        }
+                    }
+                }
+            }
+            
+            // Return cached data or fetch from network if no cache
+            if (cachedSite != null) {
+                Result.success(
+                    Federated(
+                        data = cachedSite.toSite(),
+                        backend = backend.toMetadata()
+                    )
                 )
-            )
+            } else if (NetworkUtils.isNetworkAvailable(context)) {
+                // No cache and network available - fetch synchronously
+                val api = retrofitManager.getApiService(backend)
+                val response = api.getSite(siteId)
+                database.siteDao().insertSite(response.data.toEntity(backendId))
+                Result.success(
+                    Federated(
+                        data = response.data,
+                        backend = backend.toMetadata()
+                    )
+                )
+            } else {
+                Result.failure(Exception("No cached data and network unavailable"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
     /**
-     * Get routes from all enabled backends
+     * Get routes from all enabled backends (offline-first)
      */
     suspend fun getRoutes(
         siteId: Int? = null,
@@ -90,55 +163,130 @@ class FederatedTopoClimbRepository(context: Context) {
                 return Result.failure(IllegalStateException("No enabled backends"))
             }
             
-            val routes = coroutineScope {
-                enabledBackends.map { backend ->
-                    async {
-                        try {
-                            val api = retrofitManager.getApiService(backend)
-                            val response = api.getRoutes(siteId, grade, type)
-                            response.data.map { route ->
-                                Federated(
-                                    data = route,
-                                    backend = backend.toMetadata()
-                                )
-                            }
-                        } catch (e: Exception) {
-                            emptyList<Federated<Route>>()
-                        }
-                    }
-                }.awaitAll().flatten()
+            // Get cached routes from Room
+            val cachedRoutes = enabledBackends.flatMap { backend ->
+                val routes = if (siteId != null) {
+                    database.routeDao().getRoutesBySite(siteId, backend.id)
+                } else {
+                    database.routeDao().getAllRoutes(backend.id)
+                }
+                routes.map { entity ->
+                    Federated(
+                        data = entity.toRoute(),
+                        backend = backend.toMetadata()
+                    )
+                }
+            }.let { routes ->
+                // Apply filters if specified
+                var filtered = routes
+                if (grade != null) {
+                    filtered = filtered.filter { it.data.grade?.toString() == grade }
+                }
+                if (type != null) {
+                    filtered = filtered.filter { it.data.type == type }
+                }
+                filtered
             }
             
-            Result.success(routes)
+            // If network available, refresh data in background
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                coroutineScope {
+                    launch {
+                        refreshRoutesFromNetwork(enabledBackends, siteId, grade, type)
+                    }
+                }
+            }
+            
+            Result.success(cachedRoutes)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
     /**
-     * Get a specific route from a specific backend
+     * Refresh routes from network and update cache
+     */
+    private suspend fun refreshRoutesFromNetwork(
+        backends: List<BackendConfig>,
+        siteId: Int? = null,
+        grade: String? = null,
+        type: String? = null
+    ) {
+        try {
+            coroutineScope {
+                backends.map { backend ->
+                    async {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getRoutes(siteId, grade, type)
+                            val entities = response.data.map { it.toEntity(backend.id) }
+                            database.routeDao().insertRoutes(entities)
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                        }
+                    }
+                }.awaitAll()
+            }
+        } catch (e: Exception) {
+            // Ignore network errors when refreshing
+        }
+    }
+    
+    /**
+     * Get a specific route from a specific backend (offline-first)
      */
     suspend fun getRoute(backendId: String, routeId: Int): Result<Federated<Route>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
-            val api = retrofitManager.getApiService(backend)
-            val response = api.getRoute(routeId)
+            // Get cached route from Room
+            val cachedRoute = database.routeDao().getRoute(routeId, backendId)
             
-            Result.success(
-                Federated(
-                    data = response.data,
-                    backend = backend.toMetadata()
+            // If network available, refresh data in background
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                coroutineScope {
+                    launch {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getRoute(routeId)
+                            database.routeDao().insertRoute(response.data.toEntity(backendId))
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                        }
+                    }
+                }
+            }
+            
+            // Return cached data or fetch from network if no cache
+            if (cachedRoute != null) {
+                Result.success(
+                    Federated(
+                        data = cachedRoute.toRoute(),
+                        backend = backend.toMetadata()
+                    )
                 )
-            )
+            } else if (NetworkUtils.isNetworkAvailable(context)) {
+                // No cache and network available - fetch synchronously
+                val api = retrofitManager.getApiService(backend)
+                val response = api.getRoute(routeId)
+                database.routeDao().insertRoute(response.data.toEntity(backendId))
+                Result.success(
+                    Federated(
+                        data = response.data,
+                        backend = backend.toMetadata()
+                    )
+                )
+            } else {
+                Result.failure(Exception("No cached data and network unavailable"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
     /**
-     * Get areas from all enabled backends
+     * Get areas from all enabled backends (offline-first)
      */
     suspend fun getAreas(): Result<List<Federated<Area>>> {
         return try {
@@ -148,63 +296,124 @@ class FederatedTopoClimbRepository(context: Context) {
                 return Result.failure(IllegalStateException("No enabled backends"))
             }
             
-            val areas = coroutineScope {
-                enabledBackends.map { backend ->
-                    async {
-                        try {
-                            val api = retrofitManager.getApiService(backend)
-                            val response = api.getAreas()
-                            response.data.map { area ->
-                                Federated(
-                                    data = area,
-                                    backend = backend.toMetadata()
-                                )
-                            }
-                        } catch (e: Exception) {
-                            emptyList<Federated<Area>>()
-                        }
-                    }
-                }.awaitAll().flatten()
+            // Get cached areas from Room
+            val cachedAreas = enabledBackends.flatMap { backend ->
+                database.areaDao().getAllAreas(backend.id).map { entity ->
+                    Federated(
+                        data = entity.toArea(),
+                        backend = backend.toMetadata()
+                    )
+                }
             }
             
-            Result.success(areas)
+            // If network available, refresh data in background
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                coroutineScope {
+                    launch {
+                        refreshAreasFromNetwork(enabledBackends)
+                    }
+                }
+            }
+            
+            Result.success(cachedAreas)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
     /**
-     * Get a specific area from a specific backend
+     * Refresh areas from network and update cache
+     */
+    private suspend fun refreshAreasFromNetwork(backends: List<BackendConfig>) {
+        try {
+            coroutineScope {
+                backends.map { backend ->
+                    async {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getAreas()
+                            val entities = response.data.map { it.toEntity(backend.id) }
+                            database.areaDao().insertAreas(entities)
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                        }
+                    }
+                }.awaitAll()
+            }
+        } catch (e: Exception) {
+            // Ignore network errors when refreshing
+        }
+    }
+    
+    /**
+     * Get a specific area from a specific backend (offline-first)
      */
     suspend fun getArea(backendId: String, areaId: Int): Result<Federated<Area>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
-            val api = retrofitManager.getApiService(backend)
-            val response = api.getArea(areaId)
+            // Get cached area from Room
+            val cachedArea = database.areaDao().getArea(areaId, backendId)
             
-            Result.success(
-                Federated(
-                    data = response.data,
-                    backend = backend.toMetadata()
+            // If network available, refresh data in background
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                coroutineScope {
+                    launch {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getArea(areaId)
+                            database.areaDao().insertArea(response.data.toEntity(backendId))
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                        }
+                    }
+                }
+            }
+            
+            // Return cached data or fetch from network if no cache
+            if (cachedArea != null) {
+                Result.success(
+                    Federated(
+                        data = cachedArea.toArea(),
+                        backend = backend.toMetadata()
+                    )
                 )
-            )
+            } else if (NetworkUtils.isNetworkAvailable(context)) {
+                // No cache and network available - fetch synchronously
+                val api = retrofitManager.getApiService(backend)
+                val response = api.getArea(areaId)
+                database.areaDao().insertArea(response.data.toEntity(backendId))
+                Result.success(
+                    Federated(
+                        data = response.data,
+                        backend = backend.toMetadata()
+                    )
+                )
+            } else {
+                Result.failure(Exception("No cached data and network unavailable"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
     /**
-     * Get routes by area from a specific backend
+     * Get routes by area from a specific backend (offline-first)
      */
     suspend fun getRoutesByArea(backendId: String, areaId: Int): Result<List<Federated<Route>>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
+            // For now, fetch from network as we don't have area-route mapping in Room
+            // This is a simplification - in a full implementation, you'd add a junction table
             val api = retrofitManager.getApiService(backend)
             val response = api.getRoutesByArea(areaId)
+            
+            // Cache the routes
+            val entities = response.data.map { it.toEntity(backendId) }
+            database.routeDao().insertRoutes(entities)
             
             Result.success(
                 response.data.map { route ->
@@ -220,24 +429,59 @@ class FederatedTopoClimbRepository(context: Context) {
     }
     
     /**
-     * Get areas by site from a specific backend
+     * Get areas by site from a specific backend (offline-first)
      */
     suspend fun getAreasBySite(backendId: String, siteId: Int): Result<List<Federated<Area>>> {
         return try {
             val backend = backendConfigRepository.getBackend(backendId)
                 ?: return Result.failure(IllegalArgumentException("Backend not found"))
             
-            val api = retrofitManager.getApiService(backend)
-            val response = api.getAreasBySite(siteId)
+            // Get cached areas from Room
+            val cachedAreas = database.areaDao().getAreasBySite(siteId, backendId)
             
-            Result.success(
-                response.data.map { area ->
-                    Federated(
-                        data = area,
-                        backend = backend.toMetadata()
-                    )
+            // If network available, refresh data in background
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                coroutineScope {
+                    launch {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getAreasBySite(siteId)
+                            val entities = response.data.map { it.toEntity(backendId) }
+                            database.areaDao().insertAreas(entities)
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                        }
+                    }
                 }
-            )
+            }
+            
+            // Return cached data or fetch from network if no cache
+            if (cachedAreas.isNotEmpty()) {
+                Result.success(
+                    cachedAreas.map { entity ->
+                        Federated(
+                            data = entity.toArea(),
+                            backend = backend.toMetadata()
+                        )
+                    }
+                )
+            } else if (NetworkUtils.isNetworkAvailable(context)) {
+                // No cache and network available - fetch synchronously
+                val api = retrofitManager.getApiService(backend)
+                val response = api.getAreasBySite(siteId)
+                val entities = response.data.map { it.toEntity(backendId) }
+                database.areaDao().insertAreas(entities)
+                Result.success(
+                    response.data.map { area ->
+                        Federated(
+                            data = area,
+                            backend = backend.toMetadata()
+                        )
+                    }
+                )
+            } else {
+                Result.success(emptyList()) // Return empty list instead of failing
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -245,6 +489,7 @@ class FederatedTopoClimbRepository(context: Context) {
     
     /**
      * Get contests by site from a specific backend
+     * Contests are not cached as they change frequently
      */
     suspend fun getContestsBySite(backendId: String, siteId: Int): Result<List<Federated<Contest>>> {
         return try {
@@ -269,6 +514,7 @@ class FederatedTopoClimbRepository(context: Context) {
     
     /**
      * Get sectors by area from a specific backend
+     * Sectors are not cached in this implementation (can be added later)
      */
     suspend fun getSectorsByArea(backendId: String, areaId: Int): Result<List<Federated<Sector>>> {
         return try {
@@ -293,6 +539,7 @@ class FederatedTopoClimbRepository(context: Context) {
     
     /**
      * Get lines by sector from a specific backend
+     * Lines are not cached in this implementation (can be added later)
      */
     suspend fun getLinesBySector(backendId: String, sectorId: Int): Result<List<Federated<Line>>> {
         return try {
@@ -326,6 +573,10 @@ class FederatedTopoClimbRepository(context: Context) {
             val api = retrofitManager.getApiService(backend)
             val response = api.getRoutesByLine(lineId)
             
+            // Cache the routes
+            val entities = response.data.map { it.toEntity(backendId) }
+            database.routeDao().insertRoutes(entities)
+            
             Result.success(
                 response.data.map { route ->
                     Federated(
@@ -341,6 +592,7 @@ class FederatedTopoClimbRepository(context: Context) {
     
     /**
      * Get route logs from a specific backend
+     * Logs are not cached as they change frequently
      */
     suspend fun getRouteLogs(backendId: String, routeId: Int): Result<List<Federated<Log>>> {
         return try {
