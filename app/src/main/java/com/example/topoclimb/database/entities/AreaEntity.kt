@@ -42,3 +42,19 @@ fun Area.toEntity(backendId: String): AreaEntity = AreaEntity(
     type = type,
     backendId = backendId
 )
+
+/**
+ * Convert Area to AreaEntity with explicit siteId override.
+ * Used when the API returns incorrect siteId (e.g., 0) but we know the correct siteId from context.
+ */
+fun Area.toEntity(backendId: String, correctSiteId: Int): AreaEntity = AreaEntity(
+    id = id,
+    name = name,
+    description = description,
+    latitude = latitude,
+    longitude = longitude,
+    siteId = correctSiteId,
+    svgMap = svgMap,
+    type = type,
+    backendId = backendId
+)

@@ -450,7 +450,8 @@ class FederatedTopoClimbRepository(private val context: Context) {
                             try {
                                 val api = retrofitManager.getApiService(backend)
                                 val response = api.getAreasBySite(siteId)
-                                val entities = response.data.map { it.toEntity(backendId) }
+                                // Use the correctSiteId parameter when caching because API may return siteId=0
+                                val entities = response.data.map { it.toEntity(backendId, siteId) }
                                 android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} areas for site $siteId")
                                 database.areaDao().insertAreas(entities)
                             } catch (e: Exception) {
@@ -477,7 +478,8 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 try {
                     val api = retrofitManager.getApiService(backend)
                     val response = api.getAreasBySite(siteId)
-                    val entities = response.data.map { it.toEntity(backendId) }
+                    // Use the correctSiteId parameter when caching because API may return siteId=0
+                    val entities = response.data.map { it.toEntity(backendId, siteId) }
                     android.util.Log.d("OfflineFirst", "Fetched ${entities.size} areas from network, caching for site $siteId")
                     entities.forEach { entity ->
                         android.util.Log.d("OfflineFirst", "Caching area: id=${entity.id}, name=${entity.name}, siteId=${entity.siteId}, backendId=${entity.backendId}")
