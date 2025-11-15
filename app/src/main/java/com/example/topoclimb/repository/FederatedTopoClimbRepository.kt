@@ -68,18 +68,15 @@ class FederatedTopoClimbRepository(private val context: Context) {
                                 )
                             }
                         } catch (e: Exception) {
-                            // If network fails, try to return cached data even if expired
-                            if (cachePreferences.isCacheEnabled) {
-                                val cached = cacheManager.getCachedSitesIgnoreExpiration(backend.id)
-                                cached?.map { site ->
-                                    Federated(
-                                        data = site,
-                                        backend = backend.toMetadata()
-                                    )
-                                } ?: emptyList()
-                            } else {
-                                emptyList<Federated<Site>>()
-                            }
+                            // If network fails, always try to return cached data even if expired
+                            // (regardless of cache preference - preference only controls writing)
+                            val cached = cacheManager.getCachedSitesIgnoreExpiration(backend.id)
+                            cached?.map { site ->
+                                Federated(
+                                    data = site,
+                                    backend = backend.toMetadata()
+                                )
+                            } ?: emptyList()
                         }
                     }
                 }.awaitAll().flatten()
@@ -134,17 +131,16 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 )
             )
         } catch (e: Exception) {
-            // If network fails, try to return cached data even if expired
-            if (cachePreferences.isCacheEnabled) {
-                val cached = cacheManager.getCachedSiteIgnoreExpiration(siteId, backendId)
-                if (cached != null) {
-                    return Result.success(
-                        Federated(
-                            data = cached,
-                            backend = backend.toMetadata()
-                        )
+            // If network fails, always try to return cached data even if expired
+            // (regardless of cache preference - preference only controls writing)
+            val cached = cacheManager.getCachedSiteIgnoreExpiration(siteId, backendId)
+            if (cached != null) {
+                return Result.success(
+                    Federated(
+                        data = cached,
+                        backend = backend.toMetadata()
                     )
-                }
+                )
             }
             Result.failure(e)
         }
@@ -336,19 +332,18 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 }
             )
         } catch (e: Exception) {
-            // If network fails, try to return cached data even if expired
-            if (cachePreferences.isCacheEnabled) {
-                val cached = cacheManager.getCachedAreasBySiteIgnoreExpiration(siteId, backendId)
-                if (cached != null) {
-                    return Result.success(
-                        cached.map { area ->
-                            Federated(
-                                data = area,
-                                backend = backend.toMetadata()
-                            )
-                        }
-                    )
-                }
+            // If network fails, always try to return cached data even if expired
+            // (regardless of cache preference - preference only controls writing)
+            val cached = cacheManager.getCachedAreasBySiteIgnoreExpiration(siteId, backendId)
+            if (cached != null) {
+                return Result.success(
+                    cached.map { area ->
+                        Federated(
+                            data = area,
+                            backend = backend.toMetadata()
+                        )
+                    }
+                )
             }
             Result.failure(e)
         }
@@ -397,7 +392,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
             )
         } catch (e: Exception) {
             // If network fails, try to return cached data even if expired
-            if (cachePreferences.isCacheEnabled) {
+            // ALWAYS try offline fallback regardless of preference
                 val cached = cacheManager.getCachedContestsBySiteIgnoreExpiration(siteId, backendId)
                 if (cached != null) {
                     return Result.success(
@@ -409,7 +404,6 @@ class FederatedTopoClimbRepository(private val context: Context) {
                         }
                     )
                 }
-            }
             Result.failure(e)
         }
     }
