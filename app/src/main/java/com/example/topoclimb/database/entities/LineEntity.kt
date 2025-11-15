@@ -19,12 +19,12 @@ data class LineEntity(
 )
 
 // Extension functions for converting between Line and LineEntity
-fun Line.toEntity(backendId: String): LineEntity {
+fun Line.toEntity(backendId: String, correctSectorId: Int? = null): LineEntity {
     return LineEntity(
         id = this.id,
         name = this.name,
         description = this.description,
-        sectorId = this.sectorId,
+        sectorId = correctSectorId ?: this.sectorId,  // Override with correct sectorId if provided
         localId = this.localId,
         backendId = backendId,
         lastUpdated = System.currentTimeMillis()

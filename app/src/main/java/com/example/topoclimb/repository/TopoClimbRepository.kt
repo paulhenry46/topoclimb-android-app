@@ -90,10 +90,10 @@ class TopoClimbRepository(private val context: Context? = null) {
                 val response = api.getSectorsByArea(areaId)
                 android.util.Log.d("OfflineFirst", "API returned ${response.data.size} sectors for area $areaId")
                 
-                // Convert to entities with null checks and logging
+                // Convert to entities with null checks and logging, override areaId
                 val entities = response.data.mapNotNull { sector ->
                     try {
-                        sector.toEntity(defaultBackendId)
+                        sector.toEntity(defaultBackendId, areaId)  // Pass correct areaId
                     } catch (e: Exception) {
                         android.util.Log.e("OfflineFirst", "Failed to convert sector ${sector.id} to entity: ${e.message}. Sector data: id=${sector.id}, name='${sector.name}', areaId=${sector.areaId}")
                         null  // Skip sectors that can't be converted
@@ -103,6 +103,10 @@ class TopoClimbRepository(private val context: Context? = null) {
                 if (entities.isNotEmpty()) {
                     database.sectorDao().insertSectors(entities)
                     android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} sectors for area $areaId")
+                    // Log a sample to verify correct areaId
+                    entities.firstOrNull()?.let { 
+                        android.util.Log.d("OfflineFirst", "Sample cached sector: id=${it.id}, name='${it.name}', areaId=${it.areaId} (should be $areaId)")
+                    }
                 }
                 
                 return Result.success(response.data)
@@ -127,7 +131,7 @@ class TopoClimbRepository(private val context: Context? = null) {
                             val response = api.getSectorsByArea(areaId)
                             val entities = response.data.mapNotNull { sector ->
                                 try {
-                                    sector.toEntity(defaultBackendId)
+                                    sector.toEntity(defaultBackendId, areaId)  // Pass correct areaId
                                 } catch (e: Exception) {
                                     android.util.Log.e("OfflineFirst", "Failed to convert sector ${sector.id} in background refresh: ${e.message}")
                                     null
@@ -174,10 +178,10 @@ class TopoClimbRepository(private val context: Context? = null) {
                 val response = api.getLinesBySector(sectorId)
                 android.util.Log.d("OfflineFirst", "API returned ${response.data.size} lines for sector $sectorId")
                 
-                // Convert to entities with null checks and logging
+                // Convert to entities with null checks and logging, override sectorId
                 val entities = response.data.mapNotNull { line ->
                     try {
-                        line.toEntity(defaultBackendId)
+                        line.toEntity(defaultBackendId, sectorId)  // Pass correct sectorId
                     } catch (e: Exception) {
                         android.util.Log.e("OfflineFirst", "Failed to convert line ${line.id} to entity: ${e.message}. Line data: id=${line.id}, name='${line.name}', sectorId=${line.sectorId}")
                         null  // Skip lines that can't be converted
@@ -187,6 +191,10 @@ class TopoClimbRepository(private val context: Context? = null) {
                 if (entities.isNotEmpty()) {
                     database.lineDao().insertLines(entities)
                     android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} lines for sector $sectorId")
+                    // Log a sample to verify correct sectorId
+                    entities.firstOrNull()?.let {
+                        android.util.Log.d("OfflineFirst", "Sample cached line: id=${it.id}, name='${it.name}', sectorId=${it.sectorId} (should be $sectorId)")
+                    }
                 }
                 
                 return Result.success(response.data)
@@ -211,7 +219,7 @@ class TopoClimbRepository(private val context: Context? = null) {
                             val response = api.getLinesBySector(sectorId)
                             val entities = response.data.mapNotNull { line ->
                                 try {
-                                    line.toEntity(defaultBackendId)
+                                    line.toEntity(defaultBackendId, sectorId)  // Pass correct sectorId
                                 } catch (e: Exception) {
                                     android.util.Log.e("OfflineFirst", "Failed to convert line ${line.id} in background refresh: ${e.message}")
                                     null
