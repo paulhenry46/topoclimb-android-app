@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material3.*
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -359,7 +360,7 @@ fun ProfileScreen(
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showGenderDropdown) },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .menuAnchor()
+                                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                                 )
                                 ExposedDropdownMenu(
                                     expanded = showGenderDropdown,
