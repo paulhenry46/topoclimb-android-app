@@ -438,9 +438,11 @@ class FederatedTopoClimbRepository(private val context: Context) {
             
             // Get cached areas from Room
             val cachedAreas = database.areaDao().getAreasBySite(siteId, backendId)
+            android.util.Log.d("OfflineFirst", "getAreasBySite - siteId: $siteId, backendId: $backendId, cached count: ${cachedAreas.size}")
             
             // If we have cached data, return it and refresh in background
             if (cachedAreas.isNotEmpty()) {
+                android.util.Log.d("OfflineFirst", "Returning ${cachedAreas.size} cached areas for site $siteId")
                 // Launch background refresh if online
                 if (NetworkUtils.isNetworkAvailable(context)) {
                     coroutineScope {
@@ -449,9 +451,11 @@ class FederatedTopoClimbRepository(private val context: Context) {
                                 val api = retrofitManager.getApiService(backend)
                                 val response = api.getAreasBySite(siteId)
                                 val entities = response.data.map { it.toEntity(backendId) }
+                                android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} areas for site $siteId")
                                 database.areaDao().insertAreas(entities)
                             } catch (e: Exception) {
                                 // Silently fail - we already returned cached data
+                                android.util.Log.e("OfflineFirst", "Background refresh failed for areas", e)
                             }
                         }
                     }
@@ -469,23 +473,36 @@ class FederatedTopoClimbRepository(private val context: Context) {
             
             // No cache - fetch from network if available
             if (NetworkUtils.isNetworkAvailable(context)) {
-                val api = retrofitManager.getApiService(backend)
-                val response = api.getAreasBySite(siteId)
-                val entities = response.data.map { it.toEntity(backendId) }
-                database.areaDao().insertAreas(entities)
-                return Result.success(
-                    response.data.map { area ->
-                        Federated(
-                            data = area,
-                            backend = backend.toMetadata()
-                        )
+                android.util.Log.d("OfflineFirst", "No cache for site $siteId, fetching from network")
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getAreasBySite(siteId)
+                    val entities = response.data.map { it.toEntity(backendId) }
+                    android.util.Log.d("OfflineFirst", "Fetched ${entities.size} areas from network, caching for site $siteId")
+                    entities.forEach { entity ->
+                        android.util.Log.d("OfflineFirst", "Caching area: id=${entity.id}, name=${entity.name}, siteId=${entity.siteId}, backendId=${entity.backendId}")
                     }
-                )
+                    database.areaDao().insertAreas(entities)
+                    android.util.Log.d("OfflineFirst", "Successfully cached ${entities.size} areas")
+                    return Result.success(
+                        response.data.map { area ->
+                            Federated(
+                                data = area,
+                                backend = backend.toMetadata()
+                            )
+                        }
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch or cache areas for site $siteId", e)
+                    return Result.failure(e)
+                }
             }
             
             // No cache and offline - return empty list
+            android.util.Log.w("OfflineFirst", "No cache and offline for site $siteId - returning empty")
             Result.success(emptyList())
         } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getAreasBySite for site $siteId", e)
             Result.failure(e)
         }
     }
