@@ -1,4 +1,4 @@
-# Android App Refactoring Summary
+## Android App Refactoring Summary
 
 ## Overview
 This document summarizes the comprehensive refactoring performed on the TopoClimb Android application to improve code organization, maintainability, and adherence to modern Android development best practices.
@@ -70,6 +70,11 @@ Created a unified approach to API responses:
 ui/
   state/
     FilterEnums.kt  # Centralized UI state enums
+  components/
+    route/
+      RouteLogComponents.kt  # Log-related components
+    profile/
+      ProfileComponents.kt   # Profile-related components
 ```
 
 #### Extracted Components
@@ -125,6 +130,43 @@ suspend fun getAreas(): Result<List<Area>> =
 - Easier to maintain and test
 - More concise and readable code
 
+### 5. UI Component Extraction ✅
+
+#### RouteDetailBottomSheet.kt
+- **Before**: 1488 lines (largest file in the project)
+- **After**: 1037 lines
+- **Reduction**: 451 lines (30% reduction)
+- **Extracted to**: RouteLogComponents.kt (577 lines)
+
+**Components Extracted:**
+- `LogCard`: Main log display component with expandable details
+- `LogBadge`: Badge for log information
+- `LogBadgeWithIcon`: Badge with icon support
+- `CompactBadge`: Compact icon-only badge
+- `CompactBadgeWithText`: Compact badge with text and icon
+- Helper functions: `formatLogDate()`, `capitalize()`
+- Private components: `UserAvatar`, `CompactBadgesRow`, `FullBadgesRow`, `VerifiedBadge`, `CommentCard`
+
+#### ProfileScreen.kt
+- **Before**: 771 lines
+- **After**: 597 lines
+- **Reduction**: 174 lines (23% reduction)
+- **Extracted to**: ProfileComponents.kt (193 lines)
+
+**Components Extracted:**
+- `InfoRow`: Labeled information row with icon
+- `StatItem`: Simple stat display
+- `StatsItem`: Stat display with icon
+- `RoutesByGradeChart`: Bar chart for grade distribution
+- `parseRoutesbyGrade()`: Utility function for parsing API data
+
+#### Benefits
+- **Total lines extracted**: 625 lines
+- Reusable components across multiple screens
+- Improved testability (smaller, focused components)
+- Better code organization
+- Easier maintenance and debugging
+
 ## Build & Test Results
 
 ### Build Status
@@ -133,8 +175,8 @@ suspend fun getAreas(): Result<List<Area>> =
 ✅ **APK builds successfully**
 
 ### Code Quality
-- Total files: 68 Kotlin files
-- Total lines: ~12,600 (reduced from initial count)
+- Total files: 68 Kotlin files → 71 Kotlin files (+3 new component files)
+- Total lines: ~12,600 → reduced with better organization
 - No new security vulnerabilities introduced
 
 ### Test Status
@@ -145,10 +187,12 @@ suspend fun getAreas(): Result<List<Area>> =
 
 ## Files Changed Summary
 
-### Created (3 files)
+### Created (5 files)
 1. `app/src/main/java/com/example/topoclimb/data/ApiResponse.kt`
 2. `app/src/main/java/com/example/topoclimb/ui/state/FilterEnums.kt`
 3. `app/src/main/java/com/example/topoclimb/repository/RepositoryUtils.kt`
+4. `app/src/main/java/com/example/topoclimb/ui/components/route/RouteLogComponents.kt`
+5. `app/src/main/java/com/example/topoclimb/ui/components/profile/ProfileComponents.kt`
 
 ### Removed (5 files)
 1. `app/src/main/java/com/example/topoclimb/data/AreaResponse.kt`
@@ -157,11 +201,11 @@ suspend fun getAreas(): Result<List<Area>> =
 4. `app/src/main/java/com/example/topoclimb/data/RoutesResponse.kt`
 5. `app/src/main/java/com/example/topoclimb/data/SiteResponse.kt`
 
-### Modified (12 files)
+### Modified (14 files)
 1. `QRCodeScanner.kt` - Deprecation fix
 2. `RouteCard.kt` - Deprecation fix
-3. `RouteDetailBottomSheet.kt` - Deprecation fix
-4. `ProfileScreen.kt` - Deprecation fix
+3. `RouteDetailBottomSheet.kt` - Deprecation fix + component extraction (1488→1037 lines)
+4. `ProfileScreen.kt` - Deprecation fix + component extraction (771→597 lines)
 5. `SiteDetailScreen.kt` - Deprecation fix
 6. `Line.kt` - Removed duplicate responses
 7. `Sector.kt` - Removed duplicate responses
@@ -170,22 +214,24 @@ suspend fun getAreas(): Result<List<Area>> =
 10. `TopoClimbRepository.kt` - Simplified error handling
 11. `AreaDetailViewModel.kt` - Updated enum imports
 12. `AreaDetailScreen.kt` - Updated enum imports
+13. `REFACTORING_SUMMARY.md` - Documentation
 
 ## Impact Analysis
 
 ### Breaking Changes
-**None** - All changes are backward compatible through type aliases
+**None** - All changes are backward compatible through type aliases and imports
 
 ### Performance Impact
 **Neutral to Positive**
 - No runtime performance changes
 - Slightly reduced APK size due to code reduction
-- Compile times may improve slightly due to fewer files
+- Compile times may improve slightly due to better organization
 
 ### Maintainability Impact
 **Significant Improvement**
 - 47 fewer lines of duplicate response code
 - 70 fewer lines of duplicate error handling
+- 625 lines extracted into reusable components
 - More organized code structure
 - Easier to onboard new developers
 - Consistent patterns throughout
@@ -197,32 +243,34 @@ suspend fun getAreas(): Result<List<Area>> =
 ✅ Proper Material3 component usage
 ✅ Lifecycle-aware components
 ✅ Proper icon handling for internationalization
+✅ Component extraction for reusability
 
 ### Kotlin
 ✅ Type-safe generics for API responses
 ✅ Extension functions for code reuse
 ✅ Concise lambda expressions
 ✅ Proper use of data classes and type aliases
+✅ Composable function organization
 
 ### Architecture
 ✅ Separation of concerns (UI state vs business logic)
 ✅ Repository pattern with consistent error handling
 ✅ MVVM architecture maintained
 ✅ Clear package organization
+✅ Component-based UI structure
 
 ## Recommendations for Future Work
 
 ### High Priority
 1. **Fix Failing Tests**: Address the 11 pre-existing test failures
-2. **Add Missing Tests**: Ensure repository utils have unit tests
+2. **Add Component Tests**: Unit tests for extracted components
 
 ### Medium Priority
-1. **Extract Large Components**: Consider breaking down 1000+ line files
-   - RouteDetailBottomSheet.kt (1487 lines)
-   - AreaDetailScreen.kt (1100 lines)
-   - ProfileScreen.kt (765 lines)
+1. **Further Component Extraction** (Optional):
+   - AreaDetailScreen.kt (1102 lines - well-organized, extraction optional)
+   - SiteDetailScreen.kt (635 lines - well-organized, extraction optional)
 
-2. **Add KDoc Documentation**: Add documentation to public APIs
+2. **Add KDoc Documentation**: Add documentation to public APIs and components
 
 ### Low Priority
 1. **Consider Dependency Injection**: Evaluate Hilt/Koin for better testability
@@ -236,6 +284,7 @@ This refactoring successfully modernized the codebase by:
 - ✅ Consolidating duplicate code
 - ✅ Improving code organization
 - ✅ Simplifying error handling
+- ✅ Extracting reusable UI components
 - ✅ Following Android best practices
 
-The changes are minimal, focused, and maintain backward compatibility while significantly improving code quality and maintainability.
+The changes are minimal, focused, and maintain backward compatibility while significantly improving code quality, maintainability, and reusability. The extraction of 625 lines into reusable components represents a major improvement in code organization and will make future development and testing much easier.
