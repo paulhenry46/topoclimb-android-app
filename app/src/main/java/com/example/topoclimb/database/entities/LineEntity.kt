@@ -10,7 +10,7 @@ import com.example.topoclimb.data.Line
 )
 data class LineEntity(
     val id: Int,
-    val name: String,
+    val name: String?,  // Made nullable to handle API responses
     val description: String?,
     val sectorId: Int,
     val localId: String?,
@@ -34,7 +34,7 @@ fun Line.toEntity(backendId: String): LineEntity {
 fun LineEntity.toLine(): Line {
     return Line(
         id = this.id,
-        name = this.name,
+        name = this.name ?: "",  // Provide default empty string if null
         description = this.description,
         sectorId = this.sectorId,
         localId = this.localId

@@ -10,7 +10,7 @@ import com.example.topoclimb.data.Sector
 )
 data class SectorEntity(
     val id: Int,
-    val name: String,
+    val name: String?,  // Made nullable to handle API responses
     val description: String?,
     val areaId: Int,
     val localId: String?,
@@ -34,7 +34,7 @@ fun Sector.toEntity(backendId: String): SectorEntity {
 fun SectorEntity.toSector(): Sector {
     return Sector(
         id = this.id,
-        name = this.name,
+        name = this.name ?: "",  // Provide default empty string if null
         description = this.description,
         areaId = this.areaId,
         localId = this.localId
