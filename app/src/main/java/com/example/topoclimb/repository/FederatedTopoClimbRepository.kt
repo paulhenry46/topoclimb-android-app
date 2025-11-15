@@ -11,6 +11,9 @@ import com.example.topoclimb.database.entities.toRoute
 import com.example.topoclimb.database.entities.toSite
 import com.example.topoclimb.network.MultiBackendRetrofitManager
 import com.example.topoclimb.utils.NetworkUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -34,6 +37,9 @@ class FederatedTopoClimbRepository(private val context: Context) {
     private val retrofitManager = MultiBackendRetrofitManager(AppConfig.ENABLE_LOGGING)
     private val database = TopoClimbDatabase.getDatabase(context)
     
+    // Background scope for non-blocking cache refreshes
+    private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    
     /**
      * Get sites from all enabled backends (offline-first)
      * Returns cached data first, then refreshes from network
@@ -56,12 +62,10 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 }
             }
             
-            // If network available, refresh data in background
+            // If network available, refresh data in background (non-blocking)
             if (NetworkUtils.isNetworkAvailable(context)) {
-                coroutineScope {
-                    launch {
-                        refreshSitesFromNetwork(enabledBackends)
-                    }
+                backgroundScope.launch {
+                    refreshSitesFromNetwork(enabledBackends)
                 }
             }
             
@@ -107,17 +111,15 @@ class FederatedTopoClimbRepository(private val context: Context) {
             // Get cached site from Room
             val cachedSite = database.siteDao().getSite(siteId, backendId)
             
-            // If network available, refresh data in background
-            if (NetworkUtils.isNetworkAvailable(context)) {
-                coroutineScope {
-                    launch {
-                        try {
-                            val api = retrofitManager.getApiService(backend)
-                            val response = api.getSite(siteId)
-                            database.siteDao().insertSite(response.data.toEntity(backendId))
-                        } catch (e: Exception) {
-                            // Silently fail - we already returned cached data
-                        }
+            // If network available, refresh data in background (non-blocking)
+            if (NetworkUtils.isNetworkAvailable(context) && cachedSite != null) {
+                backgroundScope.launch {
+                    try {
+                        val api = retrofitManager.getApiService(backend)
+                        val response = api.getSite(siteId)
+                        database.siteDao().insertSite(response.data.toEntity(backendId))
+                    } catch (e: Exception) {
+                        // Silently fail - we already returned cached data
                     }
                 }
             }
@@ -189,12 +191,10 @@ class FederatedTopoClimbRepository(private val context: Context) {
                 filtered
             }
             
-            // If network available, refresh data in background
+            // If network available, refresh data in background (non-blocking)
             if (NetworkUtils.isNetworkAvailable(context)) {
-                coroutineScope {
-                    launch {
-                        refreshRoutesFromNetwork(enabledBackends, siteId, grade, type)
-                    }
+                backgroundScope.launch {
+                    refreshRoutesFromNetwork(enabledBackends, siteId, grade, type)
                 }
             }
             
@@ -244,17 +244,15 @@ class FederatedTopoClimbRepository(private val context: Context) {
             // Get cached route from Room
             val cachedRoute = database.routeDao().getRoute(routeId, backendId)
             
-            // If network available, refresh data in background
-            if (NetworkUtils.isNetworkAvailable(context)) {
-                coroutineScope {
-                    launch {
-                        try {
-                            val api = retrofitManager.getApiService(backend)
-                            val response = api.getRoute(routeId)
-                            database.routeDao().insertRoute(response.data.toEntity(backendId))
-                        } catch (e: Exception) {
-                            // Silently fail - we already returned cached data
-                        }
+            // If network available, refresh data in background (non-blocking)
+            if (NetworkUtils.isNetworkAvailable(context) && cachedRoute != null) {
+                backgroundScope.launch {
+                    try {
+                        val api = retrofitManager.getApiService(backend)
+                        val response = api.getRoute(routeId)
+                        database.routeDao().insertRoute(response.data.toEntity(backendId))
+                    } catch (e: Exception) {
+                        // Silently fail - we already returned cached data
                     }
                 }
             }
@@ -309,10 +307,8 @@ class FederatedTopoClimbRepository(private val context: Context) {
             
             // If network available, refresh data in background
             if (NetworkUtils.isNetworkAvailable(context)) {
-                coroutineScope {
-                    launch {
-                        refreshAreasFromNetwork(enabledBackends)
-                    }
+                backgroundScope.launch {
+                    refreshAreasFromNetwork(enabledBackends)
                 }
             }
             
@@ -357,17 +353,15 @@ class FederatedTopoClimbRepository(private val context: Context) {
             // Get cached area from Room
             val cachedArea = database.areaDao().getArea(areaId, backendId)
             
-            // If network available, refresh data in background
-            if (NetworkUtils.isNetworkAvailable(context)) {
-                coroutineScope {
-                    launch {
-                        try {
-                            val api = retrofitManager.getApiService(backend)
-                            val response = api.getArea(areaId)
-                            database.areaDao().insertArea(response.data.toEntity(backendId))
-                        } catch (e: Exception) {
-                            // Silently fail - we already returned cached data
-                        }
+            // If network available, refresh data in background (non-blocking)
+            if (NetworkUtils.isNetworkAvailable(context) && cachedArea != null) {
+                backgroundScope.launch {
+                    try {
+                        val api = retrofitManager.getApiService(backend)
+                        val response = api.getArea(areaId)
+                        database.areaDao().insertArea(response.data.toEntity(backendId))
+                    } catch (e: Exception) {
+                        // Silently fail - we already returned cached data
                     }
                 }
             }
@@ -441,24 +435,22 @@ class FederatedTopoClimbRepository(private val context: Context) {
             val cachedAreas = database.areaDao().getAreasBySite(siteId, backendId)
             android.util.Log.d("OfflineFirst", "getAreasBySite - siteId: $siteId, backendId: $backendId, cached count: ${cachedAreas.size}")
             
-            // If we have cached data, return it and refresh in background
+            // If we have cached data, return it and refresh in background (non-blocking)
             if (cachedAreas.isNotEmpty()) {
                 android.util.Log.d("OfflineFirst", "Returning ${cachedAreas.size} cached areas for site $siteId")
                 // Launch background refresh if online
                 if (NetworkUtils.isNetworkAvailable(context)) {
-                    coroutineScope {
-                        launch {
-                            try {
-                                val api = retrofitManager.getApiService(backend)
-                                val response = api.getAreasBySite(siteId)
-                                // Use the correctSiteId parameter when caching because API may return siteId=0
-                                val entities = response.data.map { it.toEntity(backendId, siteId) }
-                                android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} areas for site $siteId")
-                                database.areaDao().insertAreas(entities)
-                            } catch (e: Exception) {
-                                // Silently fail - we already returned cached data
-                                android.util.Log.e("OfflineFirst", "Background refresh failed for areas", e)
-                            }
+                    backgroundScope.launch {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getAreasBySite(siteId)
+                            // Use the correctSiteId parameter when caching because API may return siteId=0
+                            val entities = response.data.map { it.toEntity(backendId, siteId) }
+                            android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} areas for site $siteId")
+                            database.areaDao().insertAreas(entities)
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                            android.util.Log.e("OfflineFirst", "Background refresh failed for areas", e)
                         }
                     }
                 }
@@ -522,24 +514,22 @@ class FederatedTopoClimbRepository(private val context: Context) {
             val cachedContests = database.contestDao().getContestsBySite(siteId, backendId)
             android.util.Log.d("OfflineFirst", "getContestsBySite - siteId: $siteId, backendId: $backendId, cached count: ${cachedContests.size}")
             
-            // If we have cached data, return it and refresh in background
+            // If we have cached data, return it and refresh in background (non-blocking)
             if (cachedContests.isNotEmpty()) {
                 android.util.Log.d("OfflineFirst", "Returning ${cachedContests.size} cached contests for site $siteId")
                 // Launch background refresh if online
                 if (NetworkUtils.isNetworkAvailable(context)) {
-                    coroutineScope {
-                        launch {
-                            try {
-                                val api = retrofitManager.getApiService(backend)
-                                val response = api.getContestsBySite(siteId)
-                                // Use the correctSiteId parameter when caching because API may return incorrect siteId
-                                val entities = response.data.map { it.toEntity(backendId, siteId) }
-                                android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} contests for site $siteId")
-                                database.contestDao().insertContests(entities)
-                            } catch (e: Exception) {
-                                // Silently fail - we already returned cached data
-                                android.util.Log.e("OfflineFirst", "Background refresh failed for contests", e)
-                            }
+                    backgroundScope.launch {
+                        try {
+                            val api = retrofitManager.getApiService(backend)
+                            val response = api.getContestsBySite(siteId)
+                            // Use the correctSiteId parameter when caching because API may return incorrect siteId
+                            val entities = response.data.map { it.toEntity(backendId, siteId) }
+                            android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} contests for site $siteId")
+                            database.contestDao().insertContests(entities)
+                        } catch (e: Exception) {
+                            // Silently fail - we already returned cached data
+                            android.util.Log.e("OfflineFirst", "Background refresh failed for contests", e)
                         }
                     }
                 }
