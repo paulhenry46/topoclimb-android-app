@@ -37,9 +37,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.AreaType
 import com.example.topoclimb.ui.components.RouteCard
 import com.example.topoclimb.ui.components.SchemaView
+import com.example.topoclimb.ui.state.ClimbedFilter
+import com.example.topoclimb.ui.state.GroupingOption
+import com.example.topoclimb.ui.state.ViewMode
 import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.viewmodel.AreaDetailViewModel
-import com.example.topoclimb.viewmodel.ViewMode
 
 // Constants for grouping labels
 private const val UNKNOWN_GRADE_LABEL = "Unknown"
@@ -116,7 +118,7 @@ fun AreaDetailScreen(
     
     // Check if there are active filters (excluding search query)
     val hasActiveFilters = uiState.minGrade != null || uiState.maxGrade != null || 
-        uiState.showNewRoutesOnly || uiState.climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL || 
+        uiState.showNewRoutesOnly || uiState.climbedFilter != com.example.topoclimb.ui.state.ClimbedFilter.ALL || 
         uiState.showFavoritesOnly
     
     Scaffold(
@@ -597,14 +599,14 @@ fun AreaDetailScreen(
                     if (uiState.routes.isNotEmpty()) {
                         // Group routes if grouping is enabled
                         val groupedRoutes = when (uiState.groupingOption) {
-                            com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE -> {
+                            com.example.topoclimb.ui.state.GroupingOption.BY_GRADE -> {
                                 uiState.routesWithMetadata.groupBy { 
                                     it.grade?.let { gradeInt -> 
                                         GradeUtils.pointsToGrade(gradeInt, uiState.gradingSystem) 
                                     } ?: UNKNOWN_GRADE_LABEL 
                                 }
                             }
-                            com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR -> {
+                            com.example.topoclimb.ui.state.GroupingOption.BY_SECTOR -> {
                                 uiState.routesWithMetadata.groupBy { routeWithMetadata ->
                                     // Get sector name from sectors list
                                     routeWithMetadata.sectorLocalId?.let { sectorLocalId ->
@@ -612,14 +614,14 @@ fun AreaDetailScreen(
                                     } ?: UNKNOWN_SECTOR_LABEL
                                 }
                             }
-                            com.example.topoclimb.viewmodel.GroupingOption.NONE -> {
+                            com.example.topoclimb.ui.state.GroupingOption.NONE -> {
                                 mapOf("" to uiState.routesWithMetadata)
                             }
                         }
                         
                         groupedRoutes.forEach { (groupKey, routesInGroup) ->
                             // Show group header if grouping is enabled
-                            if (uiState.groupingOption != com.example.topoclimb.viewmodel.GroupingOption.NONE) {
+                            if (uiState.groupingOption != com.example.topoclimb.ui.state.GroupingOption.NONE) {
                                 item {
                                     Text(
                                         text = "$groupKey (${routesInGroup.size})",
@@ -804,21 +806,21 @@ fun FilterModalDialog(
     showNewRoutesOnly: Boolean,
     selectedSectorId: Int?,
     sectors: List<com.example.topoclimb.data.Sector>,
-    climbedFilter: com.example.topoclimb.viewmodel.ClimbedFilter,
-    groupingOption: com.example.topoclimb.viewmodel.GroupingOption,
+    climbedFilter: com.example.topoclimb.ui.state.ClimbedFilter,
+    groupingOption: com.example.topoclimb.ui.state.GroupingOption,
     showFavoritesOnly: Boolean,
     onMinGradeChange: (String?) -> Unit,
     onMaxGradeChange: (String?) -> Unit,
     onNewRoutesToggle: (Boolean) -> Unit,
     onSectorSelected: (Int?) -> Unit,
-    onClimbedFilterChange: (com.example.topoclimb.viewmodel.ClimbedFilter) -> Unit,
-    onGroupingOptionChange: (com.example.topoclimb.viewmodel.GroupingOption) -> Unit,
+    onClimbedFilterChange: (com.example.topoclimb.ui.state.ClimbedFilter) -> Unit,
+    onGroupingOptionChange: (com.example.topoclimb.ui.state.GroupingOption) -> Unit,
     onFavoritesToggle: (Boolean) -> Unit,
     onClearFilters: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val hasActiveFilters = minGrade != null || maxGrade != null || showNewRoutesOnly || 
-        climbedFilter != com.example.topoclimb.viewmodel.ClimbedFilter.ALL || showFavoritesOnly
+        climbedFilter != com.example.topoclimb.ui.state.ClimbedFilter.ALL || showFavoritesOnly
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -894,33 +896,33 @@ fun FilterModalDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         FilterChip(
-                            selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED,
+                            selected = climbedFilter == com.example.topoclimb.ui.state.ClimbedFilter.CLIMBED,
                             onClick = { 
                                 onClimbedFilterChange(
-                                    if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) 
-                                        com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
+                                    if (climbedFilter == com.example.topoclimb.ui.state.ClimbedFilter.CLIMBED) 
+                                        com.example.topoclimb.ui.state.ClimbedFilter.ALL 
                                     else 
-                                        com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED
+                                        com.example.topoclimb.ui.state.ClimbedFilter.CLIMBED
                                 ) 
                             },
                             label = { Text("Climbed") },
-                            leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.CLIMBED) {
+                            leadingIcon = if (climbedFilter == com.example.topoclimb.ui.state.ClimbedFilter.CLIMBED) {
                                 { Icon(Icons.Default.Check, contentDescription = "Selected") }
                             } else null,
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
-                            selected = climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED,
+                            selected = climbedFilter == com.example.topoclimb.ui.state.ClimbedFilter.NOT_CLIMBED,
                             onClick = { 
                                 onClimbedFilterChange(
-                                    if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) 
-                                        com.example.topoclimb.viewmodel.ClimbedFilter.ALL 
+                                    if (climbedFilter == com.example.topoclimb.ui.state.ClimbedFilter.NOT_CLIMBED) 
+                                        com.example.topoclimb.ui.state.ClimbedFilter.ALL 
                                     else 
-                                        com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED
+                                        com.example.topoclimb.ui.state.ClimbedFilter.NOT_CLIMBED
                                 ) 
                             },
                             label = { Text("Not Climbed") },
-                            leadingIcon = if (climbedFilter == com.example.topoclimb.viewmodel.ClimbedFilter.NOT_CLIMBED) {
+                            leadingIcon = if (climbedFilter == com.example.topoclimb.ui.state.ClimbedFilter.NOT_CLIMBED) {
                                 { Icon(Icons.Default.Check, contentDescription = "Selected") }
                             } else null,
                             modifier = Modifier.weight(1f)
@@ -940,33 +942,33 @@ fun FilterModalDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         FilterChip(
-                            selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE,
+                            selected = groupingOption == com.example.topoclimb.ui.state.GroupingOption.BY_GRADE,
                             onClick = { 
                                 onGroupingOptionChange(
-                                    if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) 
-                                        com.example.topoclimb.viewmodel.GroupingOption.NONE 
+                                    if (groupingOption == com.example.topoclimb.ui.state.GroupingOption.BY_GRADE) 
+                                        com.example.topoclimb.ui.state.GroupingOption.NONE 
                                     else 
-                                        com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE
+                                        com.example.topoclimb.ui.state.GroupingOption.BY_GRADE
                                 ) 
                             },
                             label = { Text("Grade") },
-                            leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_GRADE) {
+                            leadingIcon = if (groupingOption == com.example.topoclimb.ui.state.GroupingOption.BY_GRADE) {
                                 { Icon(Icons.Default.Check, contentDescription = "Selected") }
                             } else null,
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
-                            selected = groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR,
+                            selected = groupingOption == com.example.topoclimb.ui.state.GroupingOption.BY_SECTOR,
                             onClick = { 
                                 onGroupingOptionChange(
-                                    if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) 
-                                        com.example.topoclimb.viewmodel.GroupingOption.NONE 
+                                    if (groupingOption == com.example.topoclimb.ui.state.GroupingOption.BY_SECTOR) 
+                                        com.example.topoclimb.ui.state.GroupingOption.NONE 
                                     else 
-                                        com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR
+                                        com.example.topoclimb.ui.state.GroupingOption.BY_SECTOR
                                 ) 
                             },
                             label = { Text("Sector") },
-                            leadingIcon = if (groupingOption == com.example.topoclimb.viewmodel.GroupingOption.BY_SECTOR) {
+                            leadingIcon = if (groupingOption == com.example.topoclimb.ui.state.GroupingOption.BY_SECTOR) {
                                 { Icon(Icons.Default.Check, contentDescription = "Selected") }
                             } else null,
                             modifier = Modifier.weight(1f)

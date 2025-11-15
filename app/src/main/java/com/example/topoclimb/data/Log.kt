@@ -20,10 +20,6 @@ data class Log(
     val userPpUrl: String
 )
 
-data class LogsResponse(
-    val data: List<Log>
-)
-
 /**
  * Request body for creating a new log
  */

@@ -10,13 +10,3 @@ data class Sector(
     @SerializedName("local_id")
     val localId: String?
 )
-
-data class SectorResponse(
-    @SerializedName("data")
-    val data: Sector
-)
-
-data class SectorsResponse(
-    @SerializedName("data")
-    val data: List<Sector>
-)

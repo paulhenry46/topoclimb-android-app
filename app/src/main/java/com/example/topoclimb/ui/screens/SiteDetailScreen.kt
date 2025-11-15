@@ -32,9 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -560,7 +558,7 @@ fun ContactInfoRow(
     snackbarHostState: SnackbarHostState
 ) {
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
     val scope = rememberCoroutineScope()
     
     // Determine the action based on label
@@ -593,7 +591,8 @@ fun ContactInfoRow(
     }
     
     val onLongClick: () -> Unit = {
-        clipboardManager.setText(AnnotatedString(value))
+        val clip = android.content.ClipData.newPlainText(label, value)
+        clipboardManager.setPrimaryClip(clip)
         scope.launch {
             snackbarHostState.showSnackbar(
                 message = "$label copied to clipboard",

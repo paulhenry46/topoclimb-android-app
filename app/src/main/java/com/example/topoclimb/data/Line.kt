@@ -10,13 +10,3 @@ data class Line(
     @SerializedName("local_id")
     val localId: String?
 )
-
-data class LineResponse(
-    @SerializedName("data")
-    val data: Line
-)
-
-data class LinesResponse(
-    @SerializedName("data")
-    val data: List<Line>
-)
