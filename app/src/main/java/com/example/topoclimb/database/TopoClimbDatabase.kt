@@ -9,11 +9,15 @@ import com.example.topoclimb.database.converters.GradingSystemConverter
 import com.example.topoclimb.database.converters.StringListConverter
 import com.example.topoclimb.database.dao.AreaDao
 import com.example.topoclimb.database.dao.ContestDao
+import com.example.topoclimb.database.dao.LineDao
 import com.example.topoclimb.database.dao.RouteDao
+import com.example.topoclimb.database.dao.SectorDao
 import com.example.topoclimb.database.dao.SiteDao
 import com.example.topoclimb.database.entities.AreaEntity
 import com.example.topoclimb.database.entities.ContestEntity
+import com.example.topoclimb.database.entities.LineEntity
 import com.example.topoclimb.database.entities.RouteEntity
+import com.example.topoclimb.database.entities.SectorEntity
 import com.example.topoclimb.database.entities.SiteEntity
 
 @Database(
@@ -21,9 +25,11 @@ import com.example.topoclimb.database.entities.SiteEntity
         SiteEntity::class,
         AreaEntity::class,
         RouteEntity::class,
-        ContestEntity::class
+        ContestEntity::class,
+        SectorEntity::class,
+        LineEntity::class
     ],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(
@@ -36,6 +42,8 @@ abstract class TopoClimbDatabase : RoomDatabase() {
     abstract fun areaDao(): AreaDao
     abstract fun routeDao(): RouteDao
     abstract fun contestDao(): ContestDao
+    abstract fun sectorDao(): SectorDao
+    abstract fun lineDao(): LineDao
     
     companion object {
         @Volatile
@@ -50,7 +58,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
                 )
                 .fallbackToDestructiveMigration()
                 .build()
-                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 3 with composite primary keys and Contest caching)")
+                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 5 with Sector, Line, and Route lineId caching)")
                 INSTANCE = instance
                 instance
             }

@@ -30,6 +30,7 @@ data class RouteEntity(
     val numberLogs: Int?,
     val numberComments: Int?,
     val removingAt: String?,
+    val lineId: Int?, // Line ID for routes cached by line
     val backendId: String,
     val lastUpdated: Long = System.currentTimeMillis()
 )
@@ -56,7 +57,7 @@ fun RouteEntity.toRoute(): Route = Route(
     removingAt = removingAt
 )
 
-fun Route.toEntity(backendId: String): RouteEntity = RouteEntity(
+fun Route.toEntity(backendId: String, lineId: Int? = null): RouteEntity = RouteEntity(
     id = id,
     name = name,
     grade = grade,
@@ -76,5 +77,6 @@ fun Route.toEntity(backendId: String): RouteEntity = RouteEntity(
     numberLogs = numberLogs,
     numberComments = numberComments,
     removingAt = removingAt,
+    lineId = lineId,
     backendId = backendId
 )
