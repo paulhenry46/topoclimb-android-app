@@ -439,25 +439,25 @@ class FederatedTopoClimbRepository(private val context: Context) {
             // Get cached areas from Room
             val cachedAreas = database.areaDao().getAreasBySite(siteId, backendId)
             
-            // If network available, refresh data in background
-            if (NetworkUtils.isNetworkAvailable(context)) {
-                coroutineScope {
-                    launch {
-                        try {
-                            val api = retrofitManager.getApiService(backend)
-                            val response = api.getAreasBySite(siteId)
-                            val entities = response.data.map { it.toEntity(backendId) }
-                            database.areaDao().insertAreas(entities)
-                        } catch (e: Exception) {
-                            // Silently fail - we already returned cached data
+            // If we have cached data, return it and refresh in background
+            if (cachedAreas.isNotEmpty()) {
+                // Launch background refresh if online
+                if (NetworkUtils.isNetworkAvailable(context)) {
+                    coroutineScope {
+                        launch {
+                            try {
+                                val api = retrofitManager.getApiService(backend)
+                                val response = api.getAreasBySite(siteId)
+                                val entities = response.data.map { it.toEntity(backendId) }
+                                database.areaDao().insertAreas(entities)
+                            } catch (e: Exception) {
+                                // Silently fail - we already returned cached data
+                            }
                         }
                     }
                 }
-            }
-            
-            // Return cached data or fetch from network if no cache
-            if (cachedAreas.isNotEmpty()) {
-                Result.success(
+                
+                return Result.success(
                     cachedAreas.map { entity ->
                         Federated(
                             data = entity.toArea(),
@@ -465,13 +465,15 @@ class FederatedTopoClimbRepository(private val context: Context) {
                         )
                     }
                 )
-            } else if (NetworkUtils.isNetworkAvailable(context)) {
-                // No cache and network available - fetch synchronously
+            }
+            
+            // No cache - fetch from network if available
+            if (NetworkUtils.isNetworkAvailable(context)) {
                 val api = retrofitManager.getApiService(backend)
                 val response = api.getAreasBySite(siteId)
                 val entities = response.data.map { it.toEntity(backendId) }
                 database.areaDao().insertAreas(entities)
-                Result.success(
+                return Result.success(
                     response.data.map { area ->
                         Federated(
                             data = area,
@@ -479,9 +481,10 @@ class FederatedTopoClimbRepository(private val context: Context) {
                         )
                     }
                 )
-            } else {
-                Result.success(emptyList()) // Return empty list instead of failing
             }
+            
+            // No cache and offline - return empty list
+            Result.success(emptyList())
         } catch (e: Exception) {
             Result.failure(e)
         }
