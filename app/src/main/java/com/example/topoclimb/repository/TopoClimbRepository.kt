@@ -82,12 +82,30 @@ class TopoClimbRepository(private val context: Context? = null) {
         return try {
             // Get cached sectors
             val cachedSectors = database.sectorDao().getSectorsByArea(areaId, defaultBackendId)
+            android.util.Log.d("OfflineFirst", "getSectorsByArea: areaId=$areaId, cached count=${cachedSectors.size}")
+            
+            // If no cache and online, fetch synchronously first
+            if (cachedSectors.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
+                android.util.Log.d("OfflineFirst", "No cache for area $areaId, fetching from network")
+                val response = api.getSectorsByArea(areaId)
+                val entities = response.data.map { it.toEntity(defaultBackendId) }
+                database.sectorDao().insertSectors(entities)
+                android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} sectors for area $areaId")
+                return Result.success(response.data)
+            }
+            
+            // If no cache and offline, return empty
+            if (cachedSectors.isEmpty()) {
+                android.util.Log.w("OfflineFirst", "No cache and offline for area $areaId - returning empty")
+                return Result.success(emptyList())
+            }
             
             // Return cached data immediately
             val result = cachedSectors.map { it.toSector() }
+            android.util.Log.d("OfflineFirst", "Returning ${result.size} cached sectors for area $areaId")
             
-            // Refresh in background if needed
-            if (NetworkUtils.isNetworkAvailable(context) && cachedSectors.isNotEmpty()) {
+            // Refresh in background if cache is stale or forced
+            if (NetworkUtils.isNetworkAvailable(context)) {
                 val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedSectors) { it.lastUpdated }
                 if (shouldRefresh) {
                     backgroundScope.launch {
@@ -95,7 +113,7 @@ class TopoClimbRepository(private val context: Context? = null) {
                             val response = api.getSectorsByArea(areaId)
                             val entities = response.data.map { it.toEntity(defaultBackendId) }
                             database.sectorDao().insertSectors(entities)
-                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} sectors for area $areaId")
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} sectors for area $areaId (forceRefresh=$forceRefresh)")
                         } catch (e: Exception) {
                             android.util.Log.e("OfflineFirst", "Background refresh failed for sectors", e)
                         }
@@ -105,17 +123,9 @@ class TopoClimbRepository(private val context: Context? = null) {
                 }
             }
             
-            // If no cache and online, fetch synchronously
-            if (result.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
-                val response = api.getSectorsByArea(areaId)
-                val entities = response.data.map { it.toEntity(defaultBackendId) }
-                database.sectorDao().insertSectors(entities)
-                android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} sectors for area $areaId")
-                return Result.success(response.data)
-            }
-            
             Result.success(result)
         } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getSectorsByArea", e)
             Result.failure(e)
         }
     }
@@ -133,12 +143,30 @@ class TopoClimbRepository(private val context: Context? = null) {
         return try {
             // Get cached lines
             val cachedLines = database.lineDao().getLinesBySector(sectorId, defaultBackendId)
+            android.util.Log.d("OfflineFirst", "getLinesBySector: sectorId=$sectorId, cached count=${cachedLines.size}")
+            
+            // If no cache and online, fetch synchronously first
+            if (cachedLines.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
+                android.util.Log.d("OfflineFirst", "No cache for sector $sectorId, fetching from network")
+                val response = api.getLinesBySector(sectorId)
+                val entities = response.data.map { it.toEntity(defaultBackendId) }
+                database.lineDao().insertLines(entities)
+                android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} lines for sector $sectorId")
+                return Result.success(response.data)
+            }
+            
+            // If no cache and offline, return empty
+            if (cachedLines.isEmpty()) {
+                android.util.Log.w("OfflineFirst", "No cache and offline for sector $sectorId - returning empty")
+                return Result.success(emptyList())
+            }
             
             // Return cached data immediately
             val result = cachedLines.map { it.toLine() }
+            android.util.Log.d("OfflineFirst", "Returning ${result.size} cached lines for sector $sectorId")
             
-            // Refresh in background if needed
-            if (NetworkUtils.isNetworkAvailable(context) && cachedLines.isNotEmpty()) {
+            // Refresh in background if cache is stale or forced
+            if (NetworkUtils.isNetworkAvailable(context)) {
                 val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedLines) { it.lastUpdated }
                 if (shouldRefresh) {
                     backgroundScope.launch {
@@ -146,7 +174,7 @@ class TopoClimbRepository(private val context: Context? = null) {
                             val response = api.getLinesBySector(sectorId)
                             val entities = response.data.map { it.toEntity(defaultBackendId) }
                             database.lineDao().insertLines(entities)
-                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} lines for sector $sectorId")
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} lines for sector $sectorId (forceRefresh=$forceRefresh)")
                         } catch (e: Exception) {
                             android.util.Log.e("OfflineFirst", "Background refresh failed for lines", e)
                         }
@@ -156,17 +184,9 @@ class TopoClimbRepository(private val context: Context? = null) {
                 }
             }
             
-            // If no cache and online, fetch synchronously
-            if (result.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
-                val response = api.getLinesBySector(sectorId)
-                val entities = response.data.map { it.toEntity(defaultBackendId) }
-                database.lineDao().insertLines(entities)
-                android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} lines for sector $sectorId")
-                return Result.success(response.data)
-            }
-            
             Result.success(result)
         } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getLinesBySector", e)
             Result.failure(e)
         }
     }
@@ -185,12 +205,30 @@ class TopoClimbRepository(private val context: Context? = null) {
         return try {
             // Get cached routes for this line
             val cachedRoutes = database.routeDao().getRoutesByLine(lineId, defaultBackendId)
+            android.util.Log.d("OfflineFirst", "getRoutesByLine: lineId=$lineId, cached count=${cachedRoutes.size}")
+            
+            // If no cache and online, fetch synchronously first
+            if (cachedRoutes.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
+                android.util.Log.d("OfflineFirst", "No cache for line $lineId, fetching from network")
+                val response = api.getRoutesByLine(lineId)
+                val entities = response.data.map { it.toEntity(defaultBackendId, lineId) }
+                database.routeDao().insertRoutes(entities)
+                android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} routes for line $lineId")
+                return Result.success(response.data)
+            }
+            
+            // If no cache and offline, return empty
+            if (cachedRoutes.isEmpty()) {
+                android.util.Log.w("OfflineFirst", "No cache and offline for line $lineId - returning empty")
+                return Result.success(emptyList())
+            }
             
             // Return cached data immediately
             val result = cachedRoutes.map { it.toRoute() }
+            android.util.Log.d("OfflineFirst", "Returning ${result.size} cached routes for line $lineId")
             
-            // Refresh in background if needed
-            if (NetworkUtils.isNetworkAvailable(context) && cachedRoutes.isNotEmpty()) {
+            // Refresh in background if cache is stale or forced
+            if (NetworkUtils.isNetworkAvailable(context)) {
                 val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedRoutes) { it.lastUpdated }
                 if (shouldRefresh) {
                     backgroundScope.launch {
@@ -198,7 +236,7 @@ class TopoClimbRepository(private val context: Context? = null) {
                             val response = api.getRoutesByLine(lineId)
                             val entities = response.data.map { it.toEntity(defaultBackendId, lineId) }
                             database.routeDao().insertRoutes(entities)
-                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} routes for line $lineId")
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} routes for line $lineId (forceRefresh=$forceRefresh)")
                         } catch (e: Exception) {
                             android.util.Log.e("OfflineFirst", "Background refresh failed for routes", e)
                         }
@@ -208,17 +246,9 @@ class TopoClimbRepository(private val context: Context? = null) {
                 }
             }
             
-            // If no cache and online, fetch synchronously
-            if (result.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
-                val response = api.getRoutesByLine(lineId)
-                val entities = response.data.map { it.toEntity(defaultBackendId, lineId) }
-                database.routeDao().insertRoutes(entities)
-                android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} routes for line $lineId")
-                return Result.success(response.data)
-            }
-            
             Result.success(result)
         } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getRoutesByLine", e)
             Result.failure(e)
         }
     }

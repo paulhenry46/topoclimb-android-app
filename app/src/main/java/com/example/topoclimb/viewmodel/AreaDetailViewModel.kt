@@ -213,16 +213,21 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
             // Load routes with sector and line metadata using the chain:
             // getSectorsByArea -> getLinesBySector -> getRoutesByLine
             val allRoutesWithMetadata = mutableListOf<RouteWithMetadata>()
+            android.util.Log.d("OfflineFirst", "fetchAreaData: Processing ${sectors.size} sectors")
             for (sector in sectors) {
+                android.util.Log.d("OfflineFirst", "fetchAreaData: Getting lines for sector ${sector.id}")
                 val linesResult = repository.getLinesBySector(sector.id, forceRefresh)
                 if (linesResult.isSuccess) {
                     val lines = linesResult.getOrNull() ?: emptyList()
+                    android.util.Log.d("OfflineFirst", "fetchAreaData: Found ${lines.size} lines for sector ${sector.id}")
                     
                     // Fetch routes for each line and enrich with metadata
                     for (line in lines) {
+                        android.util.Log.d("OfflineFirst", "fetchAreaData: Getting routes for line ${line.id}")
                         val routesResult = repository.getRoutesByLine(line.id, forceRefresh)
                         if (routesResult.isSuccess) {
                             val routes = routesResult.getOrNull() ?: emptyList()
+                            android.util.Log.d("OfflineFirst", "fetchAreaData: Found ${routes.size} routes for line ${line.id}")
                             routes.forEach { route ->
                                 val updatedRoute = if (route.siteId == 0 || route.siteName.isNullOrBlank()) {
                                     route.copy(
@@ -241,10 +246,15 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
                                     )
                                 )
                             }
+                        } else {
+                            android.util.Log.e("OfflineFirst", "fetchAreaData: Failed to get routes for line ${line.id}: ${routesResult.exceptionOrNull()?.message}")
                         }
                     }
+                } else {
+                    android.util.Log.e("OfflineFirst", "fetchAreaData: Failed to get lines for sector ${sector.id}: ${linesResult.exceptionOrNull()?.message}")
                 }
             }
+            android.util.Log.d("OfflineFirst", "fetchAreaData: Total routes with metadata: ${allRoutesWithMetadata.size}")
             
             val routes = allRoutesWithMetadata.map { it.route }
             val routesWithMetadata = allRoutesWithMetadata
