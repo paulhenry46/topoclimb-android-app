@@ -10,6 +10,9 @@ import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
 import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.repository.TopoClimbRepository
+import com.example.topoclimb.ui.state.ViewMode
+import com.example.topoclimb.ui.state.ClimbedFilter
+import com.example.topoclimb.ui.state.GroupingOption
 import com.example.topoclimb.utils.GradeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,11 +22,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-
-enum class ViewMode {
-    MAP,      // Traditional interactive map view
-    SCHEMA    // Schema view with sector overlays
-}
 
 data class AreaDetailUiState(
     val isLoading: Boolean = true,
@@ -56,18 +54,6 @@ data class AreaDetailUiState(
     // Grouping state
     val groupingOption: GroupingOption = GroupingOption.NONE
 )
-
-enum class ClimbedFilter {
-    ALL,        // Show all routes
-    CLIMBED,    // Show only climbed routes
-    NOT_CLIMBED // Show only not climbed routes
-}
-
-enum class GroupingOption {
-    NONE,       // No grouping
-    BY_GRADE,   // Group by grade
-    BY_SECTOR   // Group by sector
-}
 
 class AreaDetailViewModel : ViewModel() {
     private val repository = TopoClimbRepository()
