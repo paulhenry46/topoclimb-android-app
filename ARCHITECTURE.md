@@ -203,8 +203,103 @@ Currently uses simple object instantiation. Future versions could use:
 
 ## Future Enhancements
 
-1. **Offline Support**: Room database for caching
+1. ~~**Offline Support**: Room database for caching~~ ✅ **IMPLEMENTED**
 2. **Image Loading**: Already prepared with Coil dependency
 3. **Authentication**: Add auth interceptor to OkHttp
 4. **Pagination**: Add paging support for large lists
 5. **Search**: Add search functionality to ViewModels
+
+## Offline-First Architecture (NEW)
+
+### Room Database Integration
+
+The app now uses Room database as the single source of truth for all data:
+
+```
+┌─────────────────────────────────────────┐
+│           UI Layer (Compose)            │
+│  Observes StateFlow from ViewModel      │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│          ViewModel Layer                │
+│  Calls Repository for data              │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│    FederatedTopoClimbRepository         │
+│  1. Return cached data from Room        │
+│  2. Check network availability          │
+│  3. Fetch fresh data from API (async)   │
+│  4. Update Room database                │
+│  5. UI auto-updates via Flow            │
+└─────────────────┬───────────────────────┘
+                  │
+         ┌────────┴────────┐
+         │                 │
+┌────────▼─────┐  ┌────────▼────────┐
+│ Room Database│  │  Retrofit API   │
+│ (Cache/Local)│  │  (Network/Remote│
+│  - Sites     │  │   - Multi-      │
+│  - Areas     │  │     backend     │
+│  - Routes    │  │     support)    │
+└──────────────┘  └─────────────────┘
+```
+
+### Offline-First Data Flow
+
+1. **Initial Load**:
+   - ViewModel calls Repository
+   - Repository returns cached data from Room immediately
+   - UI displays cached data (or empty state)
+
+2. **Network Refresh** (if online):
+   - Repository launches background coroutine
+   - Fetches fresh data from API
+   - Updates Room database
+   - UI automatically refreshes (no explicit reload needed)
+
+3. **Offline Mode** (no network):
+   - Repository returns cached data from Room
+   - No network calls attempted
+   - App continues working with stale data
+   - No crashes or errors
+
+### Room Database Components
+
+**Entities**:
+- `SiteEntity`: Cached climbing sites with backend association
+- `AreaEntity`: Cached climbing areas with backend association  
+- `RouteEntity`: Cached climbing routes with backend association
+
+**DAOs** (Data Access Objects):
+- `SiteDao`: CRUD operations for sites
+- `AreaDao`: CRUD operations for areas
+- `RouteDao`: CRUD operations for routes
+
+**TypeConverters**:
+- `GradingSystemConverter`: Converts GradingSystem to/from JSON
+- `StringListConverter`: Converts List<String> to/from JSON
+
+**Database**:
+- `TopoClimbDatabase`: Room database singleton with all entities and DAOs
+
+### Network Layer Improvements
+
+**OkHttp Cache**:
+- 10MB HTTP cache for network efficiency
+- Cache directory: `app/cache/http_cache`
+- Initialized in MainActivity
+
+**Network Utils**:
+- `NetworkUtils.isNetworkAvailable()`: Check connectivity status
+- Used by repository to decide when to refresh data
+
+### Benefits of Offline-First Architecture
+
+1. **Instant Loading**: Data appears immediately from cache
+2. **Offline Support**: App works without network connection
+3. **Better UX**: No loading spinners for cached data
+4. **Reduced Server Load**: Fewer API calls
+5. **Lower Data Usage**: Cached data reduces bandwidth
+6. **Resilient**: Network errors don't break the app
