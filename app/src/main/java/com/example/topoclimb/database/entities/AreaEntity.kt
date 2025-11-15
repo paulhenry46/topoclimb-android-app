@@ -1,12 +1,14 @@
 package com.example.topoclimb.database.entities
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 import com.example.topoclimb.data.Area
 
-@Entity(tableName = "areas")
+@Entity(
+    tableName = "areas",
+    primaryKeys = ["id", "backendId"]
+)
 data class AreaEntity(
-    @PrimaryKey val id: Int,
+    val id: Int,
     val name: String,
     val description: String?,
     val latitude: Double?,

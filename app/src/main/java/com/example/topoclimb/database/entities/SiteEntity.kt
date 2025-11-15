@@ -1,16 +1,18 @@
 package com.example.topoclimb.database.entities
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.database.converters.GradingSystemConverter
 
-@Entity(tableName = "sites")
+@Entity(
+    tableName = "sites",
+    primaryKeys = ["id", "backendId"]
+)
 @TypeConverters(GradingSystemConverter::class)
 data class SiteEntity(
-    @PrimaryKey val id: Int,
+    val id: Int,
     val name: String,
     val description: String?,
     val latitude: Double?,

@@ -1,15 +1,17 @@
 package com.example.topoclimb.database.entities
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.database.converters.StringListConverter
 
-@Entity(tableName = "routes")
+@Entity(
+    tableName = "routes",
+    primaryKeys = ["id", "backendId"]
+)
 @TypeConverters(StringListConverter::class)
 data class RouteEntity(
-    @PrimaryKey val id: Int,
+    val id: Int,
     val name: String,
     val grade: Int?,
     val type: String?,

@@ -20,7 +20,7 @@ import com.example.topoclimb.database.entities.SiteEntity
         AreaEntity::class,
         RouteEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(
