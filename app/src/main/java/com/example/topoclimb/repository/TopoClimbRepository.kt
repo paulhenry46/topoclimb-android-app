@@ -1,12 +1,12 @@
 package com.example.topoclimb.repository
 
+import com.example.topoclimb.data.ApiListResponse
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.AreasResponse
 import com.example.topoclimb.data.Contest
 import com.example.topoclimb.data.ContestsResponse
 import com.example.topoclimb.data.Line
 import com.example.topoclimb.data.Route
-import com.example.topoclimb.data.RoutesResponse
 import com.example.topoclimb.data.Sector
 import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.data.Site
