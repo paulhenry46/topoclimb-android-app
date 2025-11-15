@@ -87,8 +87,8 @@ class SiteDetailViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
             
-            // Load site details
-            repository.getSite(backendId, siteId)
+            // Load site details with forceRefresh=true (pull-to-refresh always fetches fresh data)
+            repository.getSite(backendId, siteId, forceRefresh = true)
                 .onSuccess { site ->
                     _uiState.value = _uiState.value.copy(site = site)
                 }
@@ -100,8 +100,8 @@ class SiteDetailViewModel(
                     return@launch
                 }
             
-            // Load areas
-            repository.getAreasBySite(backendId, siteId)
+            // Load areas with forceRefresh=true
+            repository.getAreasBySite(backendId, siteId, forceRefresh = true)
                 .onSuccess { areas ->
                     _uiState.value = _uiState.value.copy(areas = areas)
                 }
@@ -110,8 +110,8 @@ class SiteDetailViewModel(
                     _uiState.value = _uiState.value.copy(areas = emptyList())
                 }
             
-            // Load contests
-            repository.getContestsBySite(backendId, siteId)
+            // Load contests with forceRefresh=true
+            repository.getContestsBySite(backendId, siteId, forceRefresh = true)
                 .onSuccess { contests ->
                     _uiState.value = _uiState.value.copy(contests = contests)
                 }

@@ -1,6 +1,7 @@
 package com.example.topoclimb.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.AreaType
@@ -55,8 +56,8 @@ data class AreaDetailUiState(
     val groupingOption: GroupingOption = GroupingOption.NONE
 )
 
-class AreaDetailViewModel : ViewModel() {
-    private val repository = TopoClimbRepository()
+class AreaDetailViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = TopoClimbRepository(application.applicationContext)
     private val httpClient = OkHttpClient()
     
     private val _uiState = MutableStateFlow(AreaDetailUiState())
@@ -145,7 +146,7 @@ class AreaDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = currentState.copy(isRefreshing = true, error = null)
             
-            val result = fetchAreaData(siteId, areaId)
+            val result = fetchAreaData(siteId, areaId, forceRefresh = true)
             
             if (result.isFailure) {
                 _uiState.value = currentState.copy(
@@ -185,8 +186,10 @@ class AreaDetailViewModel : ViewModel() {
      * With the nested navigation architecture, siteId is passed directly from navigation,
      * which allows us to fetch site data without traversing the area→site relationship.
      * This reduces the number of API calls and improves performance.
+     * 
+     * @param forceRefresh If true, forces cache refresh from network
      */
-    private suspend fun fetchAreaData(siteId: Int, areaId: Int): Result<AreaData> {
+    private suspend fun fetchAreaData(siteId: Int, areaId: Int, forceRefresh: Boolean = false): Result<AreaData> {
         return try {
             // Load area details
             val areaResult = repository.getArea(areaId)
@@ -203,23 +206,28 @@ class AreaDetailViewModel : ViewModel() {
             gradingSystem = siteResult.getOrNull()?.gradingSystem
             siteName = siteResult.getOrNull()?.name
             
-            // Load sectors for the area
-            val sectorsResult = repository.getSectorsByArea(areaId)
+            // Load sectors for the area (with caching)
+            val sectorsResult = repository.getSectorsByArea(areaId, forceRefresh)
             val sectors = sectorsResult.getOrNull() ?: emptyList()
             
             // Load routes with sector and line metadata using the chain:
             // getSectorsByArea -> getLinesBySector -> getRoutesByLine
             val allRoutesWithMetadata = mutableListOf<RouteWithMetadata>()
+            android.util.Log.d("OfflineFirst", "fetchAreaData: Processing ${sectors.size} sectors")
             for (sector in sectors) {
-                val linesResult = repository.getLinesBySector(sector.id)
+                android.util.Log.d("OfflineFirst", "fetchAreaData: Getting lines for sector ${sector.id}")
+                val linesResult = repository.getLinesBySector(sector.id, forceRefresh)
                 if (linesResult.isSuccess) {
                     val lines = linesResult.getOrNull() ?: emptyList()
+                    android.util.Log.d("OfflineFirst", "fetchAreaData: Found ${lines.size} lines for sector ${sector.id}")
                     
                     // Fetch routes for each line and enrich with metadata
                     for (line in lines) {
-                        val routesResult = repository.getRoutesByLine(line.id)
+                        android.util.Log.d("OfflineFirst", "fetchAreaData: Getting routes for line ${line.id}")
+                        val routesResult = repository.getRoutesByLine(line.id, forceRefresh)
                         if (routesResult.isSuccess) {
                             val routes = routesResult.getOrNull() ?: emptyList()
+                            android.util.Log.d("OfflineFirst", "fetchAreaData: Found ${routes.size} routes for line ${line.id}")
                             routes.forEach { route ->
                                 val updatedRoute = if (route.siteId == 0 || route.siteName.isNullOrBlank()) {
                                     route.copy(
@@ -238,10 +246,15 @@ class AreaDetailViewModel : ViewModel() {
                                     )
                                 )
                             }
+                        } else {
+                            android.util.Log.e("OfflineFirst", "fetchAreaData: Failed to get routes for line ${line.id}: ${routesResult.exceptionOrNull()?.message}")
                         }
                     }
+                } else {
+                    android.util.Log.e("OfflineFirst", "fetchAreaData: Failed to get lines for sector ${sector.id}: ${linesResult.exceptionOrNull()?.message}")
                 }
             }
+            android.util.Log.d("OfflineFirst", "fetchAreaData: Total routes with metadata: ${allRoutesWithMetadata.size}")
             
             val routes = allRoutesWithMetadata.map { it.route }
             val routesWithMetadata = allRoutesWithMetadata
