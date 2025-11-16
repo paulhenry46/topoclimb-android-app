@@ -17,6 +17,7 @@ import com.example.topoclimb.database.TopoClimbDatabase
 import com.example.topoclimb.database.entities.LineFetchMetadataEntity
 import com.example.topoclimb.database.entities.RouteLogsFetchMetadataEntity
 import com.example.topoclimb.database.entities.SchemaBgCacheEntity
+import com.example.topoclimb.database.entities.SectorSchemaEntity
 import com.example.topoclimb.database.entities.SvgMapCacheEntity
 import com.example.topoclimb.database.entities.toArea
 import com.example.topoclimb.database.entities.toEntity
@@ -24,6 +25,7 @@ import com.example.topoclimb.database.entities.toLine
 import com.example.topoclimb.database.entities.toLog
 import com.example.topoclimb.database.entities.toRoute
 import com.example.topoclimb.database.entities.toSector
+import com.example.topoclimb.database.entities.toSectorSchema
 import com.example.topoclimb.database.entities.toSite
 import com.example.topoclimb.network.RetrofitInstance
 import com.example.topoclimb.utils.CacheUtils
@@ -556,6 +558,7 @@ class TopoClimbRepository(private val context: Context? = null) {
     /**
      * Get area schemas with cached background images and SVG overlays
      * Background images are cached with 2-week TTL, SVG overlays with 1-week TTL
+     * Schema metadata is cached with offline-first pattern
      * @param areaId The area ID to fetch schemas for
      * @param forceRefresh If true, forces cache refresh from network regardless of age
      * @return Result containing list of cached schemas with downloaded content
@@ -575,11 +578,51 @@ class TopoClimbRepository(private val context: Context? = null) {
         }
         
         return try {
-            // Fetch schema metadata from API
-            val schemas = api.getAreaSchemas(areaId)
+            // Get cached schema metadata
+            val cachedSchemas = database.sectorSchemaDao().getSchemasByArea(areaId, defaultBackendId)
+            android.util.Log.d("OfflineFirst", "getAreaSchemasWithCache: areaId=$areaId, cached count=${cachedSchemas.size}")
+            
+            // If no cache and online, fetch synchronously first
+            if (cachedSchemas.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    android.util.Log.d("OfflineFirst", "No cache for schemas, fetching from network")
+                    val schemas = api.getAreaSchemas(areaId)
+                    
+                    // Cache the schema metadata
+                    val entities = schemas.map { it.toEntity(defaultBackendId, areaId) }
+                    database.sectorSchemaDao().insertSchemas(entities)
+                    android.util.Log.d("OfflineFirst", "Fetched and cached ${schemas.size} schema metadata")
+                    
+                    // Download and cache content for each schema
+                    val cachedSchemas = schemas.map { schema ->
+                        val bgContent = schema.bg?.let { url ->
+                            fetchSchemaBgWithCache(url, forceRefresh)
+                        }
+                        val pathsContent = schema.paths?.let { url ->
+                            fetchSvgOverlayWithCache(url, forceRefresh)
+                        }
+                        schema.toCached(pathsContent = pathsContent, bgContent = bgContent)
+                    }
+                    
+                    return Result.success(cachedSchemas)
+                } catch (e: Exception) {
+                    android.util.Log.w("OfflineFirst", "Network error fetching schemas: ${e.message}")
+                    return Result.failure(e)
+                }
+            }
+            
+            // If no cache and offline, return failure
+            if (cachedSchemas.isEmpty()) {
+                android.util.Log.w("OfflineFirst", "No cache and offline for schemas")
+                return Result.failure(Exception("No cached schemas available for area $areaId"))
+            }
+            
+            // Return cached metadata immediately with cached content
+            val schemas = cachedSchemas.map { it.toSectorSchema() }
+            android.util.Log.d("OfflineFirst", "Returning ${schemas.size} cached schemas")
             
             // Download and cache content for each schema
-            val cachedSchemas = schemas.map { schema ->
+            val result = schemas.map { schema ->
                 val bgContent = schema.bg?.let { url ->
                     fetchSchemaBgWithCache(url, forceRefresh)
                 }
@@ -589,8 +632,40 @@ class TopoClimbRepository(private val context: Context? = null) {
                 schema.toCached(pathsContent = pathsContent, bgContent = bgContent)
             }
             
-            Result.success(cachedSchemas)
+            // Refresh schema metadata in background if online and not forcing refresh
+            if (NetworkUtils.isNetworkAvailable(context) && !forceRefresh) {
+                val shouldRefresh = CacheUtils.isCacheStale(cachedSchemas.firstOrNull()?.lastUpdated ?: 0)
+                if (shouldRefresh) {
+                    backgroundScope.launch {
+                        try {
+                            val schemas = api.getAreaSchemas(areaId)
+                            val entities = schemas.map { it.toEntity(defaultBackendId, areaId) }
+                            database.sectorSchemaDao().insertSchemas(entities)
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated schema metadata")
+                        } catch (e: Exception) {
+                            android.util.Log.e("OfflineFirst", "Background refresh failed for schema metadata", e)
+                        }
+                    }
+                } else {
+                    android.util.Log.d("OfflineFirst", "Skipping refresh for schema metadata - cache is fresh")
+                }
+            } else if (NetworkUtils.isNetworkAvailable(context) && forceRefresh) {
+                // Force refresh - update metadata synchronously
+                backgroundScope.launch {
+                    try {
+                        val schemas = api.getAreaSchemas(areaId)
+                        val entities = schemas.map { it.toEntity(defaultBackendId, areaId) }
+                        database.sectorSchemaDao().insertSchemas(entities)
+                        android.util.Log.d("OfflineFirst", "Force refresh: Updated schema metadata")
+                    } catch (e: Exception) {
+                        android.util.Log.e("OfflineFirst", "Force refresh failed for schema metadata", e)
+                    }
+                }
+            }
+            
+            Result.success(result)
         } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getAreaSchemasWithCache", e)
             Result.failure(e)
         }
     }

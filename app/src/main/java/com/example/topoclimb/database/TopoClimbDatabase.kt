@@ -16,6 +16,7 @@ import com.example.topoclimb.database.dao.RouteDao
 import com.example.topoclimb.database.dao.RouteLogsFetchMetadataDao
 import com.example.topoclimb.database.dao.SchemaBgCacheDao
 import com.example.topoclimb.database.dao.SectorDao
+import com.example.topoclimb.database.dao.SectorSchemaDao
 import com.example.topoclimb.database.dao.SiteDao
 import com.example.topoclimb.database.dao.SvgMapCacheDao
 import com.example.topoclimb.database.entities.AreaEntity
@@ -27,6 +28,7 @@ import com.example.topoclimb.database.entities.RouteEntity
 import com.example.topoclimb.database.entities.RouteLogsFetchMetadataEntity
 import com.example.topoclimb.database.entities.SchemaBgCacheEntity
 import com.example.topoclimb.database.entities.SectorEntity
+import com.example.topoclimb.database.entities.SectorSchemaEntity
 import com.example.topoclimb.database.entities.SiteEntity
 import com.example.topoclimb.database.entities.SvgMapCacheEntity
 
@@ -40,11 +42,12 @@ import com.example.topoclimb.database.entities.SvgMapCacheEntity
         LineEntity::class,
         SvgMapCacheEntity::class,
         SchemaBgCacheEntity::class,
+        SectorSchemaEntity::class,
         LineFetchMetadataEntity::class,
         LogEntity::class,
         RouteLogsFetchMetadataEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(
@@ -61,6 +64,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
     abstract fun lineDao(): LineDao
     abstract fun svgMapCacheDao(): SvgMapCacheDao
     abstract fun schemaBgCacheDao(): SchemaBgCacheDao
+    abstract fun sectorSchemaDao(): SectorSchemaDao
     abstract fun lineFetchMetadataDao(): LineFetchMetadataDao
     abstract fun logDao(): LogDao
     abstract fun routeLogsFetchMetadataDao(): RouteLogsFetchMetadataDao
@@ -78,7 +82,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
                 )
                 .fallbackToDestructiveMigration()
                 .build()
-                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 9 with schema caching)")
+                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 10 with schema metadata caching)")
                 INSTANCE = instance
                 instance
             }
