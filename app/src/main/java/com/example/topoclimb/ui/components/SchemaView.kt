@@ -15,121 +15,30 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.topoclimb.data.SectorSchema
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-
-// Cache for schema data to prevent reloading when scrolling
-// This should be scoped to the screen lifecycle, not module-level
-data class SchemaData(
-    val bgImageData: String?,
-    val svgPathsData: String?,
-    val imageHeight: androidx.compose.ui.unit.Dp
-)
+import com.example.topoclimb.data.CachedSectorSchema
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun SchemaView(
-    schema: SectorSchema,
+    schema: CachedSectorSchema,
     filteredRouteIds: Set<Int>,
     onRouteClick: (Int) -> Unit,
     onPreviousClick: () -> Unit,
     onNextClick: () -> Unit,
     hasPrevious: Boolean,
     hasNext: Boolean,
-    schemaCache: MutableMap<Int, SchemaData> = remember { mutableMapOf() },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     
-    // Check cache first
-    val cachedData = remember(schema.id) { schemaCache[schema.id] }
+    // State for image height
+    var imageHeight by remember(schema.id) { mutableStateOf(400.dp) }
     
-    // State variables - initialize from cache if available
-    var bgImageData by remember(schema.id) { mutableStateOf(cachedData?.bgImageData) }
-    var svgPathsData by remember(schema.id) { mutableStateOf(cachedData?.svgPathsData) }
-    var isLoading by remember(schema.id) { mutableStateOf(cachedData == null) }
-    var error by remember(schema.id) { mutableStateOf<String?>(null) }
-    var imageHeight by remember(schema.id) { mutableStateOf(cachedData?.imageHeight ?: 400.dp) }
-    
-    // Reuse OkHttpClient instance
-    val httpClient = remember { OkHttpClient() }
     val density = androidx.compose.ui.platform.LocalDensity.current
     
-    // Only load if not in cache
-    LaunchedEffect(schema.id) {
-        if (schemaCache.containsKey(schema.id)) {
-            // Data already loaded, skip
-            return@LaunchedEffect
-        }
-        
-        isLoading = true
-        error = null
-        
-        try {
-            // Load background image as base64
-            val bgData = schema.bg?.let { url ->
-                withContext(Dispatchers.IO) {
-                    try {
-                        val request = Request.Builder().url(url).build()
-                        httpClient.newCall(request).execute().use { response ->
-                            if (response.isSuccessful) {
-                                // Determine content type from response or default to image/*
-                                val contentType = response.header("Content-Type") ?: "image/jpeg"
-                                response.body?.bytes()?.let { bytes ->
-                                    "data:$contentType;base64," + android.util.Base64.encodeToString(
-                                        bytes,
-                                        android.util.Base64.NO_WRAP
-                                    )
-                                }
-                            } else null
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        null
-                    }
-                }
-            }
-            
-            // Load SVG paths
-            val pathsData = schema.paths?.let { url ->
-                withContext(Dispatchers.IO) {
-                    try {
-                        val request = Request.Builder().url(url).build()
-                        httpClient.newCall(request).execute().use { response ->
-                            if (response.isSuccessful) {
-                                response.body?.string()
-                            } else null
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        null
-                    }
-                }
-            }
-            
-            bgImageData = bgData
-            svgPathsData = pathsData
-            
-            // Cache the data for future use
-            schemaCache[schema.id] = SchemaData(bgData, pathsData, imageHeight)
-            
-            isLoading = false
-        } catch (e: Exception) {
-            error = e.message
-            isLoading = false
-        }
-    }
-    
-    // Update cache when height changes
-    DisposableEffect(schema.id, imageHeight) {
-        if (bgImageData != null || svgPathsData != null) {
-            schemaCache[schema.id] = SchemaData(bgImageData, svgPathsData, imageHeight)
-        }
-        onDispose { }
-    }
+    // Get cached data directly from the schema
+    val bgImageData = schema.bgContent
+    val svgPathsData = schema.pathsContent
     
     Column(modifier = modifier) {
         // Navigation controls and sector name
@@ -193,25 +102,6 @@ fun SchemaView(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             when {
-                isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                error != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Error loading schema: $error",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
                 bgImageData != null && svgPathsData != null -> {
                     AndroidView(
                         factory = { context ->

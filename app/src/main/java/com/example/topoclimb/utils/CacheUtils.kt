@@ -15,6 +15,12 @@ object CacheUtils {
     private val SVG_MAP_CACHE_TTL_MS = TimeUnit.DAYS.toMillis(7)
     
     /**
+     * Schema background image cache TTL - 2 weeks in milliseconds
+     * Background images rarely change, so we cache them even longer
+     */
+    private val SCHEMA_BG_CACHE_TTL_MS = TimeUnit.DAYS.toMillis(14)
+    
+    /**
      * Check if cached data is stale (older than TTL)
      * @param lastUpdated Timestamp when data was last updated (in milliseconds)
      * @return true if data is older than 24 hours, false otherwise
@@ -34,6 +40,17 @@ object CacheUtils {
         val currentTime = System.currentTimeMillis()
         val cacheAge = currentTime - lastUpdated
         return cacheAge > SVG_MAP_CACHE_TTL_MS
+    }
+    
+    /**
+     * Check if schema background image cache is stale (older than 2 weeks)
+     * @param lastUpdated Timestamp when data was last updated (in milliseconds)
+     * @return true if data is older than 2 weeks, false otherwise
+     */
+    fun isSchemaBgCacheStale(lastUpdated: Long): Boolean {
+        val currentTime = System.currentTimeMillis()
+        val cacheAge = currentTime - lastUpdated
+        return cacheAge > SCHEMA_BG_CACHE_TTL_MS
     }
     
     /**
