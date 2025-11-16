@@ -1,9 +1,10 @@
 # Schema Caching Implementation
 
 ## Overview
-This implementation adds offline-first caching for sector schema background images and SVG overlays, enabling users to view topo schemas even when offline.
+This implementation adds offline-first caching for sector schema metadata, background images, and SVG overlays, enabling users to view topo schemas even when offline.
 
 ## Features
+- **Schema Metadata Caching**: Schema information (id, name, paths URL, bg URL) is cached with 24-hour TTL
 - **Background Image Caching**: Schema background images are cached with a 2-week TTL
 - **SVG Overlay Caching**: SVG path overlays are cached with a 1-week TTL  
 - **Offline-First**: Cached data is returned immediately, with background refresh when stale
@@ -22,7 +23,16 @@ This implementation adds offline-first caching for sector schema background imag
    - `deleteSchemaBgCache(url)` - Delete specific cache entry
    - `deleteOldCaches(timestamp)` - Cleanup old entries
 
-3. **Database Version**: Bumped from 8 to 9 to include new entity
+3. **New Entity**: `SectorSchemaEntity` - Stores schema metadata for offline access
+   - Table: `sector_schemas`
+   - Fields: `id`, `name`, `paths`, `bg`, `areaId`, `backendId`, `lastUpdated`
+
+4. **New DAO**: `SectorSchemaDao` - Database access for schema metadata cache
+   - `getSchemasByArea(areaId, backendId)` - Retrieve cached schemas for an area
+   - `insertSchemas(schemas)` - Insert/update cached schemas
+   - `deleteSchemasByArea(areaId, backendId)` - Delete schemas for an area
+
+5. **Database Version**: Bumped from 8 to 10 to include new entities
 
 ### Cache Utilities
 Added to `CacheUtils.kt`:
@@ -32,7 +42,9 @@ Added to `CacheUtils.kt`:
 ### Repository Changes
 Added to `TopoClimbRepository`:
 1. **New Method**: `getAreaSchemasWithCache(areaId, forceRefresh)` 
+   - Implements offline-first caching for schema metadata
    - Fetches schemas and caches background images and SVG overlays
+   - Returns cached metadata immediately when offline
    - Returns `List<CachedSectorSchema>` with pre-loaded content
 
 2. **Helper Methods**:
@@ -64,34 +76,47 @@ Added to `TopoClimbRepository`:
 ### Initial Load (No Cache)
 1. User opens area with schemas
 2. `getAreaSchemasWithCache()` is called
-3. For each schema:
+3. Checks database for cached schema metadata
+4. If not found, downloads schema metadata from network
+5. Stores schema metadata in database
+6. For each schema:
    - Checks database for cached background and SVG
    - If not found, downloads from network
    - Stores in database
    - Returns cached data
-4. SchemaView renders with cached content
+7. SchemaView renders with cached content
 
 ### Subsequent Loads (With Cache)
 1. User opens same area again
 2. `getAreaSchemasWithCache()` is called  
-3. For each schema:
+3. Returns cached schema metadata immediately
+4. For each schema:
    - Returns cached content immediately
    - If cache is stale, triggers background refresh
    - Updates database in background
-4. SchemaView renders with cached content instantly
+5. SchemaView renders with cached content instantly
+
+### Offline Load
+1. User opens area with schemas while offline
+2. `getAreaSchemasWithCache()` is called
+3. Returns cached schema metadata from database
+4. For each schema:
+   - Returns cached background and SVG from database
+5. SchemaView renders with cached content (no network required)
 
 ### Pull-to-Refresh
 1. User pulls to refresh
 2. `refreshAreaDetails()` passes `forceRefresh=true`
 3. `getAreaSchemasWithCache(forceRefresh=true)` is called
-4. For each schema:
+4. Returns cached metadata immediately
+5. For each schema:
    - Returns cached content immediately
    - Downloads fresh data from network in background (regardless of age)
    - Updates database
 5. SchemaView renders with updated content
 
 ## TTL Configuration
-- **Default Cache**: 24 hours (existing, unchanged)
+- **Schema Metadata**: 24 hours (default cache TTL)
 - **SVG Overlays**: 1 week (existing, unchanged)
 - **Background Images**: 2 weeks (new)
 
@@ -108,10 +133,24 @@ Added comprehensive unit tests:
    - Tests handling of null URLs
 
 ## Benefits
-1. **Offline Support**: Users can view schemas without internet connection
+1. **Offline Support**: Users can view schemas without internet connection after first online visit
 2. **Performance**: Instant display of schemas (no loading time after first fetch)
 3. **Reduced Bandwidth**: Images only downloaded once per TTL period
 4. **Better UX**: No loading spinners when returning to previously viewed schemas
+5. **Reliable**: Schema metadata cached separately ensures offline functionality works correctly
+
+## Bug Fixes
+### Offline Schema Loading Error (Fixed in v10)
+**Issue**: Schemas failed to load when offline with "unable to resolve host" error, even after being cached.
+
+**Root Cause**: Schema metadata (id, name, paths URL, bg URL) wasn't being cached - only the background images and SVG content were cached. The `getAreaSchemasWithCache()` method always called `api.getAreaSchemas(areaId)` which required network connectivity.
+
+**Fix**: 
+- Created `SectorSchemaEntity` to cache schema metadata
+- Implemented offline-first pattern for schema metadata retrieval
+- When offline, schemas now load from cached metadata
+- Background images and SVG overlays load from their respective caches
+- All components work together for complete offline functionality
 
 ## Future Improvements
 - Add cache size limits to prevent database bloat
