@@ -13,12 +13,14 @@ import com.example.topoclimb.database.dao.LineDao
 import com.example.topoclimb.database.dao.RouteDao
 import com.example.topoclimb.database.dao.SectorDao
 import com.example.topoclimb.database.dao.SiteDao
+import com.example.topoclimb.database.dao.SvgMapCacheDao
 import com.example.topoclimb.database.entities.AreaEntity
 import com.example.topoclimb.database.entities.ContestEntity
 import com.example.topoclimb.database.entities.LineEntity
 import com.example.topoclimb.database.entities.RouteEntity
 import com.example.topoclimb.database.entities.SectorEntity
 import com.example.topoclimb.database.entities.SiteEntity
+import com.example.topoclimb.database.entities.SvgMapCacheEntity
 
 @Database(
     entities = [
@@ -27,9 +29,10 @@ import com.example.topoclimb.database.entities.SiteEntity
         RouteEntity::class,
         ContestEntity::class,
         SectorEntity::class,
-        LineEntity::class
+        LineEntity::class,
+        SvgMapCacheEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(
@@ -44,6 +47,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
     abstract fun contestDao(): ContestDao
     abstract fun sectorDao(): SectorDao
     abstract fun lineDao(): LineDao
+    abstract fun svgMapCacheDao(): SvgMapCacheDao
     
     companion object {
         @Volatile
@@ -58,7 +62,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
                 )
                 .fallbackToDestructiveMigration()
                 .build()
-                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 5 with Sector, Line, and Route lineId caching)")
+                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 6 with SVG map caching)")
                 INSTANCE = instance
                 instance
             }
