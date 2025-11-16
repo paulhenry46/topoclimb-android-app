@@ -56,6 +56,7 @@ fun QRCodeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = TopAppBarDefaults.windowInsets,
                 title = { Text("QR Code") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {

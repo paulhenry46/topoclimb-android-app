@@ -46,6 +46,7 @@ fun RegisterScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = TopAppBarDefaults.windowInsets,
                 title = { Text("Register to $backendName") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {

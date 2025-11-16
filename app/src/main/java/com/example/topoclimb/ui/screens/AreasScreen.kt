@@ -27,6 +27,7 @@ fun AreasScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = TopAppBarDefaults.windowInsets,
                 title = { Text("Climbing Areas") }
             )
         }

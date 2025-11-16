@@ -225,6 +225,9 @@ private fun OverviewTab(
                 .fillMaxWidth()
                 .height(300.dp)
         ) {
+            // Track if image is successfully loaded
+            var isImageLoaded by remember { mutableStateOf(false) }
+            
             // Route photo - use filtered_picture when focus mode is enabled
             val pictureUrl = if (uiState.isFocusMode) {
                 uiState.route?.filteredPicture ?: uiState.route?.picture ?: routeWithMetadata.thumbnail
@@ -244,6 +247,7 @@ private fun OverviewTab(
                 
                 when (state) {
                     is AsyncImagePainter.State.Loading -> {
+                        isImageLoaded = false
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -254,6 +258,7 @@ private fun OverviewTab(
                         }
                     }
                     is AsyncImagePainter.State.Error -> {
+                        isImageLoaded = false
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -270,7 +275,7 @@ private fun OverviewTab(
                                         painter = painterResource(id = R.drawable.no_network),
                                         contentDescription = "No network",
                                         tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(80.dp)
+                                        modifier = Modifier.fillMaxWidth(0.8f)
                                     )
                                     Text(
                                         text = "No network",
@@ -287,6 +292,7 @@ private fun OverviewTab(
                         }
                     }
                     else -> {
+                        isImageLoaded = true
                         Image(
                             painter = painter,
                             contentDescription = contentDescription,
@@ -297,8 +303,8 @@ private fun OverviewTab(
                 }
             }
             
-            // Circle SVG overlay - only show when not in focus mode
-            if (!uiState.isFocusMode) {
+            // Circle SVG overlay - only show when not in focus mode AND image is successfully loaded
+            if (!uiState.isFocusMode && isImageLoaded) {
                 uiState.circleSvgContent?.let { svgContent ->
                     val context = LocalContext.current
                     val imageLoader = remember(context) {
@@ -714,7 +720,7 @@ private fun LogsTab(
                                     painter = painterResource(id = R.drawable.no_network),
                                     contentDescription = "No network",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(80.dp)
+                                    modifier = Modifier.fillMaxWidth(0.8f)
                                 )
                                 Text(
                                     text = "No network",
@@ -740,7 +746,7 @@ private fun LogsTab(
                                     painter = painterResource(id = R.drawable.comment),
                                     contentDescription = "No comments",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(80.dp)
+                                    modifier = Modifier.fillMaxWidth(0.8f)
                                 )
                                 Text(
                                     text = "No logs with comments for now. Be the first to comment ! That always makes the route openers happy!",
@@ -767,7 +773,7 @@ private fun LogsTab(
                                     painter = painterResource(id = R.drawable.pen),
                                     contentDescription = "No logs",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(80.dp)
+                                    modifier = Modifier.fillMaxWidth(0.8f)
                                 )
                                 Text(
                                     text = "No logs for now. Be the first to log !",

@@ -63,6 +63,7 @@ fun SiteDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = TopAppBarDefaults.windowInsets,
                 title = { Text(uiState.site?.data?.name ?: "Site Details") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
