@@ -117,8 +117,72 @@ class TopoClimbRepository(private val context: Context? = null) {
     ): Result<List<Route>> = 
         safeApiCallList { api.getRoutes(siteId, grade, type) }
     
-    suspend fun getRoute(id: Int): Result<Route> = 
-        safeApiCall { api.getRoute(id) }
+    /**
+     * Get a single route with offline-first caching
+     * Returns cached data first if available, then refreshes from network in background
+     */
+    suspend fun getRoute(id: Int): Result<Route> {
+        // If no database, fall back to direct API call
+        if (database == null || context == null) {
+            return safeApiCall { api.getRoute(id) }
+        }
+        
+        return try {
+            // Get cached route
+            val cachedRoute = database.routeDao().getRoute(id, defaultBackendId)
+            android.util.Log.d("OfflineFirst", "getRoute: id=$id, cached=${cachedRoute != null}")
+            
+            // If no cache and online, fetch synchronously first
+            if (cachedRoute == null && NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    android.util.Log.d("OfflineFirst", "No cache for route $id, fetching from network")
+                    val response = api.getRoute(id)
+                    val entity = response.data.toEntity(defaultBackendId)
+                    database.routeDao().insertRoute(entity)
+                    android.util.Log.d("OfflineFirst", "Fetched and cached route $id")
+                    return Result.success(response.data)
+                } catch (e: Exception) {
+                    // Network error - return failure as we have no cached data
+                    android.util.Log.w("OfflineFirst", "Network error fetching route $id: ${e.message}")
+                    return Result.failure(e)
+                }
+            }
+            
+            // If no cache and offline, return failure
+            if (cachedRoute == null) {
+                android.util.Log.w("OfflineFirst", "No cache and offline for route $id")
+                return Result.failure(Exception("No cached data available for route $id"))
+            }
+            
+            // Return cached data immediately
+            val result = cachedRoute.toRoute()
+            android.util.Log.d("OfflineFirst", "Returning cached route $id")
+            
+            // Refresh in background if cache is stale
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                val shouldRefresh = CacheUtils.isCacheStale(cachedRoute.lastUpdated)
+                if (shouldRefresh) {
+                    backgroundScope.launch {
+                        try {
+                            val response = api.getRoute(id)
+                            val entity = response.data.toEntity(defaultBackendId)
+                            database.routeDao().insertRoute(entity)
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated route $id")
+                        } catch (e: Exception) {
+                            android.util.Log.e("OfflineFirst", "Background refresh failed for route", e)
+                        }
+                    }
+                } else {
+                    android.util.Log.d("OfflineFirst", "Skipping refresh for route - cache is fresh")
+                }
+            }
+            
+            Result.success(result)
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getRoute for route $id: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
     
     suspend fun getAreas(): Result<List<Area>> = 
         safeApiCallList { api.getAreas() }

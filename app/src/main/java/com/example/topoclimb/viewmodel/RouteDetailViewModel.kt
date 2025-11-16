@@ -8,6 +8,7 @@ import com.example.topoclimb.data.Log
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.network.RetrofitInstance
 import com.example.topoclimb.repository.BackendConfigRepository
+import com.example.topoclimb.repository.TopoClimbRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +38,8 @@ data class RouteDetailUiState(
 class RouteDetailViewModel(
     application: Application
 ) : AndroidViewModel(application) {
-    private val repository = BackendConfigRepository(application)
+    private val backendConfigRepository = BackendConfigRepository(application)
+    private val topoClimbRepository = TopoClimbRepository(application.applicationContext)
     
     private val _uiState = MutableStateFlow(RouteDetailUiState())
     val uiState: StateFlow<RouteDetailUiState> = _uiState.asStateFlow()
@@ -80,9 +82,19 @@ class RouteDetailViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
-            try {
-                val routeResponse = RetrofitInstance.api.getRoute(routeId)
-                val route = routeResponse.data
+            // Use repository with offline-first caching
+            val routeResult = topoClimbRepository.getRoute(routeId)
+            
+            if (routeResult.isFailure) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = routeResult.exceptionOrNull()?.message ?: "Unknown error occurred"
+                )
+                return@launch
+            }
+            
+            val route = routeResult.getOrNull()
+            if (route != null) {
                 _uiState.value = _uiState.value.copy(
                     route = route,
                     isLoading = false
@@ -97,10 +109,10 @@ class RouteDetailViewModel(
                 
                 // Check if this route is logged by the user
                 updateRouteLoggedState(routeId)
-            } catch (e: Exception) {
+            } else {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Unknown error occurred"
+                    error = "Route not found"
                 )
             }
         }
@@ -217,7 +229,7 @@ class RouteDetailViewModel(
             
             try {
                 // Get auth token from repository
-                val authToken = repository.getDefaultBackend()?.authToken
+                val authToken = backendConfigRepository.getDefaultBackend()?.authToken
                 if (authToken == null) {
                     _uiState.value = _uiState.value.copy(
                         isCreatingLog = false,
@@ -272,7 +284,7 @@ class RouteDetailViewModel(
     fun loadUserLoggedRoutes() {
         viewModelScope.launch {
             try {
-                val authToken = repository.getDefaultBackend()?.authToken
+                val authToken = backendConfigRepository.getDefaultBackend()?.authToken
                 if (authToken != null) {
                     val response = RetrofitInstance.api.getUserLogs("Bearer $authToken")
                     updateSharedLoggedRoutes(response.data.toSet())
