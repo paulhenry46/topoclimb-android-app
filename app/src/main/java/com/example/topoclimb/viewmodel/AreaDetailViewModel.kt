@@ -11,10 +11,14 @@ import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
 import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.repository.TopoClimbRepository
+import com.example.topoclimb.database.TopoClimbDatabase
+import com.example.topoclimb.database.entities.SvgMapCacheEntity
 import com.example.topoclimb.ui.state.ViewMode
 import com.example.topoclimb.ui.state.ClimbedFilter
 import com.example.topoclimb.ui.state.GroupingOption
 import com.example.topoclimb.utils.GradeUtils
+import com.example.topoclimb.utils.CacheUtils
+import com.example.topoclimb.utils.NetworkUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,6 +62,7 @@ data class AreaDetailUiState(
 
 class AreaDetailViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TopoClimbRepository(application.applicationContext)
+    private val database = TopoClimbDatabase.getDatabase(application.applicationContext)
     private val httpClient = OkHttpClient()
     
     private val _uiState = MutableStateFlow(AreaDetailUiState())
@@ -149,10 +154,13 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
             val result = fetchAreaData(siteId, areaId, forceRefresh = true)
             
             if (result.isFailure) {
+                // Don't replace cached data with error - just stop refreshing
+                // and keep showing the existing data
                 _uiState.value = currentState.copy(
-                    isRefreshing = false,
-                    error = result.exceptionOrNull()?.message ?: "Failed to refresh area details"
+                    isRefreshing = false
+                    // Note: We don't set error here to keep showing cached data
                 )
+                android.util.Log.w("AreaDetailViewModel", "Refresh failed but keeping cached data: ${result.exceptionOrNull()?.message}")
                 return@launch
             }
             
@@ -259,26 +267,9 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
             val routes = allRoutesWithMetadata.map { it.route }
             val routesWithMetadata = allRoutesWithMetadata
             
-            // Fetch SVG map content from URL if available
+            // Fetch SVG map content with offline-first caching (1 week TTL)
             val svgContent = area?.svgMap?.let { mapUrl ->
-                try {
-                    withContext(Dispatchers.IO) {
-                        val request = Request.Builder()
-                            .url(mapUrl)
-                            .build()
-                        
-                        httpClient.newCall(request).execute().use { response ->
-                            if (response.isSuccessful) {
-                                response.body?.string()
-                            } else {
-                                null
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
+                fetchSvgMapWithCache(mapUrl, forceRefresh)
             }
             
             // Load schemas for trad areas only
@@ -329,6 +320,100 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
         val allSchemas: List<SectorSchema>,
         val schemaError: String?
     )
+    
+    /**
+     * Fetch SVG map content with offline-first caching (1 week TTL)
+     * Returns cached content if available and fresh, otherwise fetches from network
+     */
+    private suspend fun fetchSvgMapWithCache(url: String, forceRefresh: Boolean = false): String? {
+        return try {
+            withContext(Dispatchers.IO) {
+                // Check cache first
+                val cachedSvg = database.svgMapCacheDao().getSvgMapCache(url)
+                android.util.Log.d("OfflineFirst", "fetchSvgMapWithCache: url=$url, cached=${cachedSvg != null}")
+                
+                // If no cache and online, fetch synchronously first
+                if (cachedSvg == null && NetworkUtils.isNetworkAvailable(getApplication())) {
+                    try {
+                        android.util.Log.d("OfflineFirst", "No cache for SVG map, fetching from network")
+                        val request = Request.Builder()
+                            .url(url)
+                            .build()
+                        
+                        val content = httpClient.newCall(request).execute().use { response ->
+                            if (response.isSuccessful) {
+                                response.body?.string()
+                            } else {
+                                null
+                            }
+                        }
+                        
+                        if (content != null) {
+                            // Cache the SVG content
+                            database.svgMapCacheDao().insertSvgMapCache(
+                                SvgMapCacheEntity(url = url, content = content)
+                            )
+                            android.util.Log.d("OfflineFirst", "Fetched and cached SVG map (${content.length} chars)")
+                            return@withContext content
+                        } else {
+                            android.util.Log.w("OfflineFirst", "Failed to fetch SVG map from network")
+                            return@withContext null
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("OfflineFirst", "Network error fetching SVG map: ${e.message}")
+                        return@withContext null
+                    }
+                }
+                
+                // If no cache and offline, return null
+                if (cachedSvg == null) {
+                    android.util.Log.w("OfflineFirst", "No cache and offline for SVG map")
+                    return@withContext null
+                }
+                
+                // Return cached content immediately
+                android.util.Log.d("OfflineFirst", "Returning cached SVG map (${cachedSvg.content.length} chars)")
+                
+                // Refresh in background if cache is stale or forced
+                if (NetworkUtils.isNetworkAvailable(getApplication())) {
+                    val shouldRefresh = forceRefresh || CacheUtils.isSvgMapCacheStale(cachedSvg.lastUpdated)
+                    if (shouldRefresh) {
+                        viewModelScope.launch(Dispatchers.IO) {
+                            try {
+                                val request = Request.Builder()
+                                    .url(url)
+                                    .build()
+                                
+                                val content = httpClient.newCall(request).execute().use { response ->
+                                    if (response.isSuccessful) {
+                                        response.body?.string()
+                                    } else {
+                                        null
+                                    }
+                                }
+                                
+                                if (content != null) {
+                                    database.svgMapCacheDao().insertSvgMapCache(
+                                        SvgMapCacheEntity(url = url, content = content)
+                                    )
+                                    android.util.Log.d("OfflineFirst", "Background refresh: Updated SVG map cache")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("OfflineFirst", "Background refresh failed for SVG map", e)
+                            }
+                        }
+                    } else {
+                        android.util.Log.d("OfflineFirst", "Skipping refresh for SVG map - cache is fresh")
+                    }
+                }
+                
+                cachedSvg.content
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in fetchSvgMapWithCache: ${e.message}", e)
+            null
+        }
+    }
     
     /**
      * Determines the initial view mode based on area type and available data

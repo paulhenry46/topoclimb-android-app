@@ -9,6 +9,12 @@ object CacheUtils {
     private val CACHE_TTL_MS = TimeUnit.HOURS.toMillis(24)
     
     /**
+     * SVG map cache TTL - 1 week in milliseconds
+     * SVG maps don't change frequently, so we cache them longer
+     */
+    private val SVG_MAP_CACHE_TTL_MS = TimeUnit.DAYS.toMillis(7)
+    
+    /**
      * Check if cached data is stale (older than TTL)
      * @param lastUpdated Timestamp when data was last updated (in milliseconds)
      * @return true if data is older than 24 hours, false otherwise
@@ -17,6 +23,17 @@ object CacheUtils {
         val currentTime = System.currentTimeMillis()
         val cacheAge = currentTime - lastUpdated
         return cacheAge > CACHE_TTL_MS
+    }
+    
+    /**
+     * Check if SVG map cache is stale (older than 1 week)
+     * @param lastUpdated Timestamp when data was last updated (in milliseconds)
+     * @return true if data is older than 1 week, false otherwise
+     */
+    fun isSvgMapCacheStale(lastUpdated: Long): Boolean {
+        val currentTime = System.currentTimeMillis()
+        val cacheAge = currentTime - lastUpdated
+        return cacheAge > SVG_MAP_CACHE_TTL_MS
     }
     
     /**

@@ -10,15 +10,23 @@ import com.example.topoclimb.database.converters.StringListConverter
 import com.example.topoclimb.database.dao.AreaDao
 import com.example.topoclimb.database.dao.ContestDao
 import com.example.topoclimb.database.dao.LineDao
+import com.example.topoclimb.database.dao.LineFetchMetadataDao
+import com.example.topoclimb.database.dao.LogDao
 import com.example.topoclimb.database.dao.RouteDao
+import com.example.topoclimb.database.dao.RouteLogsFetchMetadataDao
 import com.example.topoclimb.database.dao.SectorDao
 import com.example.topoclimb.database.dao.SiteDao
+import com.example.topoclimb.database.dao.SvgMapCacheDao
 import com.example.topoclimb.database.entities.AreaEntity
 import com.example.topoclimb.database.entities.ContestEntity
 import com.example.topoclimb.database.entities.LineEntity
+import com.example.topoclimb.database.entities.LineFetchMetadataEntity
+import com.example.topoclimb.database.entities.LogEntity
 import com.example.topoclimb.database.entities.RouteEntity
+import com.example.topoclimb.database.entities.RouteLogsFetchMetadataEntity
 import com.example.topoclimb.database.entities.SectorEntity
 import com.example.topoclimb.database.entities.SiteEntity
+import com.example.topoclimb.database.entities.SvgMapCacheEntity
 
 @Database(
     entities = [
@@ -27,9 +35,13 @@ import com.example.topoclimb.database.entities.SiteEntity
         RouteEntity::class,
         ContestEntity::class,
         SectorEntity::class,
-        LineEntity::class
+        LineEntity::class,
+        SvgMapCacheEntity::class,
+        LineFetchMetadataEntity::class,
+        LogEntity::class,
+        RouteLogsFetchMetadataEntity::class
     ],
-    version = 5,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(
@@ -44,6 +56,10 @@ abstract class TopoClimbDatabase : RoomDatabase() {
     abstract fun contestDao(): ContestDao
     abstract fun sectorDao(): SectorDao
     abstract fun lineDao(): LineDao
+    abstract fun svgMapCacheDao(): SvgMapCacheDao
+    abstract fun lineFetchMetadataDao(): LineFetchMetadataDao
+    abstract fun logDao(): LogDao
+    abstract fun routeLogsFetchMetadataDao(): RouteLogsFetchMetadataDao
     
     companion object {
         @Volatile
@@ -58,7 +74,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
                 )
                 .fallbackToDestructiveMigration()
                 .build()
-                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 5 with Sector, Line, and Route lineId caching)")
+                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 8 with route logs caching)")
                 INSTANCE = instance
                 instance
             }
