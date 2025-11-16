@@ -11,6 +11,7 @@ import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SitesResponse
 import com.example.topoclimb.database.TopoClimbDatabase
+import com.example.topoclimb.database.entities.LineFetchMetadataEntity
 import com.example.topoclimb.database.entities.toArea
 import com.example.topoclimb.database.entities.toEntity
 import com.example.topoclimb.database.entities.toLine
@@ -453,6 +454,7 @@ class TopoClimbRepository(private val context: Context? = null) {
      * Get routes for a line with offline-first caching
      * Returns cached data first, then refreshes from network if cache is stale or forced
      * Note: This caches routes by lineId, separate from the general routes cache
+     * Uses metadata to track whether a line has been fetched (even if it has 0 routes)
      */
     suspend fun getRoutesByLine(lineId: Int, forceRefresh: Boolean = false): Result<List<Route>> {
         // If no database, fall back to direct API call
@@ -463,21 +465,28 @@ class TopoClimbRepository(private val context: Context? = null) {
         return try {
             // Get cached routes for this line
             val cachedRoutes = database.routeDao().getRoutesByLine(lineId, defaultBackendId)
-            android.util.Log.d("OfflineFirst", "getRoutesByLine: lineId=$lineId, cached count=${cachedRoutes.size}")
+            // Check if we've fetched this line before (even if it has 0 routes)
+            val fetchMetadata = database.lineFetchMetadataDao().getLineFetchMetadata(lineId, defaultBackendId)
             
-            // If no cache and online, fetch synchronously first
-            if (cachedRoutes.isEmpty() && NetworkUtils.isNetworkAvailable(context)) {
+            android.util.Log.d("OfflineFirst", "getRoutesByLine: lineId=$lineId, cached count=${cachedRoutes.size}, hasFetchMetadata=${fetchMetadata != null}")
+            
+            // If no metadata (never fetched) and online, fetch synchronously first
+            if (fetchMetadata == null && NetworkUtils.isNetworkAvailable(context)) {
                 try {
-                    android.util.Log.d("OfflineFirst", "No cache for line $lineId, fetching from network")
+                    android.util.Log.d("OfflineFirst", "No cache metadata for line $lineId, fetching from network")
                     val response = api.getRoutesByLine(lineId)
                     android.util.Log.d("OfflineFirst", "API returned ${response.data.size} routes for line $lineId")
                     
                     // Convert to entities, even if empty - this marks that we fetched and got nothing
                     val entities = response.data.map { it.toEntity(defaultBackendId, lineId) }
                     
-                    // Cache even if empty - this marks that we fetched and got nothing
+                    // Cache the routes (even if empty)
                     database.routeDao().insertRoutes(entities)
-                    android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} routes for line $lineId")
+                    // Mark that we've fetched this line
+                    database.lineFetchMetadataDao().insertLineFetchMetadata(
+                        LineFetchMetadataEntity(lineId = lineId, backendId = defaultBackendId)
+                    )
+                    android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} routes for line $lineId with metadata")
                     
                     return Result.success(response.data)
                 } catch (e: Exception) {
@@ -487,25 +496,29 @@ class TopoClimbRepository(private val context: Context? = null) {
                 }
             }
             
-            // If no cache and offline, return empty
-            if (cachedRoutes.isEmpty()) {
-                android.util.Log.w("OfflineFirst", "No cache and offline for line $lineId - returning empty")
+            // If no metadata and offline, return empty
+            if (fetchMetadata == null) {
+                android.util.Log.w("OfflineFirst", "No cache metadata and offline for line $lineId - returning empty")
                 return Result.success(emptyList())
             }
             
-            // Return cached data immediately
+            // We have metadata, so we've fetched before - return cached data (even if empty)
             val result = cachedRoutes.map { it.toRoute() }
-            android.util.Log.d("OfflineFirst", "Returning ${result.size} cached routes for line $lineId")
+            android.util.Log.d("OfflineFirst", "Returning ${result.size} cached routes for line $lineId (fetched previously)")
             
             // Refresh in background if cache is stale or forced
             if (NetworkUtils.isNetworkAvailable(context)) {
-                val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedRoutes) { it.lastUpdated }
+                val shouldRefresh = forceRefresh || CacheUtils.isCacheStale(fetchMetadata.lastFetched)
                 if (shouldRefresh) {
                     backgroundScope.launch {
                         try {
                             val response = api.getRoutesByLine(lineId)
                             val entities = response.data.map { it.toEntity(defaultBackendId, lineId) }
                             database.routeDao().insertRoutes(entities)
+                            // Update metadata timestamp
+                            database.lineFetchMetadataDao().insertLineFetchMetadata(
+                                LineFetchMetadataEntity(lineId = lineId, backendId = defaultBackendId)
+                            )
                             android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} routes for line $lineId (forceRefresh=$forceRefresh)")
                         } catch (e: Exception) {
                             android.util.Log.e("OfflineFirst", "Background refresh failed for routes", e)
