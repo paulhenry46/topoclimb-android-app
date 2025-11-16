@@ -47,7 +47,7 @@ fun LogRouteStep3Screen(
     Scaffold(
         topBar = {
             TopAppBar(
-                windowInsets = TopAppBarDefaults.windowInsets,
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text("Log Route - Step 3/3") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {

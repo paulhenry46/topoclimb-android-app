@@ -46,7 +46,7 @@ fun LoginScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                windowInsets = TopAppBarDefaults.windowInsets,
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text("Login to $backendName") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
