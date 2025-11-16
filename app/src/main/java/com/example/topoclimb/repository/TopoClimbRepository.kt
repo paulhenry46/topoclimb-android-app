@@ -5,6 +5,7 @@ import com.example.topoclimb.data.AreasResponse
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.ContestsResponse
 import com.example.topoclimb.data.Line
+import com.example.topoclimb.data.Log
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.Sector
 import com.example.topoclimb.data.SectorSchema
@@ -12,9 +13,11 @@ import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SitesResponse
 import com.example.topoclimb.database.TopoClimbDatabase
 import com.example.topoclimb.database.entities.LineFetchMetadataEntity
+import com.example.topoclimb.database.entities.RouteLogsFetchMetadataEntity
 import com.example.topoclimb.database.entities.toArea
 import com.example.topoclimb.database.entities.toEntity
 import com.example.topoclimb.database.entities.toLine
+import com.example.topoclimb.database.entities.toLog
 import com.example.topoclimb.database.entities.toRoute
 import com.example.topoclimb.database.entities.toSector
 import com.example.topoclimb.database.entities.toSite
@@ -539,4 +542,90 @@ class TopoClimbRepository(private val context: Context? = null) {
     
     suspend fun getAreaSchemas(areaId: Int): Result<List<SectorSchema>> = 
         safeApiCallDirect { api.getAreaSchemas(areaId) }
+    
+    /**
+     * Get logs for a route with offline-first caching (1 day TTL)
+     * Returns cached data first, then refreshes from network if cache is stale or forced
+     * Uses metadata to track whether a route's logs have been fetched (even if it has 0 logs)
+     */
+    suspend fun getRouteLogs(routeId: Int, forceRefresh: Boolean = false): Result<List<Log>> {
+        // If no database, fall back to direct API call
+        if (database == null || context == null) {
+            return safeApiCallList { api.getRouteLogs(routeId) }
+        }
+        
+        return try {
+            // Get cached logs for this route
+            val cachedLogs = database.logDao().getLogsByRoute(routeId, defaultBackendId)
+            // Check if we've fetched this route's logs before (even if it has 0 logs)
+            val fetchMetadata = database.routeLogsFetchMetadataDao().getRouteLogsFetchMetadata(routeId, defaultBackendId)
+            
+            android.util.Log.d("OfflineFirst", "getRouteLogs: routeId=$routeId, cached count=${cachedLogs.size}, hasFetchMetadata=${fetchMetadata != null}")
+            
+            // If no metadata (never fetched) and online, fetch synchronously first
+            if (fetchMetadata == null && NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    android.util.Log.d("OfflineFirst", "No cache metadata for route logs $routeId, fetching from network")
+                    val response = api.getRouteLogs(routeId)
+                    android.util.Log.d("OfflineFirst", "API returned ${response.data.size} logs for route $routeId")
+                    
+                    // Convert to entities, even if empty
+                    val entities = response.data.map { it.toEntity(defaultBackendId) }
+                    
+                    // Cache the logs (even if empty)
+                    database.logDao().insertLogs(entities)
+                    // Mark that we've fetched this route's logs
+                    database.routeLogsFetchMetadataDao().insertRouteLogsFetchMetadata(
+                        RouteLogsFetchMetadataEntity(routeId = routeId, backendId = defaultBackendId)
+                    )
+                    android.util.Log.d("OfflineFirst", "Fetched and cached ${entities.size} logs for route $routeId with metadata")
+                    
+                    return Result.success(response.data)
+                } catch (e: Exception) {
+                    // Network error - return empty gracefully (no cache available)
+                    android.util.Log.w("OfflineFirst", "Network error fetching logs for route $routeId, returning empty: ${e.message}")
+                    return Result.success(emptyList())
+                }
+            }
+            
+            // If no metadata and offline, return empty
+            if (fetchMetadata == null) {
+                android.util.Log.w("OfflineFirst", "No cache metadata and offline for route logs $routeId - returning empty")
+                return Result.success(emptyList())
+            }
+            
+            // We have metadata, so we've fetched before - return cached data (even if empty)
+            val result = cachedLogs.map { it.toLog() }
+            android.util.Log.d("OfflineFirst", "Returning ${result.size} cached logs for route $routeId (fetched previously)")
+            
+            // Refresh in background if cache is stale or forced
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                val shouldRefresh = forceRefresh || CacheUtils.isCacheStale(fetchMetadata.lastFetched)
+                if (shouldRefresh) {
+                    backgroundScope.launch {
+                        try {
+                            val response = api.getRouteLogs(routeId)
+                            val entities = response.data.map { it.toEntity(defaultBackendId) }
+                            database.logDao().insertLogs(entities)
+                            // Update metadata timestamp
+                            database.routeLogsFetchMetadataDao().insertRouteLogsFetchMetadata(
+                                RouteLogsFetchMetadataEntity(routeId = routeId, backendId = defaultBackendId)
+                            )
+                            android.util.Log.d("OfflineFirst", "Background refresh: Updated ${entities.size} logs for route $routeId (forceRefresh=$forceRefresh)")
+                        } catch (e: Exception) {
+                            android.util.Log.e("OfflineFirst", "Background refresh failed for logs", e)
+                        }
+                    }
+                } else {
+                    android.util.Log.d("OfflineFirst", "Skipping refresh for logs - cache is fresh")
+                }
+            }
+            
+            Result.success(result)
+        } catch (e: Exception) {
+            // Unexpected error - log but return empty instead of failure
+            android.util.Log.e("OfflineFirst", "Error in getRouteLogs for route $routeId, returning empty: ${e.message}", e)
+            Result.success(emptyList())
+        }
+    }
 }

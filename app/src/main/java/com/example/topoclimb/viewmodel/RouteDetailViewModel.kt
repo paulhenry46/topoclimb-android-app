@@ -174,18 +174,22 @@ class RouteDetailViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLogsLoading = true, logsError = null)
             
-            try {
-                val logsResponse = RetrofitInstance.api.getRouteLogs(routeId)
-                _uiState.value = _uiState.value.copy(
-                    logs = logsResponse.data,
-                    isLogsLoading = false
-                )
-            } catch (e: Exception) {
+            // Use repository with offline-first caching
+            val logsResult = topoClimbRepository.getRouteLogs(routeId)
+            
+            if (logsResult.isFailure) {
                 _uiState.value = _uiState.value.copy(
                     isLogsLoading = false,
-                    logsError = e.message ?: "Failed to load logs"
+                    logsError = logsResult.exceptionOrNull()?.message ?: "Failed to load logs"
                 )
+                return@launch
             }
+            
+            val logs = logsResult.getOrNull() ?: emptyList()
+            _uiState.value = _uiState.value.copy(
+                logs = logs,
+                isLogsLoading = false
+            )
         }
     }
     
@@ -193,21 +197,25 @@ class RouteDetailViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshingLogs = true, logsError = null)
             
-            try {
-                val logsResponse = RetrofitInstance.api.getRouteLogs(routeId)
-                _uiState.value = _uiState.value.copy(
-                    logs = logsResponse.data,
-                    isRefreshingLogs = false
-                )
-                
-                // Update the logged state after refreshing
-                updateRouteLoggedState(routeId)
-            } catch (e: Exception) {
+            // Use repository with offline-first caching and force refresh
+            val logsResult = topoClimbRepository.getRouteLogs(routeId, forceRefresh = true)
+            
+            if (logsResult.isFailure) {
                 _uiState.value = _uiState.value.copy(
                     isRefreshingLogs = false,
-                    logsError = e.message ?: "Failed to refresh logs"
+                    logsError = logsResult.exceptionOrNull()?.message ?: "Failed to refresh logs"
                 )
+                return@launch
             }
+            
+            val logs = logsResult.getOrNull() ?: emptyList()
+            _uiState.value = _uiState.value.copy(
+                logs = logs,
+                isRefreshingLogs = false
+            )
+            
+            // Update the logged state after refreshing
+            updateRouteLoggedState(routeId)
         }
     }
     
