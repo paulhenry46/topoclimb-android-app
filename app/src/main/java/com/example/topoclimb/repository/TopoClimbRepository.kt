@@ -3,6 +3,7 @@ package com.example.topoclimb.repository
 import android.content.Context
 import com.example.topoclimb.data.AreasResponse
 import com.example.topoclimb.data.Area
+import com.example.topoclimb.data.CachedSectorSchema
 import com.example.topoclimb.data.ContestsResponse
 import com.example.topoclimb.data.Line
 import com.example.topoclimb.data.Log
@@ -11,9 +12,12 @@ import com.example.topoclimb.data.Sector
 import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.data.SitesResponse
+import com.example.topoclimb.data.toCached
 import com.example.topoclimb.database.TopoClimbDatabase
 import com.example.topoclimb.database.entities.LineFetchMetadataEntity
 import com.example.topoclimb.database.entities.RouteLogsFetchMetadataEntity
+import com.example.topoclimb.database.entities.SchemaBgCacheEntity
+import com.example.topoclimb.database.entities.SvgMapCacheEntity
 import com.example.topoclimb.database.entities.toArea
 import com.example.topoclimb.database.entities.toEntity
 import com.example.topoclimb.database.entities.toLine
@@ -28,6 +32,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 /**
  * Repository with offline-first caching for sectors, lines, and routes
@@ -40,6 +47,9 @@ class TopoClimbRepository(private val context: Context? = null) {
     
     // Background scope for non-blocking cache refreshes
     private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    
+    // HTTP client for downloading schema resources
+    private val httpClient = OkHttpClient()
     
     // Backend ID for non-federated repository (using default)
     private val defaultBackendId = "default"
@@ -542,6 +552,240 @@ class TopoClimbRepository(private val context: Context? = null) {
     
     suspend fun getAreaSchemas(areaId: Int): Result<List<SectorSchema>> = 
         safeApiCallDirect { api.getAreaSchemas(areaId) }
+    
+    /**
+     * Get area schemas with cached background images and SVG overlays
+     * Background images are cached with 2-week TTL, SVG overlays with 1-week TTL
+     * @param areaId The area ID to fetch schemas for
+     * @param forceRefresh If true, forces cache refresh from network regardless of age
+     * @return Result containing list of cached schemas with downloaded content
+     */
+    suspend fun getAreaSchemasWithCache(
+        areaId: Int,
+        forceRefresh: Boolean = false
+    ): Result<List<CachedSectorSchema>> {
+        // If no database, fall back to basic schema fetch without caching
+        if (database == null || context == null) {
+            return try {
+                val schemas = api.getAreaSchemas(areaId)
+                Result.success(schemas.map { it.toCached() })
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+        
+        return try {
+            // Fetch schema metadata from API
+            val schemas = api.getAreaSchemas(areaId)
+            
+            // Download and cache content for each schema
+            val cachedSchemas = schemas.map { schema ->
+                val bgContent = schema.bg?.let { url ->
+                    fetchSchemaBgWithCache(url, forceRefresh)
+                }
+                val pathsContent = schema.paths?.let { url ->
+                    fetchSvgOverlayWithCache(url, forceRefresh)
+                }
+                schema.toCached(pathsContent = pathsContent, bgContent = bgContent)
+            }
+            
+            Result.success(cachedSchemas)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Fetch schema background image with offline-first caching (2 week TTL)
+     * Returns cached content if available and fresh, otherwise fetches from network
+     */
+    private suspend fun fetchSchemaBgWithCache(url: String, forceRefresh: Boolean = false): String? {
+        return try {
+            withContext(Dispatchers.IO) {
+                // Check cache first
+                val cachedBg = database!!.schemaBgCacheDao().getSchemaBgCache(url)
+                android.util.Log.d("OfflineFirst", "fetchSchemaBgWithCache: url=$url, cached=${cachedBg != null}")
+                
+                // If no cache and online, fetch synchronously first
+                if (cachedBg == null && NetworkUtils.isNetworkAvailable(context!!)) {
+                    try {
+                        android.util.Log.d("OfflineFirst", "No cache for schema background, fetching from network")
+                        val content = downloadImageAsBase64(url)
+                        
+                        if (content != null) {
+                            // Cache the background image
+                            database.schemaBgCacheDao().insertSchemaBgCache(
+                                SchemaBgCacheEntity(url = url, content = content)
+                            )
+                            android.util.Log.d("OfflineFirst", "Fetched and cached schema background (${content.length} chars)")
+                            return@withContext content
+                        } else {
+                            android.util.Log.w("OfflineFirst", "Failed to fetch schema background from network")
+                            return@withContext null
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("OfflineFirst", "Network error fetching schema background: ${e.message}")
+                        return@withContext null
+                    }
+                }
+                
+                // If no cache and offline, return null
+                if (cachedBg == null) {
+                    android.util.Log.w("OfflineFirst", "No cache and offline for schema background")
+                    return@withContext null
+                }
+                
+                // Return cached content immediately
+                android.util.Log.d("OfflineFirst", "Returning cached schema background (${cachedBg.content.length} chars)")
+                
+                // Refresh in background if cache is stale or forced
+                if (NetworkUtils.isNetworkAvailable(context!!)) {
+                    val shouldRefresh = forceRefresh || CacheUtils.isSchemaBgCacheStale(cachedBg.lastUpdated)
+                    if (shouldRefresh) {
+                        backgroundScope.launch {
+                            try {
+                                val content = downloadImageAsBase64(url)
+                                
+                                if (content != null) {
+                                    database.schemaBgCacheDao().insertSchemaBgCache(
+                                        SchemaBgCacheEntity(url = url, content = content)
+                                    )
+                                    android.util.Log.d("OfflineFirst", "Background refresh: Updated schema background cache")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("OfflineFirst", "Background refresh failed for schema background", e)
+                            }
+                        }
+                    } else {
+                        android.util.Log.d("OfflineFirst", "Skipping refresh for schema background - cache is fresh")
+                    }
+                }
+                
+                cachedBg.content
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in fetchSchemaBgWithCache", e)
+            null
+        }
+    }
+    
+    /**
+     * Fetch SVG overlay with offline-first caching (1 week TTL)
+     * Returns cached content if available and fresh, otherwise fetches from network
+     */
+    private suspend fun fetchSvgOverlayWithCache(url: String, forceRefresh: Boolean = false): String? {
+        return try {
+            withContext(Dispatchers.IO) {
+                // Check cache first
+                val cachedSvg = database!!.svgMapCacheDao().getSvgMapCache(url)
+                android.util.Log.d("OfflineFirst", "fetchSvgOverlayWithCache: url=$url, cached=${cachedSvg != null}")
+                
+                // If no cache and online, fetch synchronously first
+                if (cachedSvg == null && NetworkUtils.isNetworkAvailable(context!!)) {
+                    try {
+                        android.util.Log.d("OfflineFirst", "No cache for SVG overlay, fetching from network")
+                        val request = Request.Builder()
+                            .url(url)
+                            .build()
+                        
+                        val content = httpClient.newCall(request).execute().use { response ->
+                            if (response.isSuccessful) {
+                                response.body?.string()
+                            } else {
+                                null
+                            }
+                        }
+                        
+                        if (content != null) {
+                            // Cache the SVG content
+                            database.svgMapCacheDao().insertSvgMapCache(
+                                SvgMapCacheEntity(url = url, content = content)
+                            )
+                            android.util.Log.d("OfflineFirst", "Fetched and cached SVG overlay (${content.length} chars)")
+                            return@withContext content
+                        } else {
+                            android.util.Log.w("OfflineFirst", "Failed to fetch SVG overlay from network")
+                            return@withContext null
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("OfflineFirst", "Network error fetching SVG overlay: ${e.message}")
+                        return@withContext null
+                    }
+                }
+                
+                // If no cache and offline, return null
+                if (cachedSvg == null) {
+                    android.util.Log.w("OfflineFirst", "No cache and offline for SVG overlay")
+                    return@withContext null
+                }
+                
+                // Return cached content immediately
+                android.util.Log.d("OfflineFirst", "Returning cached SVG overlay (${cachedSvg.content.length} chars)")
+                
+                // Refresh in background if cache is stale or forced
+                if (NetworkUtils.isNetworkAvailable(context!!)) {
+                    val shouldRefresh = forceRefresh || CacheUtils.isSvgMapCacheStale(cachedSvg.lastUpdated)
+                    if (shouldRefresh) {
+                        backgroundScope.launch {
+                            try {
+                                val request = Request.Builder()
+                                    .url(url)
+                                    .build()
+                                
+                                val content = httpClient.newCall(request).execute().use { response ->
+                                    if (response.isSuccessful) {
+                                        response.body?.string()
+                                    } else {
+                                        null
+                                    }
+                                }
+                                
+                                if (content != null) {
+                                    database.svgMapCacheDao().insertSvgMapCache(
+                                        SvgMapCacheEntity(url = url, content = content)
+                                    )
+                                    android.util.Log.d("OfflineFirst", "Background refresh: Updated SVG overlay cache")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("OfflineFirst", "Background refresh failed for SVG overlay", e)
+                            }
+                        }
+                    } else {
+                        android.util.Log.d("OfflineFirst", "Skipping refresh for SVG overlay - cache is fresh")
+                    }
+                }
+                
+                cachedSvg.content
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in fetchSvgOverlayWithCache", e)
+            null
+        }
+    }
+    
+    /**
+     * Download image and convert to base64 data URI
+     */
+    private fun downloadImageAsBase64(url: String): String? {
+        return try {
+            val request = Request.Builder().url(url).build()
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    // Determine content type from response or default to image/*
+                    val contentType = response.header("Content-Type") ?: "image/jpeg"
+                    response.body?.bytes()?.let { bytes ->
+                        "data:$contentType;base64," + android.util.Base64.encodeToString(
+                            bytes,
+                            android.util.Base64.NO_WRAP
+                        )
+                    }
+                } else null
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error downloading image as base64", e)
+            null
+        }
+    }
     
     /**
      * Get logs for a route with offline-first caching (1 day TTL)

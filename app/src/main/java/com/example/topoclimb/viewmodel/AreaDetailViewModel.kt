@@ -5,11 +5,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.AreaType
+import com.example.topoclimb.data.CachedSectorSchema
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
-import com.example.topoclimb.data.SectorSchema
 import com.example.topoclimb.repository.TopoClimbRepository
 import com.example.topoclimb.database.TopoClimbDatabase
 import com.example.topoclimb.database.entities.SvgMapCacheEntity
@@ -44,8 +44,8 @@ data class AreaDetailUiState(
     val areaId: Int? = null,
     val gradingSystem: GradingSystem? = null,
     // Schema view state
-    val schemas: List<SectorSchema> = emptyList(),
-    val allSchemas: List<SectorSchema> = emptyList(), // All schemas including those without paths/bg
+    val schemas: List<CachedSectorSchema> = emptyList(),
+    val allSchemas: List<CachedSectorSchema> = emptyList(), // All schemas including those without paths/bg
     val schemaError: String? = null, // Error message when loading schemas
     val currentSchemaIndex: Int = 0,
     val viewMode: ViewMode = ViewMode.MAP,
@@ -272,22 +272,22 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
                 fetchSvgMapWithCache(mapUrl, forceRefresh)
             }
             
-            // Load schemas for trad areas only
-            val allSchemas: List<SectorSchema>
-            val schemas: List<SectorSchema>
+            // Load schemas for trad areas only with caching
+            val allSchemas: List<CachedSectorSchema>
+            val schemas: List<CachedSectorSchema>
             var schemaError: String? = null
             
             if (area?.type == AreaType.TRAD) {
-                val schemasResult = repository.getAreaSchemas(areaId)
+                val schemasResult = repository.getAreaSchemasWithCache(areaId, forceRefresh)
                 if (schemasResult.isSuccess) {
                     allSchemas = schemasResult.getOrNull() ?: emptyList()
-                    schemas = allSchemas.filter { it.paths != null && it.bg != null }
+                    schemas = allSchemas.filter { it.pathsUrl != null && it.bgUrl != null }
                     
                     // Add debug info about what we got
                     if (allSchemas.isEmpty()) {
                         schemaError = "API returned empty schemas list"
                     } else if (schemas.isEmpty()) {
-                        schemaError = "Received ${allSchemas.size} schema(s) but all have null paths or bg. Schemas: ${allSchemas.map { "${it.name}(paths=${it.paths != null}, bg=${it.bg != null})" }}"
+                        schemaError = "Received ${allSchemas.size} schema(s) but all have null paths or bg. Schemas: ${allSchemas.map { "${it.name}(paths=${it.pathsUrl != null}, bg=${it.bgUrl != null})" }}"
                     }
                 } else {
                     allSchemas = emptyList()
@@ -316,8 +316,8 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
         val routes: List<Route>,
         val routesWithMetadata: List<RouteWithMetadata>,
         val svgContent: String?,
-        val schemas: List<SectorSchema>,
-        val allSchemas: List<SectorSchema>,
+        val schemas: List<CachedSectorSchema>,
+        val allSchemas: List<CachedSectorSchema>,
         val schemaError: String?
     )
     
@@ -421,7 +421,7 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
      */
     private fun determineInitialViewMode(
         area: Area?,
-        schemas: List<SectorSchema>,
+        schemas: List<CachedSectorSchema>,
         svgContent: String?
     ): ViewMode {
         return if (area?.type == AreaType.TRAD && 
