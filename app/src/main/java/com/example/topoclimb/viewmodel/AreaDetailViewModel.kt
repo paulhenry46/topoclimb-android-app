@@ -149,10 +149,13 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
             val result = fetchAreaData(siteId, areaId, forceRefresh = true)
             
             if (result.isFailure) {
+                // Don't replace cached data with error - just stop refreshing
+                // and keep showing the existing data
                 _uiState.value = currentState.copy(
-                    isRefreshing = false,
-                    error = result.exceptionOrNull()?.message ?: "Failed to refresh area details"
+                    isRefreshing = false
+                    // Note: We don't set error here to keep showing cached data
                 )
+                android.util.Log.w("AreaDetailViewModel", "Refresh failed but keeping cached data: ${result.exceptionOrNull()?.message}")
                 return@launch
             }
             
