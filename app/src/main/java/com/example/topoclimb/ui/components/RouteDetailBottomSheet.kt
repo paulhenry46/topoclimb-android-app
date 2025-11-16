@@ -42,9 +42,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 import coil.ImageLoader
@@ -60,8 +62,10 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImagePainter
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.RouteWithMetadata
+import com.example.topoclimb.R
 import com.example.topoclimb.ui.components.route.LogCard
 import com.example.topoclimb.utils.GradeUtils
+import com.example.topoclimb.utils.NetworkUtils
 import com.example.topoclimb.viewmodel.RouteDetailViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -221,6 +225,9 @@ private fun OverviewTab(
                 .fillMaxWidth()
                 .height(300.dp)
         ) {
+            // Track if image is successfully loaded
+            var isImageLoaded by remember { mutableStateOf(false) }
+            
             // Route photo - use filtered_picture when focus mode is enabled
             val pictureUrl = if (uiState.isFocusMode) {
                 uiState.route?.filteredPicture ?: uiState.route?.picture ?: routeWithMetadata.thumbnail
@@ -235,8 +242,12 @@ private fun OverviewTab(
                 contentScale = ContentScale.Crop
             ) {
                 val state = painter.state
+                val context = LocalContext.current
+                val isNetworkAvailable = NetworkUtils.isNetworkAvailable(context)
+                
                 when (state) {
                     is AsyncImagePainter.State.Loading -> {
+                        isImageLoaded = false
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -247,19 +258,41 @@ private fun OverviewTab(
                         }
                     }
                     is AsyncImagePainter.State.Error -> {
+                        isImageLoaded = false
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Failed to load image",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (!isNetworkAvailable) {
+                                // No network - show no_network drawable
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.no_network),
+                                        contentDescription = "No network",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.fillMaxWidth(0.8f)
+                                    )
+                                    Text(
+                                        text = "No network",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = "Failed to load image",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                     else -> {
+                        isImageLoaded = true
                         Image(
                             painter = painter,
                             contentDescription = contentDescription,
@@ -270,8 +303,8 @@ private fun OverviewTab(
                 }
             }
             
-            // Circle SVG overlay - only show when not in focus mode
-            if (!uiState.isFocusMode) {
+            // Circle SVG overlay - only show when not in focus mode AND image is successfully loaded
+            if (!uiState.isFocusMode && isImageLoaded) {
                 uiState.circleSvgContent?.let { svgContent ->
                     val context = LocalContext.current
                     val imageLoader = remember(context) {
@@ -588,6 +621,8 @@ private fun LogsTab(
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val isNetworkAvailable = NetworkUtils.isNetworkAvailable(context)
     
     // Filter logs based on the toggle state
     val filteredLogs = remember(uiState.logs, showOnlyWithComments) {
@@ -669,7 +704,8 @@ private fun LogsTab(
                             )
                         }
                     }
-                    uiState.logsError != null -> {
+                    uiState.logsError != null && !isNetworkAvailable && uiState.logs.isEmpty() -> {
+                        // No internet and no cached logs
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -678,33 +714,74 @@ private fun LogsTab(
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                Text(
-                                    text = "Failed to load logs",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.error
+                                Icon(
+                                    painter = painterResource(id = R.drawable.no_network),
+                                    contentDescription = "No network",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxWidth(0.8f)
                                 )
                                 Text(
-                                    text = uiState.logsError,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = "No network",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
                     }
-                    filteredLogs.isEmpty() -> {
+                    filteredLogs.isEmpty() && showOnlyWithComments && uiState.logs.isNotEmpty() -> {
+                        // No logs with comments but there are logs
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = if (showOnlyWithComments) "No logs with comments" else "No logs yet",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.comment),
+                                    contentDescription = "No comments",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxWidth(0.8f)
+                                )
+                                Text(
+                                    text = "No logs with comments for now. Be the first to comment ! That always makes the route openers happy!",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                    uiState.logs.isEmpty() -> {
+                        // No logs at all
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.pen),
+                                    contentDescription = "No logs",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxWidth(0.8f)
+                                )
+                                Text(
+                                    text = "No logs for now. Be the first to log !",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
                         }
                     }
                     else -> {

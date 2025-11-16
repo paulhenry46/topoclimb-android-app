@@ -47,6 +47,7 @@ fun SitesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") }
             )
         }

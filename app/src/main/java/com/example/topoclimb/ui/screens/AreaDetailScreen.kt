@@ -115,6 +115,7 @@ fun AreaDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(uiState.area?.name ?: "Area Details") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {

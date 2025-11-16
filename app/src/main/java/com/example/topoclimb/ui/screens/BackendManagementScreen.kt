@@ -59,6 +59,7 @@ fun BackendManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text("Manage TopoClimb Instances") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {

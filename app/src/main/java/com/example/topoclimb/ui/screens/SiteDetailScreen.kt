@@ -63,6 +63,7 @@ fun SiteDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(uiState.site?.data?.name ?: "Site Details") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -593,12 +594,7 @@ fun ContactInfoRow(
     val onLongClick: () -> Unit = {
         val clip = android.content.ClipData.newPlainText(label, value)
         clipboardManager.setPrimaryClip(clip)
-        scope.launch {
-            snackbarHostState.showSnackbar(
-                message = "$label copied to clipboard",
-                duration = SnackbarDuration.Short
-            )
-        }
+        // Removed snackbar toast as per requirement
     }
     
     Row(

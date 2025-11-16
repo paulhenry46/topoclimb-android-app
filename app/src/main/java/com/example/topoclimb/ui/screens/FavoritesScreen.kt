@@ -65,6 +65,7 @@ fun FavoritesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text("Favorites") }
             )
         }

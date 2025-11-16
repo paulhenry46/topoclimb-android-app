@@ -66,6 +66,7 @@ fun LogRouteWorkflowScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text("Log Route") },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
