@@ -7,15 +7,15 @@ data class Log(
     @SerializedName("route_id")
     val routeId: Int,
     val comments: String?,
-    val type: String, // e.g., "flash", "redpoint", "onsight"
-    val way: String, // e.g., "bouldering", "sport", "trad"
+    val type: String?, // e.g., "flash", "redpoint", "onsight" - can be null
+    val way: String?, // e.g., "bouldering", "sport", "trad" - can be null
     val grade: Int, // Grade value as numeric (e.g., 600) - format depends on the climbing system
     @SerializedName("created_at")
-    val createdAt: String, // Format: 2025-10-03T10:18:24.000000Z
+    val createdAt: String?, // Format: 2025-10-03T10:18:24.000000Z - can be null
     @SerializedName("is_verified")
     val isVerified: Boolean,
     @SerializedName("user_name")
-    val userName: String,
+    val userName: String?, // Can be null if user is deleted
     @SerializedName("user_pp_url")
     val userPpUrl: String? // Can be null if user has no profile picture
 )

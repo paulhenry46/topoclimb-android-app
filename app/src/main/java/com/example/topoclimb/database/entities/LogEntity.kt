@@ -14,12 +14,12 @@ data class LogEntity(
     val id: Int,
     val routeId: Int,
     val comments: String?,
-    val type: String,
-    val way: String,
+    val type: String?, // Can be null
+    val way: String?, // Can be null
     val grade: Int,
-    val createdAt: String,
+    val createdAt: String?, // Can be null
     val isVerified: Boolean,
-    val userName: String,
+    val userName: String?, // Can be null if user is deleted
     val userPpUrl: String?, // Can be null if user has no profile picture
     val backendId: String,
     val lastUpdated: Long = System.currentTimeMillis()

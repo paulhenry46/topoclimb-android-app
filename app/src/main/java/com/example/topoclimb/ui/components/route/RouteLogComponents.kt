@@ -53,14 +53,14 @@ fun LogCard(
     var isExpanded by remember { mutableStateOf(false) }
     
     // Calculate badge data
-    val typeIcon = when (log.type.lowercase()) {
+    val typeIcon = when (log.type?.lowercase()) {
         "flash" -> Icons.Filled.FlashOn
         "view" -> Icons.Filled.Visibility
         "work" -> Icons.Filled.Lens
         else -> null
     }
     
-    val wayIcon = when (log.way.lowercase()) {
+    val wayIcon = when (log.way?.lowercase()) {
         "top-rope", "sport" -> Icons.Filled.Lens
         "lead" -> Icons.Filled.Flag
         else -> null
@@ -101,7 +101,7 @@ fun LogCard(
                     // User avatar
                     UserAvatar(
                         userPpUrl = log.userPpUrl,
-                        userName = log.userName
+                        userName = log.userName ?: "Unknown"
                     )
                     
                     Column {
@@ -110,7 +110,7 @@ fun LogCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = log.userName,
+                                text = log.userName ?: "Unknown",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.SemiBold
                                 ),
@@ -134,7 +134,7 @@ fun LogCard(
                             }
                         }
                         Text(
-                            text = formatLogDate(log.createdAt),
+                            text = formatLogDate(log.createdAt ?: ""),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -238,8 +238,8 @@ private fun UserAvatar(
 private fun CompactBadgesRow(
     typeIcon: ImageVector?,
     wayIcon: ImageVector?,
-    logType: String,
-    logWay: String,
+    logType: String?,
+    logWay: String?,
     logGradeString: String,
     gradeComparison: GradeComparison?
 ) {
@@ -257,7 +257,7 @@ private fun CompactBadgesRow(
         }
         
         // Way icon only (only show if not bouldering)
-        if (logWay.lowercase() != "bouldering" && wayIcon != null) {
+        if (logWay?.lowercase() != "bouldering" && wayIcon != null) {
             CompactBadge(
                 icon = wayIcon,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -284,8 +284,8 @@ private fun CompactBadgesRow(
 private fun FullBadgesRow(
     typeIcon: ImageVector?,
     wayIcon: ImageVector?,
-    logType: String,
-    logWay: String,
+    logType: String?,
+    logWay: String?,
     logGradeString: String,
     gradeComparison: GradeComparison?
 ) {
@@ -295,15 +295,17 @@ private fun FullBadgesRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Type badge with icon
-        LogBadgeWithIcon(
-            text = logType.capitalize(),
-            icon = typeIcon,
-            containerColor = getTypeColor(logType),
-            contentColor = getTypeContentColor(logType)
-        )
+        if (logType != null) {
+            LogBadgeWithIcon(
+                text = logType.capitalize(),
+                icon = typeIcon,
+                containerColor = getTypeColor(logType),
+                contentColor = getTypeContentColor(logType)
+            )
+        }
         
         // Way badge with icon (only show if not bouldering)
-        if (logWay.lowercase() != "bouldering") {
+        if (logWay?.lowercase() != "bouldering" && logWay != null) {
             LogBadgeWithIcon(
                 text = logWay.capitalize(),
                 icon = wayIcon,
@@ -532,8 +534,8 @@ fun CompactBadgeWithText(
 // Helper functions
 
 @Composable
-private fun getTypeColor(type: String): Color {
-    return when (type.lowercase()) {
+private fun getTypeColor(type: String?): Color {
+    return when (type?.lowercase()) {
         "flash" -> Color(0xFFFFB74D)
         "redpoint" -> Color(0xFF64B5F6)
         "onsight" -> Color(0xFF81C784)
@@ -542,8 +544,8 @@ private fun getTypeColor(type: String): Color {
 }
 
 @Composable
-private fun getTypeContentColor(type: String): Color {
-    return when (type.lowercase()) {
+private fun getTypeContentColor(type: String?): Color {
+    return when (type?.lowercase()) {
         "flash" -> Color(0xFFE65100)
         "redpoint" -> Color(0xFF0D47A1)
         "onsight" -> Color(0xFF1B5E20)
