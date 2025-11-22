@@ -56,6 +56,7 @@ data class AreaDetailUiState(
     val showNewRoutesOnly: Boolean = false,
     val climbedFilter: ClimbedFilter = ClimbedFilter.ALL,
     val showFavoritesOnly: Boolean = false,
+    val selectedContestStepRouteIds: List<Int>? = null, // Filter by contest step route IDs
     // Grouping state
     val groupingOption: GroupingOption = GroupingOption.NONE
 )
@@ -510,8 +511,14 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
             showNewRoutesOnly = false,
             climbedFilter = ClimbedFilter.ALL,
             showFavoritesOnly = false,
+            selectedContestStepRouteIds = null,
             groupingOption = GroupingOption.NONE
         )
+        applyFilters()
+    }
+    
+    fun setContestStepFilter(routeIds: List<Int>?) {
+        _uiState.value = _uiState.value.copy(selectedContestStepRouteIds = routeIds)
         applyFilters()
     }
     
@@ -684,6 +691,16 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
             }
             filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
                 favoriteRouteIds.contains(routeWithMetadata.id)
+            }
+        }
+        
+        // Apply contest step filter
+        if (currentState.selectedContestStepRouteIds != null) {
+            filteredRoutes = filteredRoutes.filter { route ->
+                currentState.selectedContestStepRouteIds.contains(route.id)
+            }
+            filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                currentState.selectedContestStepRouteIds.contains(routeWithMetadata.id)
             }
         }
         
