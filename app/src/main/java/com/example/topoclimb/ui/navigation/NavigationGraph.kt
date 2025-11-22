@@ -127,7 +127,7 @@ fun NavigationGraph(
                     type = NavType.IntType
                 }
             )
-        ) { backStackEntry ->
+        ) @OptIn(ExperimentalMaterial3Api::class) { backStackEntry ->
             val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
             val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
             val contestId = backStackEntry.arguments?.getInt("contestId") ?: return@composable
@@ -160,35 +160,30 @@ fun NavigationGraph(
                 )
             } else {
                 // Fallback if contest not found
-                @OptIn(ExperimentalMaterial3Api::class)
-                @Composable
-                fun FallbackScreen() {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar(
-                                title = { Text("Contest") },
-                                navigationIcon = {
-                                    IconButton(onClick = { navController.popBackStack() }) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "Back"
-                                        )
-                                    }
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Contest") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
                                 }
-                            )
-                        }
-                    ) { padding ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(padding),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("Contest not found")
-                        }
+                            }
+                        )
+                    }
+                ) { padding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Contest not found")
                     }
                 }
-                FallbackScreen()
             }
         }
         
@@ -373,7 +368,7 @@ fun NavigationGraph(
                     type = NavType.StringType
                 }
             )
-        ) { backStackEntry ->
+        ) @OptIn(ExperimentalMaterial3Api::class) { backStackEntry ->
             val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(BottomNavItem.Profile.route)
@@ -413,35 +408,30 @@ fun NavigationGraph(
                 )
             } else {
                 // Fallback if backend not found
-                @OptIn(ExperimentalMaterial3Api::class)
-                @Composable
-                fun FallbackScreen() {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar(
-                                title = { Text("QR Code") },
-                                navigationIcon = {
-                                    IconButton(onClick = { navController.popBackStack() }) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "Back"
-                                        )
-                                    }
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("QR Code") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
                                 }
-                            )
-                        }
-                    ) { padding ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(padding),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("Instance not found or not authenticated")
-                        }
+                            }
+                        )
+                    }
+                ) { padding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Instance not found or not authenticated")
                     }
                 }
-                FallbackScreen()
             }
         }
     }

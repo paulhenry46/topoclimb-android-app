@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.ZoneId
 
 enum class StepState {
     UPCOMING,
