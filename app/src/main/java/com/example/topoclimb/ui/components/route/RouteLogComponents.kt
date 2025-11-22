@@ -101,7 +101,7 @@ fun LogCard(
                     // User avatar
                     UserAvatar(
                         userPpUrl = log.userPpUrl,
-                        userName = log.userName ?: "Unknown"
+                        userName = log.userName
                     )
                     
                     Column {
@@ -110,7 +110,7 @@ fun LogCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = log.userName ?: "Unknown",
+                                text = log.userName,
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.SemiBold
                                 ),
