@@ -17,7 +17,7 @@ data class Log(
     @SerializedName("user_name")
     val userName: String,
     @SerializedName("user_pp_url")
-    val userPpUrl: String
+    val userPpUrl: String? // Can be null if user has no profile picture
 )
 
 /**

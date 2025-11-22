@@ -20,7 +20,7 @@ data class LogEntity(
     val createdAt: String,
     val isVerified: Boolean,
     val userName: String,
-    val userPpUrl: String,
+    val userPpUrl: String?, // Can be null if user has no profile picture
     val backendId: String,
     val lastUpdated: Long = System.currentTimeMillis()
 )

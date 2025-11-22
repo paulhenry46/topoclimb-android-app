@@ -179,7 +179,7 @@ fun LogCard(
 
 @Composable
 private fun UserAvatar(
-    userPpUrl: String,
+    userPpUrl: String?,
     userName: String
 ) {
     SubcomposeAsyncImage(
