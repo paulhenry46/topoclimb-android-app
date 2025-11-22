@@ -6,9 +6,12 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.topoclimb.database.converters.GradingSystemConverter
+import com.example.topoclimb.database.converters.IntListConverter
 import com.example.topoclimb.database.converters.StringListConverter
 import com.example.topoclimb.database.dao.AreaDao
 import com.example.topoclimb.database.dao.ContestDao
+import com.example.topoclimb.database.dao.ContestRankingDao
+import com.example.topoclimb.database.dao.ContestStepDao
 import com.example.topoclimb.database.dao.LineDao
 import com.example.topoclimb.database.dao.LineFetchMetadataDao
 import com.example.topoclimb.database.dao.LogDao
@@ -21,6 +24,8 @@ import com.example.topoclimb.database.dao.SiteDao
 import com.example.topoclimb.database.dao.SvgMapCacheDao
 import com.example.topoclimb.database.entities.AreaEntity
 import com.example.topoclimb.database.entities.ContestEntity
+import com.example.topoclimb.database.entities.ContestRankingEntity
+import com.example.topoclimb.database.entities.ContestStepEntity
 import com.example.topoclimb.database.entities.LineEntity
 import com.example.topoclimb.database.entities.LineFetchMetadataEntity
 import com.example.topoclimb.database.entities.LogEntity
@@ -38,6 +43,8 @@ import com.example.topoclimb.database.entities.SvgMapCacheEntity
         AreaEntity::class,
         RouteEntity::class,
         ContestEntity::class,
+        ContestStepEntity::class,
+        ContestRankingEntity::class,
         SectorEntity::class,
         LineEntity::class,
         SvgMapCacheEntity::class,
@@ -47,11 +54,12 @@ import com.example.topoclimb.database.entities.SvgMapCacheEntity
         LogEntity::class,
         RouteLogsFetchMetadataEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 @TypeConverters(
     StringListConverter::class,
+    IntListConverter::class,
     GradingSystemConverter::class
 )
 abstract class TopoClimbDatabase : RoomDatabase() {
@@ -60,6 +68,8 @@ abstract class TopoClimbDatabase : RoomDatabase() {
     abstract fun areaDao(): AreaDao
     abstract fun routeDao(): RouteDao
     abstract fun contestDao(): ContestDao
+    abstract fun contestStepDao(): ContestStepDao
+    abstract fun contestRankingDao(): ContestRankingDao
     abstract fun sectorDao(): SectorDao
     abstract fun lineDao(): LineDao
     abstract fun svgMapCacheDao(): SvgMapCacheDao
@@ -82,7 +92,7 @@ abstract class TopoClimbDatabase : RoomDatabase() {
                 )
                 .fallbackToDestructiveMigration()
                 .build()
-                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 10 with schema metadata caching)")
+                android.util.Log.d("OfflineFirst", "TopoClimbDatabase initialized (version 11 with contest steps and rankings)")
                 INSTANCE = instance
                 instance
             }
