@@ -6,10 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.AreaType
 import com.example.topoclimb.data.CachedSectorSchema
+import com.example.topoclimb.data.Contest
+import com.example.topoclimb.data.ContestStep
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Sector
+import com.example.topoclimb.repository.FederatedTopoClimbRepository
 import com.example.topoclimb.repository.TopoClimbRepository
 import com.example.topoclimb.database.TopoClimbDatabase
 import com.example.topoclimb.database.entities.SvgMapCacheEntity
@@ -20,6 +23,8 @@ import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.utils.CacheUtils
 import com.example.topoclimb.utils.NetworkUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +32,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+
+data class ContestStepWithName(
+    val stepId: Int,
+    val stepName: String,
+    val contestName: String,
+    val routeIds: List<Int>
+)
 
 data class AreaDetailUiState(
     val isLoading: Boolean = true,
@@ -56,12 +68,16 @@ data class AreaDetailUiState(
     val showNewRoutesOnly: Boolean = false,
     val climbedFilter: ClimbedFilter = ClimbedFilter.ALL,
     val showFavoritesOnly: Boolean = false,
+    val selectedContestStepRouteIds: List<Int>? = null, // Filter by contest step route IDs
+    val selectedContestStepId: Int? = null, // ID of selected contest step for display
+    val availableContestSteps: List<ContestStepWithName> = emptyList(), // Available contest steps for filtering
     // Grouping state
     val groupingOption: GroupingOption = GroupingOption.NONE
 )
 
 class AreaDetailViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TopoClimbRepository(application.applicationContext)
+    private val federatedRepository = FederatedTopoClimbRepository(application.applicationContext)
     private val database = TopoClimbDatabase.getDatabase(application.applicationContext)
     private val httpClient = OkHttpClient()
     
@@ -138,6 +154,50 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
                 schemas.firstOrNull()?.id?.let { firstSchemaId ->
                     filterRoutesBySector(firstSchemaId)
                 }
+            }
+            
+            // Load contest steps for filtering
+            loadContestSteps(backendId, siteId)
+        }
+    }
+    
+    private fun loadContestSteps(backendId: String, siteId: Int) {
+        viewModelScope.launch {
+            try {
+                // Get contests for this site
+                val contestsResult = federatedRepository.getContestsBySite(backendId, siteId)
+                if (contestsResult.isSuccess) {
+                    val contests = contestsResult.getOrNull() ?: emptyList()
+                    
+                    // Fetch all contest steps concurrently for better performance
+                    val allSteps = contests.map { federatedContest ->
+                        async {
+                            val stepsResult = federatedRepository.getContestSteps(backendId, federatedContest.data.id)
+                            if (stepsResult.isSuccess) {
+                                val steps = stepsResult.getOrNull() ?: emptyList()
+                                steps.mapNotNull { step ->
+                                    // Only include steps that have routes
+                                    if (step.routes.isNotEmpty()) {
+                                        ContestStepWithName(
+                                            stepId = step.id,
+                                            stepName = step.name,
+                                            contestName = federatedContest.data.name,
+                                            routeIds = step.routes
+                                        )
+                                    } else null
+                                }
+                            } else {
+                                emptyList()
+                            }
+                        }
+                    }.awaitAll().flatten()
+                    
+                    // Update UI state with available steps
+                    _uiState.value = _uiState.value.copy(availableContestSteps = allSteps)
+                }
+            } catch (e: Exception) {
+                // Silently fail - contest steps are optional
+                android.util.Log.e("AreaDetailViewModel", "Failed to load contest steps for site $siteId on backend $backendId", e)
             }
         }
     }
@@ -510,7 +570,17 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
             showNewRoutesOnly = false,
             climbedFilter = ClimbedFilter.ALL,
             showFavoritesOnly = false,
+            selectedContestStepRouteIds = null,
+            selectedContestStepId = null,
             groupingOption = GroupingOption.NONE
+        )
+        applyFilters()
+    }
+    
+    fun setContestStepFilter(stepId: Int?, routeIds: List<Int>?) {
+        _uiState.value = _uiState.value.copy(
+            selectedContestStepRouteIds = routeIds,
+            selectedContestStepId = stepId
         )
         applyFilters()
     }
@@ -684,6 +754,16 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
             }
             filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
                 favoriteRouteIds.contains(routeWithMetadata.id)
+            }
+        }
+        
+        // Apply contest step filter
+        if (currentState.selectedContestStepRouteIds != null) {
+            filteredRoutes = filteredRoutes.filter { route ->
+                currentState.selectedContestStepRouteIds.contains(route.id)
+            }
+            filteredRoutesWithMetadata = filteredRoutesWithMetadata.filter { routeWithMetadata ->
+                currentState.selectedContestStepRouteIds.contains(routeWithMetadata.id)
             }
         }
         

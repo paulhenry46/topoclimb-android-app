@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.topoclimb.ui.BottomNavItem
 import com.example.topoclimb.ui.screens.AreaDetailScreen
+import com.example.topoclimb.ui.screens.ContestDetailScreen
 import com.example.topoclimb.ui.screens.FavoritesScreen
 import com.example.topoclimb.ui.screens.ProfileScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
@@ -69,6 +70,9 @@ fun NavigationGraph(
                 },
                 onAreaClick = { areaBackendId, areaId ->
                     navController.navigate("site/$areaBackendId/$siteId/area/$areaId")
+                },
+                onContestClick = { contestBackendId, contestId ->
+                    navController.navigate("site/$contestBackendId/$siteId/contest/$contestId")
                 }
             )
         }
@@ -108,6 +112,79 @@ fun NavigationGraph(
                 },
                 favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
+        }
+        
+        composable(
+            route = "site/{backendId}/{siteId}/contest/{contestId}",
+            arguments = listOf(
+                navArgument("backendId") {
+                    type = NavType.StringType
+                },
+                navArgument("siteId") {
+                    type = NavType.IntType
+                },
+                navArgument("contestId") {
+                    type = NavType.IntType
+                }
+            )
+        ) @OptIn(ExperimentalMaterial3Api::class) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val siteId = backStackEntry.arguments?.getInt("siteId") ?: return@composable
+            val contestId = backStackEntry.arguments?.getInt("contestId") ?: return@composable
+            
+            // Get the site detail view model to access contest data
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("site/$backendId/$siteId")
+            }
+            val siteDetailViewModel: com.example.topoclimb.viewmodel.SiteDetailViewModel = viewModel(
+                viewModelStoreOwner = parentEntry
+            )
+            val siteDetailUiState by siteDetailViewModel.uiState.collectAsState()
+            
+            // Find the contest in the cached data
+            val contest = siteDetailUiState.contests.find { it.data.id == contestId }?.data
+            
+            if (contest != null) {
+                ContestDetailScreen(
+                    backendId = backendId,
+                    contestId = contestId,
+                    contest = contest,
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onStepRoutesClick = { stepId, routeIds ->
+                        // Navigate to area with filter by step routes
+                        // For now, just pop back - we'll implement route filtering next
+                        navController.popBackStack()
+                    }
+                )
+            } else {
+                // Fallback if contest not found
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Contest") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
+                                }
+                            }
+                        )
+                    }
+                ) { padding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Contest not found")
+                    }
+                }
+            }
         }
         
         composable(BottomNavItem.Favorite.route) { backStackEntry ->
@@ -291,7 +368,7 @@ fun NavigationGraph(
                     type = NavType.StringType
                 }
             )
-        ) { backStackEntry ->
+        ) @OptIn(ExperimentalMaterial3Api::class) { backStackEntry ->
             val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(BottomNavItem.Profile.route)
@@ -331,35 +408,30 @@ fun NavigationGraph(
                 )
             } else {
                 // Fallback if backend not found
-                @OptIn(ExperimentalMaterial3Api::class)
-                @Composable
-                fun FallbackScreen() {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar(
-                                title = { Text("QR Code") },
-                                navigationIcon = {
-                                    IconButton(onClick = { navController.popBackStack() }) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "Back"
-                                        )
-                                    }
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("QR Code") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
                                 }
-                            )
-                        }
-                    ) { padding ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(padding),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("Instance not found or not authenticated")
-                        }
+                            }
+                        )
+                    }
+                ) { padding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Instance not found or not authenticated")
                     }
                 }
-                FallbackScreen()
             }
         }
     }

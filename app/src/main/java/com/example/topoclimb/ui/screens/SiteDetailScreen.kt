@@ -51,6 +51,7 @@ fun SiteDetailScreen(
     siteId: Int,
     onBackClick: () -> Unit,
     onAreaClick: (String, Int) -> Unit = { _, _ -> },
+    onContestClick: (String, Int) -> Unit = { _, _ -> },
     viewModel: SiteDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -299,7 +300,10 @@ fun SiteDetailScreen(
                             )
                         }
                         items(uiState.contests) { federatedContest ->
-                            ContestItem(federatedContest.data)
+                            ContestItem(
+                                contest = federatedContest.data,
+                                onClick = { onContestClick(federatedContest.backend.backendId, federatedContest.data.id) }
+                            )
                         }
                     }
                     
@@ -388,7 +392,7 @@ fun SiteAreaItem(
 }
 
 @Composable
-fun ContestItem(contest: Contest) {
+fun ContestItem(contest: Contest, onClick: () -> Unit = {}) {
     // Determine contest state
     val contestState = try {
         val now = LocalDate.now()
@@ -429,7 +433,9 @@ fun ContestItem(contest: Contest) {
     }
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (contestState == ContestState.PAST) 

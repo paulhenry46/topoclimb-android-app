@@ -735,6 +735,8 @@ fun AreaDetailScreen(
                 climbedFilter = uiState.climbedFilter,
                 groupingOption = uiState.groupingOption,
                 showFavoritesOnly = uiState.showFavoritesOnly,
+                selectedContestStepId = uiState.selectedContestStepId,
+                availableContestSteps = uiState.availableContestSteps,
                 onMinGradeChange = { viewModel.updateMinGrade(it) },
                 onMaxGradeChange = { viewModel.updateMaxGrade(it) },
                 onNewRoutesToggle = { viewModel.toggleNewRoutesFilter(it) },
@@ -742,6 +744,7 @@ fun AreaDetailScreen(
                 onClimbedFilterChange = { viewModel.setClimbedFilter(it) },
                 onGroupingOptionChange = { viewModel.setGroupingOption(it) },
                 onFavoritesToggle = { viewModel.toggleFavoritesFilter(it) },
+                onContestStepSelected = { stepId, routeIds -> viewModel.setContestStepFilter(stepId, routeIds) },
                 onClearFilters = { viewModel.clearFilters() },
                 onDismiss = { showFilterModal = false }
             )
@@ -800,6 +803,8 @@ fun FilterModalDialog(
     climbedFilter: com.example.topoclimb.ui.state.ClimbedFilter,
     groupingOption: com.example.topoclimb.ui.state.GroupingOption,
     showFavoritesOnly: Boolean,
+    selectedContestStepId: Int?,
+    availableContestSteps: List<com.example.topoclimb.viewmodel.ContestStepWithName>,
     onMinGradeChange: (String?) -> Unit,
     onMaxGradeChange: (String?) -> Unit,
     onNewRoutesToggle: (Boolean) -> Unit,
@@ -807,11 +812,13 @@ fun FilterModalDialog(
     onClimbedFilterChange: (com.example.topoclimb.ui.state.ClimbedFilter) -> Unit,
     onGroupingOptionChange: (com.example.topoclimb.ui.state.GroupingOption) -> Unit,
     onFavoritesToggle: (Boolean) -> Unit,
+    onContestStepSelected: (Int?, List<Int>?) -> Unit,
     onClearFilters: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val hasActiveFilters = minGrade != null || maxGrade != null || showNewRoutesOnly || 
-        climbedFilter != com.example.topoclimb.ui.state.ClimbedFilter.ALL || showFavoritesOnly
+        climbedFilter != com.example.topoclimb.ui.state.ClimbedFilter.ALL || showFavoritesOnly ||
+        selectedContestStepId != null
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1008,6 +1015,55 @@ fun FilterModalDialog(
                                         expandedSectorDropdown = false
                                     }
                                 )
+                            }
+                        }
+                    }
+                }
+                
+                // Contest step filter
+                if (availableContestSteps.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Filter by Contest Step",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        var expandedStepDropdown by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
+                            expanded = expandedStepDropdown,
+                            onExpandedChange = { expandedStepDropdown = it }
+                        ) {
+                            val selectedStep = availableContestSteps.find { it.stepId == selectedContestStepId }
+                            OutlinedTextField(
+                                value = selectedStep?.let { "${it.contestName} - ${it.stepName}" } ?: "No contest step",
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedStepDropdown) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedStepDropdown,
+                                onDismissRequest = { expandedStepDropdown = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("No contest step") },
+                                    onClick = {
+                                        onContestStepSelected(null, null)
+                                        expandedStepDropdown = false
+                                    }
+                                )
+                                availableContestSteps.forEach { step ->
+                                    DropdownMenuItem(
+                                        text = { Text("${step.contestName} - ${step.stepName}") },
+                                        onClick = {
+                                            onContestStepSelected(step.stepId, step.routeIds)
+                                            expandedStepDropdown = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

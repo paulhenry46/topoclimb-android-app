@@ -4,6 +4,8 @@ import com.example.topoclimb.data.ApiResponse
 import com.example.topoclimb.data.AreaResponse
 import com.example.topoclimb.data.AreasResponse
 import com.example.topoclimb.data.AuthResponse
+import com.example.topoclimb.data.ContestRankResponse
+import com.example.topoclimb.data.ContestStepsResponse
 import com.example.topoclimb.data.ContestsResponse
 import com.example.topoclimb.data.CreateLogRequest
 import com.example.topoclimb.data.CreateLogResponse
@@ -102,5 +104,17 @@ interface TopoClimbApiService {
     
     @GET("user/qrcode")
     suspend fun getUserQRCode(@Header("Authorization") authToken: String): com.example.topoclimb.data.QRCodeResponse
+    
+    @GET("contests/{contestId}/steps")
+    suspend fun getContestSteps(@Path("contestId") contestId: Int): ContestStepsResponse
+    
+    @GET("contests/{contestId}/rank")
+    suspend fun getContestRank(@Path("contestId") contestId: Int): ContestRankResponse
+    
+    @GET("contests/{contestId}/steps/{stepId}/rank")
+    suspend fun getStepRank(
+        @Path("contestId") contestId: Int,
+        @Path("stepId") stepId: Int
+    ): ContestRankResponse
 }
 

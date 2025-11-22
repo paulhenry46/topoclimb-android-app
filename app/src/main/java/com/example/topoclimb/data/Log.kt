@@ -2,23 +2,35 @@ package com.example.topoclimb.data
 
 import com.google.gson.annotations.SerializedName
 
+/**
+ * User information in log entries
+ */
+data class LogUser(
+    val id: Int,
+    val name: String,
+    @SerializedName("profile_photo_url")
+    val profilePhotoUrl: String?
+)
+
 data class Log(
     val id: Int,
     @SerializedName("route_id")
     val routeId: Int,
+    @SerializedName("comment")
     val comments: String?,
-    val type: String, // e.g., "flash", "redpoint", "onsight"
-    val way: String, // e.g., "bouldering", "sport", "trad"
+    val type: String?, // e.g., "flash", "redpoint", "onsight" - can be null
+    val way: String?, // e.g., "bouldering", "sport", "trad" - can be null
     val grade: Int, // Grade value as numeric (e.g., 600) - format depends on the climbing system
     @SerializedName("created_at")
-    val createdAt: String, // Format: 2025-10-03T10:18:24.000000Z
+    val createdAt: String?, // Format: 2025-10-03T10:18:24.000000Z - can be null
     @SerializedName("is_verified")
     val isVerified: Boolean,
-    @SerializedName("user_name")
-    val userName: String,
-    @SerializedName("user_pp_url")
-    val userPpUrl: String
-)
+    val user: LogUser
+) {
+    // Convenience properties for backward compatibility
+    val userName: String get() = user.name
+    val userPpUrl: String? get() = user.profilePhotoUrl
+}
 
 /**
  * Request body for creating a new log

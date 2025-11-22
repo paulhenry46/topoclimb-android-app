@@ -14,13 +14,14 @@ data class LogEntity(
     val id: Int,
     val routeId: Int,
     val comments: String?,
-    val type: String,
-    val way: String,
+    val type: String?, // Can be null
+    val way: String?, // Can be null
     val grade: Int,
-    val createdAt: String,
+    val createdAt: String?, // Can be null
     val isVerified: Boolean,
+    val userId: Int,
     val userName: String,
-    val userPpUrl: String,
+    val userPpUrl: String?, // Can be null if user has no profile picture
     val backendId: String,
     val lastUpdated: Long = System.currentTimeMillis()
 )
@@ -34,8 +35,11 @@ fun LogEntity.toLog(): Log = Log(
     grade = grade,
     createdAt = createdAt,
     isVerified = isVerified,
-    userName = userName,
-    userPpUrl = userPpUrl
+    user = com.example.topoclimb.data.LogUser(
+        id = userId,
+        name = userName,
+        profilePhotoUrl = userPpUrl
+    )
 )
 
 fun Log.toEntity(backendId: String): LogEntity = LogEntity(
@@ -47,7 +51,8 @@ fun Log.toEntity(backendId: String): LogEntity = LogEntity(
     grade = grade,
     createdAt = createdAt,
     isVerified = isVerified,
-    userName = userName,
-    userPpUrl = userPpUrl,
+    userId = user.id,
+    userName = user.name,
+    userPpUrl = user.profilePhotoUrl,
     backendId = backendId
 )
