@@ -6,6 +6,8 @@ import com.example.topoclimb.data.*
 import com.example.topoclimb.database.TopoClimbDatabase
 import com.example.topoclimb.database.entities.toArea
 import com.example.topoclimb.database.entities.toContest
+import com.example.topoclimb.database.entities.toContestRankEntry
+import com.example.topoclimb.database.entities.toContestStep
 import com.example.topoclimb.database.entities.toEntity
 import com.example.topoclimb.database.entities.toRoute
 import com.example.topoclimb.database.entities.toSite
@@ -772,5 +774,198 @@ class FederatedTopoClimbRepository(private val context: Context) {
      */
     fun getBackendConfigRepository(): BackendConfigRepository {
         return backendConfigRepository
+    }
+    
+    /**
+     * Get contest steps for a specific contest (offline-first)
+     * @param forceRefresh If true, always refresh from network regardless of cache age
+     */
+    suspend fun getContestSteps(backendId: String, contestId: Int, forceRefresh: Boolean = false): Result<List<ContestStep>> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            // Get cached steps from Room
+            val cachedSteps = database.contestStepDao().getContestSteps(contestId, backendId)
+            android.util.Log.d("OfflineFirst", "getContestSteps - contestId: $contestId, backendId: $backendId, cached count: ${cachedSteps.size}")
+            
+            // If we have cached data, return it and refresh in background if needed
+            if (cachedSteps.isNotEmpty()) {
+                android.util.Log.d("OfflineFirst", "Returning ${cachedSteps.size} cached steps for contest $contestId")
+                if (NetworkUtils.isNetworkAvailable(context)) {
+                    val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedSteps) { it.lastUpdated }
+                    if (shouldRefresh) {
+                        backgroundScope.launch {
+                            try {
+                                val api = retrofitManager.getApiService(backend)
+                                val response = api.getContestSteps(contestId)
+                                val entities = response.steps.map { it.toEntity(contestId, backendId) }
+                                android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} steps for contest $contestId")
+                                database.contestStepDao().insertSteps(entities)
+                            } catch (e: Exception) {
+                                android.util.Log.e("OfflineFirst", "Background refresh failed for contest steps", e)
+                            }
+                        }
+                    } else {
+                        android.util.Log.d("OfflineFirst", "Skipping refresh for contest $contestId steps - cache is fresh")
+                    }
+                }
+                
+                return Result.success(cachedSteps.map { it.toContestStep() })
+            }
+            
+            // No cache - fetch from network if available
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                android.util.Log.d("OfflineFirst", "No cache for contest $contestId steps, fetching from network")
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getContestSteps(contestId)
+                    val entities = response.steps.map { it.toEntity(contestId, backendId) }
+                    android.util.Log.d("OfflineFirst", "Fetched ${entities.size} steps from network, caching for contest $contestId")
+                    database.contestStepDao().insertSteps(entities)
+                    return Result.success(response.steps)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch or cache contest steps for contest $contestId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            // No cache and offline - return empty list
+            android.util.Log.w("OfflineFirst", "No cache and offline for contest $contestId steps - returning empty")
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getContestSteps for contest $contestId", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get contest global ranking (offline-first)
+     * @param forceRefresh If true, always refresh from network regardless of cache age
+     */
+    suspend fun getContestRanking(backendId: String, contestId: Int, forceRefresh: Boolean = false): Result<List<ContestRankEntry>> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            // Get cached ranking from Room (stepId = 0 for global)
+            val cachedRanking = database.contestRankingDao().getContestRanking(contestId, backendId)
+            android.util.Log.d("OfflineFirst", "getContestRanking - contestId: $contestId, backendId: $backendId, cached count: ${cachedRanking.size}")
+            
+            // If we have cached data, return it and refresh in background if needed
+            if (cachedRanking.isNotEmpty()) {
+                android.util.Log.d("OfflineFirst", "Returning ${cachedRanking.size} cached rankings for contest $contestId")
+                if (NetworkUtils.isNetworkAvailable(context)) {
+                    val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedRanking) { it.lastUpdated }
+                    if (shouldRefresh) {
+                        backgroundScope.launch {
+                            try {
+                                val api = retrofitManager.getApiService(backend)
+                                val response = api.getContestRank(contestId)
+                                val entities = response.rank.map { it.toEntity(contestId, 0, backendId) }
+                                android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} rankings for contest $contestId")
+                                database.contestRankingDao().deleteContestRanking(contestId, backendId)
+                                database.contestRankingDao().insertRankings(entities)
+                            } catch (e: Exception) {
+                                android.util.Log.e("OfflineFirst", "Background refresh failed for contest ranking", e)
+                            }
+                        }
+                    } else {
+                        android.util.Log.d("OfflineFirst", "Skipping refresh for contest $contestId ranking - cache is fresh")
+                    }
+                }
+                
+                return Result.success(cachedRanking.map { it.toContestRankEntry() })
+            }
+            
+            // No cache - fetch from network if available
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                android.util.Log.d("OfflineFirst", "No cache for contest $contestId ranking, fetching from network")
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getContestRank(contestId)
+                    val entities = response.rank.map { it.toEntity(contestId, 0, backendId) }
+                    android.util.Log.d("OfflineFirst", "Fetched ${entities.size} rankings from network, caching for contest $contestId")
+                    database.contestRankingDao().deleteContestRanking(contestId, backendId)
+                    database.contestRankingDao().insertRankings(entities)
+                    return Result.success(response.rank)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch or cache contest ranking for contest $contestId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            // No cache and offline - return empty list
+            android.util.Log.w("OfflineFirst", "No cache and offline for contest $contestId ranking - returning empty")
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getContestRanking for contest $contestId", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get step ranking for a specific contest step (offline-first)
+     * @param forceRefresh If true, always refresh from network regardless of cache age
+     */
+    suspend fun getStepRanking(backendId: String, contestId: Int, stepId: Int, forceRefresh: Boolean = false): Result<List<ContestRankEntry>> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            // Get cached ranking from Room
+            val cachedRanking = database.contestRankingDao().getStepRanking(contestId, stepId, backendId)
+            android.util.Log.d("OfflineFirst", "getStepRanking - contestId: $contestId, stepId: $stepId, backendId: $backendId, cached count: ${cachedRanking.size}")
+            
+            // If we have cached data, return it and refresh in background if needed
+            if (cachedRanking.isNotEmpty()) {
+                android.util.Log.d("OfflineFirst", "Returning ${cachedRanking.size} cached rankings for step $stepId")
+                if (NetworkUtils.isNetworkAvailable(context)) {
+                    val shouldRefresh = forceRefresh || CacheUtils.isAnyCacheStale(cachedRanking) { it.lastUpdated }
+                    if (shouldRefresh) {
+                        backgroundScope.launch {
+                            try {
+                                val api = retrofitManager.getApiService(backend)
+                                val response = api.getStepRank(contestId, stepId)
+                                val entities = response.rank.map { it.toEntity(contestId, stepId, backendId) }
+                                android.util.Log.d("OfflineFirst", "Background refresh: Caching ${entities.size} rankings for step $stepId")
+                                database.contestRankingDao().deleteStepRanking(contestId, stepId, backendId)
+                                database.contestRankingDao().insertRankings(entities)
+                            } catch (e: Exception) {
+                                android.util.Log.e("OfflineFirst", "Background refresh failed for step ranking", e)
+                            }
+                        }
+                    } else {
+                        android.util.Log.d("OfflineFirst", "Skipping refresh for step $stepId ranking - cache is fresh")
+                    }
+                }
+                
+                return Result.success(cachedRanking.map { it.toContestRankEntry() })
+            }
+            
+            // No cache - fetch from network if available
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                android.util.Log.d("OfflineFirst", "No cache for step $stepId ranking, fetching from network")
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getStepRank(contestId, stepId)
+                    val entities = response.rank.map { it.toEntity(contestId, stepId, backendId) }
+                    android.util.Log.d("OfflineFirst", "Fetched ${entities.size} rankings from network, caching for step $stepId")
+                    database.contestRankingDao().deleteStepRanking(contestId, stepId, backendId)
+                    database.contestRankingDao().insertRankings(entities)
+                    return Result.success(response.rank)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch or cache step ranking for step $stepId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            // No cache and offline - return empty list
+            android.util.Log.w("OfflineFirst", "No cache and offline for step $stepId ranking - returning empty")
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getStepRanking for step $stepId", e)
+            Result.failure(e)
+        }
     }
 }
