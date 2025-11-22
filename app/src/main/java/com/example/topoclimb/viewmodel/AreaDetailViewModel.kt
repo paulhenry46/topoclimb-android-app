@@ -23,6 +23,8 @@ import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.utils.CacheUtils
 import com.example.topoclimb.utils.NetworkUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -167,34 +169,35 @@ class AreaDetailViewModel(application: Application) : AndroidViewModel(applicati
                 if (contestsResult.isSuccess) {
                     val contests = contestsResult.getOrNull() ?: emptyList()
                     
-                    // For each contest, get its steps
-                    val allSteps = mutableListOf<ContestStepWithName>()
-                    contests.forEach { federatedContest ->
-                        val stepsResult = federatedRepository.getContestSteps(backendId, federatedContest.data.id)
-                        if (stepsResult.isSuccess) {
-                            val steps = stepsResult.getOrNull() ?: emptyList()
-                            steps.forEach { step ->
-                                // Only include steps that have routes
-                                if (step.routes.isNotEmpty()) {
-                                    allSteps.add(
+                    // Fetch all contest steps concurrently for better performance
+                    val allSteps = contests.map { federatedContest ->
+                        async {
+                            val stepsResult = federatedRepository.getContestSteps(backendId, federatedContest.data.id)
+                            if (stepsResult.isSuccess) {
+                                val steps = stepsResult.getOrNull() ?: emptyList()
+                                steps.mapNotNull { step ->
+                                    // Only include steps that have routes
+                                    if (step.routes.isNotEmpty()) {
                                         ContestStepWithName(
                                             stepId = step.id,
                                             stepName = step.name,
                                             contestName = federatedContest.data.name,
                                             routeIds = step.routes
                                         )
-                                    )
+                                    } else null
                                 }
+                            } else {
+                                emptyList()
                             }
                         }
-                    }
+                    }.awaitAll().flatten()
                     
                     // Update UI state with available steps
                     _uiState.value = _uiState.value.copy(availableContestSteps = allSteps)
                 }
             } catch (e: Exception) {
                 // Silently fail - contest steps are optional
-                android.util.Log.e("AreaDetailViewModel", "Failed to load contest steps", e)
+                android.util.Log.e("AreaDetailViewModel", "Failed to load contest steps for site $siteId on backend $backendId", e)
             }
         }
     }
