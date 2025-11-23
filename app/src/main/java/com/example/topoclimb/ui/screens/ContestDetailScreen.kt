@@ -1,6 +1,7 @@
 package com.example.topoclimb.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -129,38 +130,6 @@ fun ContestDetailScreen(
                                 )
                             }
                             
-                            // Category filter chips
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    // "All" chip
-                                    FilterChip(
-                                        selected = uiState.selectedCategoryId == null,
-                                        onClick = { viewModel.selectCategory(null) },
-                                        label = { Text("All") },
-                                        leadingIcon = if (uiState.selectedCategoryId == null) {
-                                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                        } else null
-                                    )
-                                    
-                                    // Category chips
-                                    uiState.categories.forEach { category ->
-                                        FilterChip(
-                                            selected = uiState.selectedCategoryId == category.id,
-                                            onClick = { viewModel.selectCategory(category.id) },
-                                            label = { Text(category.name) },
-                                            leadingIcon = if (uiState.selectedCategoryId == category.id) {
-                                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                            } else null
-                                        )
-                                    }
-                                }
-                            }
-                            
                             // Category list with registration
                             item {
                                 Card(
@@ -244,6 +213,40 @@ fun ContestDetailScreen(
                                 )
                             }
                             
+                            // Category filter chips (if categories exist)
+                            if (uiState.categories.isNotEmpty()) {
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // "All" chip
+                                        FilterChip(
+                                            selected = uiState.selectedCategoryId == null,
+                                            onClick = { viewModel.selectCategory(null) },
+                                            label = { Text("All") },
+                                            leadingIcon = if (uiState.selectedCategoryId == null) {
+                                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                            } else null
+                                        )
+                                        
+                                        // Category chips
+                                        uiState.categories.forEach { category ->
+                                            FilterChip(
+                                                selected = uiState.selectedCategoryId == category.id,
+                                                onClick = { viewModel.selectCategory(category.id) },
+                                                label = { Text(category.name) },
+                                                leadingIcon = if (uiState.selectedCategoryId == category.id) {
+                                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                                } else null
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            
                             items(uiState.globalRanking) { entry ->
                                 RankingEntryCard(entry = entry)
                             }
@@ -309,13 +312,15 @@ fun ContestStepCard(
             .clickable { onStepClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) 
-                MaterialTheme.colorScheme.primaryContainer 
-            else if (state == StepState.ENDED)
+            containerColor = if (state == StepState.ENDED)
                 MaterialTheme.colorScheme.surfaceVariant
             else 
                 MaterialTheme.colorScheme.surface
-        )
+        ),
+        border = if (isSelected)
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        else
+            null
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -417,24 +422,6 @@ fun ContestStepCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
-                if (step.routes.isNotEmpty()) {
-                    Spacer(modifier = Modifier.weight(1f))
-                    TextButton(
-                        onClick = onViewRoutesClick,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                    ) {
-                        Text(
-                            text = "View Routes",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                }
             }
         }
     }
