@@ -334,6 +334,17 @@ private fun FriendCard(
                         contentDescription = "Profile photo",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
+                        loading = {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        },
                         error = {
                             Icon(
                                 imageVector = Icons.Default.Face,

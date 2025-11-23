@@ -158,7 +158,7 @@ interface TopoClimbApiService {
     @GET("user/friends")
     suspend fun getFriends(@Header("Authorization") authToken: String): com.example.topoclimb.data.FriendsResponse
     
-    @GET("user/search")
+    @GET("users/search")
     suspend fun searchUsers(
         @Query("query") query: String,
         @Header("Authorization") authToken: String
