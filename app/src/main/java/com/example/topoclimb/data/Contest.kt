@@ -36,3 +36,20 @@ data class ContestRankEntry(
 data class ContestRankResponse(
     val rank: List<ContestRankEntry>
 )
+
+data class ContestCategory(
+    val id: Int,
+    val name: String,
+    @SerializedName("contest_id") val contestId: Int,
+    val criteria: String?,
+    @SerializedName("auto_assign") val autoAssign: Boolean,
+    @SerializedName("min_age") val minAge: Int?,
+    @SerializedName("max_age") val maxAge: Int?,
+    val gender: String?,
+    @SerializedName("created_at") val createdAt: String?,
+    @SerializedName("updated_at") val updatedAt: String?
+)
+
+data class ContestCategoriesResponse(
+    val data: List<ContestCategory>
+)

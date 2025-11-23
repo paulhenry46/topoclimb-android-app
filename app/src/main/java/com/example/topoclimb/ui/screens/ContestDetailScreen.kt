@@ -2,9 +2,11 @@ package com.example.topoclimb.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.Contest
+import com.example.topoclimb.data.ContestCategory
 import com.example.topoclimb.data.ContestRankEntry
 import com.example.topoclimb.data.ContestStep
 import com.example.topoclimb.viewmodel.ContestDetailViewModel
@@ -116,6 +119,74 @@ fun ContestDetailScreen(
                             }
                         }
                         
+                        // Categories section
+                        if (uiState.categories.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Categories",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            
+                            // Category filter chips
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // "All" chip
+                                    FilterChip(
+                                        selected = uiState.selectedCategoryId == null,
+                                        onClick = { viewModel.selectCategory(null) },
+                                        label = { Text("All") },
+                                        leadingIcon = if (uiState.selectedCategoryId == null) {
+                                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                        } else null
+                                    )
+                                    
+                                    // Category chips
+                                    uiState.categories.forEach { category ->
+                                        FilterChip(
+                                            selected = uiState.selectedCategoryId == category.id,
+                                            onClick = { viewModel.selectCategory(category.id) },
+                                            label = { Text(category.name) },
+                                            leadingIcon = if (uiState.selectedCategoryId == category.id) {
+                                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                            } else null
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Category list with registration
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                        uiState.categories.forEach { category ->
+                                            CategoryListItem(
+                                                category = category,
+                                                isRegistered = uiState.userCategoryIds.contains(category.id),
+                                                onToggleRegistration = { 
+                                                    if (!category.autoAssign) {
+                                                        viewModel.toggleCategoryRegistration(category.id)
+                                                    }
+                                                }
+                                            )
+                                            if (category != uiState.categories.last()) {
+                                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                         // Contest Steps
                         if (uiState.steps.isNotEmpty()) {
                             item {
@@ -147,8 +218,10 @@ fun ContestDetailScreen(
                         if (uiState.selectedStepId != null && uiState.selectedStepRanking.isNotEmpty()) {
                             item {
                                 val selectedStep = uiState.steps.find { it.id == uiState.selectedStepId }
+                                val selectedCategory = uiState.categories.find { it.id == uiState.selectedCategoryId }
+                                val categoryText = if (selectedCategory != null) " - ${selectedCategory.name}" else ""
                                 Text(
-                                    text = "Ranking: ${selectedStep?.name ?: "Step"}",
+                                    text = "Ranking: ${selectedStep?.name ?: "Step"}$categoryText",
                                     style = MaterialTheme.typography.titleLarge,
                                     modifier = Modifier.padding(top = 8.dp)
                                 )
@@ -162,8 +235,10 @@ fun ContestDetailScreen(
                         // Global Ranking
                         if (uiState.globalRanking.isNotEmpty() && uiState.selectedStepId == null) {
                             item {
+                                val selectedCategory = uiState.categories.find { it.id == uiState.selectedCategoryId }
+                                val categoryText = if (selectedCategory != null) " - ${selectedCategory.name}" else ""
                                 Text(
-                                    text = "Global Ranking",
+                                    text = "Global Ranking$categoryText",
                                     style = MaterialTheme.typography.titleLarge,
                                     modifier = Modifier.padding(top = 8.dp)
                                 )
@@ -442,6 +517,92 @@ fun RankingEntryCard(entry: ContestRankEntry) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun CategoryListItem(
+    category: ContestCategory,
+    isRegistered: Boolean,
+    onToggleRegistration: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !category.autoAssign) { onToggleRegistration() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = category.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                if (category.autoAssign) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = "Auto",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+            
+            if (!category.criteria.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = category.criteria,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Show gender or age restrictions
+            val restrictions = mutableListOf<String>()
+            category.gender?.takeIf { it.isNotBlank() }?.let { restrictions.add(it.replaceFirstChar { c -> c.uppercase() }) }
+            if (category.minAge != null || category.maxAge != null) {
+                val ageRange = when {
+                    category.minAge != null && category.maxAge != null -> "${category.minAge}-${category.maxAge} years"
+                    category.minAge != null -> "${category.minAge}+ years"
+                    category.maxAge != null -> "Up to ${category.maxAge} years"
+                    else -> null
+                }
+                ageRange?.let { restrictions.add(it) }
+            }
+            
+            if (restrictions.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = restrictions.joinToString(" • "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        
+        if (isRegistered) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Registered",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+        } else if (!category.autoAssign) {
+            Icon(
+                imageVector = Icons.Default.Circle,
+                contentDescription = "Not registered",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }

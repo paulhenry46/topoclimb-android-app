@@ -4,6 +4,7 @@ import com.example.topoclimb.data.ApiResponse
 import com.example.topoclimb.data.AreaResponse
 import com.example.topoclimb.data.AreasResponse
 import com.example.topoclimb.data.AuthResponse
+import com.example.topoclimb.data.ContestCategoriesResponse
 import com.example.topoclimb.data.ContestRankResponse
 import com.example.topoclimb.data.ContestStepsResponse
 import com.example.topoclimb.data.ContestsResponse
@@ -20,6 +21,7 @@ import com.example.topoclimb.data.SiteResponse
 import com.example.topoclimb.data.SitesResponse
 import com.example.topoclimb.data.UserLogsResponse
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
@@ -116,5 +118,41 @@ interface TopoClimbApiService {
         @Path("contestId") contestId: Int,
         @Path("stepId") stepId: Int
     ): ContestRankResponse
+    
+    @GET("contests/{contestId}/categories")
+    suspend fun getContestCategories(@Path("contestId") contestId: Int): ContestCategoriesResponse
+    
+    @GET("contests/{contestId}/user/categories")
+    suspend fun getUserCategories(
+        @Path("contestId") contestId: Int,
+        @Header("Authorization") authToken: String
+    ): List<Int>
+    
+    @GET("contests/{contestId}/categories/{categoryId}/rank")
+    suspend fun getCategoryRank(
+        @Path("contestId") contestId: Int,
+        @Path("categoryId") categoryId: Int
+    ): ContestRankResponse
+    
+    @GET("contests/{contestId}/categories/{categoryId}/steps/{stepId}/rank")
+    suspend fun getCategoryStepRank(
+        @Path("contestId") contestId: Int,
+        @Path("categoryId") categoryId: Int,
+        @Path("stepId") stepId: Int
+    ): ContestRankResponse
+    
+    @POST("contests/{contestId}/categories/{categoryId}/register")
+    suspend fun registerToCategory(
+        @Path("contestId") contestId: Int,
+        @Path("categoryId") categoryId: Int,
+        @Header("Authorization") authToken: String
+    ): ApiResponse<Unit>
+    
+    @DELETE("contests/{contestId}/categories/{categoryId}/unregister")
+    suspend fun unregisterFromCategory(
+        @Path("contestId") contestId: Int,
+        @Path("categoryId") categoryId: Int,
+        @Header("Authorization") authToken: String
+    ): ApiResponse<Unit>
 }
 

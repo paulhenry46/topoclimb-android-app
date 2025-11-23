@@ -968,4 +968,175 @@ class FederatedTopoClimbRepository(private val context: Context) {
             Result.failure(e)
         }
     }
+    
+    /**
+     * Get contest categories
+     */
+    suspend fun getContestCategories(backendId: String, contestId: Int): Result<List<ContestCategory>> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getContestCategories(contestId)
+                    android.util.Log.d("OfflineFirst", "Fetched ${response.data.size} categories for contest $contestId")
+                    return Result.success(response.data)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch categories for contest $contestId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getContestCategories for contest $contestId", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get user's categories for a contest
+     */
+    suspend fun getUserCategories(backendId: String, contestId: Int): Result<List<Int>> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            val authToken = backend.authToken
+                ?: return Result.failure(IllegalArgumentException("User not authenticated"))
+            
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getUserCategories(contestId, "Bearer $authToken")
+                    android.util.Log.d("OfflineFirst", "Fetched ${response.size} user categories for contest $contestId")
+                    return Result.success(response)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch user categories for contest $contestId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getUserCategories for contest $contestId", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get category ranking for a specific contest category
+     */
+    suspend fun getCategoryRanking(backendId: String, contestId: Int, categoryId: Int): Result<List<ContestRankEntry>> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getCategoryRank(contestId, categoryId)
+                    android.util.Log.d("OfflineFirst", "Fetched ${response.rank.size} rankings for category $categoryId")
+                    return Result.success(response.rank)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch category ranking for category $categoryId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getCategoryRanking for category $categoryId", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get category step ranking for a specific contest category and step
+     */
+    suspend fun getCategoryStepRanking(backendId: String, contestId: Int, categoryId: Int, stepId: Int): Result<List<ContestRankEntry>> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    val response = api.getCategoryStepRank(contestId, categoryId, stepId)
+                    android.util.Log.d("OfflineFirst", "Fetched ${response.rank.size} rankings for category $categoryId step $stepId")
+                    return Result.success(response.rank)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to fetch category step ranking", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in getCategoryStepRanking", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Register user to a contest category
+     */
+    suspend fun registerToCategory(backendId: String, contestId: Int, categoryId: Int): Result<Unit> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            val authToken = backend.authToken
+                ?: return Result.failure(IllegalArgumentException("User not authenticated"))
+            
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    api.registerToCategory(contestId, categoryId, "Bearer $authToken")
+                    android.util.Log.d("OfflineFirst", "Successfully registered to category $categoryId")
+                    return Result.success(Unit)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to register to category $categoryId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            Result.failure(IllegalStateException("No network available"))
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in registerToCategory for category $categoryId", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Unregister user from a contest category
+     */
+    suspend fun unregisterFromCategory(backendId: String, contestId: Int, categoryId: Int): Result<Unit> {
+        return try {
+            val backend = backendConfigRepository.getBackend(backendId)
+                ?: return Result.failure(IllegalArgumentException("Backend not found"))
+            
+            val authToken = backend.authToken
+                ?: return Result.failure(IllegalArgumentException("User not authenticated"))
+            
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                try {
+                    val api = retrofitManager.getApiService(backend)
+                    api.unregisterFromCategory(contestId, categoryId, "Bearer $authToken")
+                    android.util.Log.d("OfflineFirst", "Successfully unregistered from category $categoryId")
+                    return Result.success(Unit)
+                } catch (e: Exception) {
+                    android.util.Log.e("OfflineFirst", "Failed to unregister from category $categoryId", e)
+                    return Result.failure(e)
+                }
+            }
+            
+            Result.failure(IllegalStateException("No network available"))
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineFirst", "Error in unregisterFromCategory for category $categoryId", e)
+            Result.failure(e)
+        }
+    }
 }
