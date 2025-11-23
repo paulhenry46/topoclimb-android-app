@@ -47,6 +47,17 @@ fun ContestDetailScreen(
         viewModel.loadContestDetails(backendId, contestId, contest)
     }
     
+    // Snackbar host state
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Show snackbar when message is set
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearSnackbarMessage()
+        }
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -58,7 +69,8 @@ fun ContestDetailScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         when {
             uiState.isLoading -> {
@@ -194,6 +206,40 @@ fun ContestDetailScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                     modifier = Modifier.padding(top = 8.dp)
                                 )
+                            }
+                            
+                            // Category filter chips (if categories exist)
+                            if (uiState.categories.isNotEmpty()) {
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // "All" chip
+                                        FilterChip(
+                                            selected = uiState.selectedCategoryId == null,
+                                            onClick = { viewModel.selectCategory(null) },
+                                            label = { Text("All") },
+                                            leadingIcon = if (uiState.selectedCategoryId == null) {
+                                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                            } else null
+                                        )
+                                        
+                                        // Category chips
+                                        uiState.categories.forEach { category ->
+                                            FilterChip(
+                                                selected = uiState.selectedCategoryId == category.id,
+                                                onClick = { viewModel.selectCategory(category.id) },
+                                                label = { Text(category.name) },
+                                                leadingIcon = if (uiState.selectedCategoryId == category.id) {
+                                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                                } else null
+                                            )
+                                        }
+                                    }
+                                }
                             }
                             
                             items(uiState.selectedStepRanking) { entry ->

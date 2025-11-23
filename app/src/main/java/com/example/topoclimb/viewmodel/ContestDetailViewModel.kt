@@ -32,6 +32,7 @@ data class ContestDetailUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
+    val snackbarMessage: String? = null,
     val backendId: String? = null,
     val contestId: Int? = null
 )
@@ -238,11 +239,24 @@ class ContestDetailViewModel(
                         _uiState.value = _uiState.value.copy(userCategoryIds = userCategoryIds)
                     }
             }.onFailure { exception ->
-                _uiState.value = _uiState.value.copy(
-                    error = exception.message ?: "Failed to update category registration"
-                )
+                // Check if it's an authentication error
+                val message = exception.message ?: "Failed to update category registration"
+                if (message.contains("not authenticated", ignoreCase = true) || 
+                    message.contains("User not authenticated", ignoreCase = true)) {
+                    _uiState.value = _uiState.value.copy(
+                        snackbarMessage = "You must be logged in to register for categories"
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        snackbarMessage = message
+                    )
+                }
             }
         }
+    }
+    
+    fun clearSnackbarMessage() {
+        _uiState.value = _uiState.value.copy(snackbarMessage = null)
     }
     
     fun getStepState(step: ContestStep): StepState {
