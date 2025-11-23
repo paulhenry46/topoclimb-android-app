@@ -168,8 +168,8 @@ fun ContestDetailScreen(
                             }
                         }
                         
-                        // Contest Steps
-                        if (uiState.steps.isNotEmpty()) {
+                        // Contest Steps (only show if there's more than one step)
+                        if (uiState.steps.size > 1) {
                             item {
                                 Text(
                                     text = "Steps",
@@ -196,7 +196,7 @@ fun ContestDetailScreen(
                         }
                         
                         // Show step ranking if a step is selected
-                        if (uiState.selectedStepId != null && uiState.selectedStepRanking.isNotEmpty()) {
+                        if (uiState.selectedStepId != null) {
                             item {
                                 val selectedStep = uiState.steps.find { it.id == uiState.selectedStepId }
                                 val selectedCategory = uiState.categories.find { it.id == uiState.selectedCategoryId }
@@ -242,13 +242,35 @@ fun ContestDetailScreen(
                                 }
                             }
                             
-                            items(uiState.selectedStepRanking) { entry ->
-                                RankingEntryCard(entry = entry)
+                            // Show rankings or empty state
+                            if (uiState.selectedStepRanking.isNotEmpty()) {
+                                items(uiState.selectedStepRanking) { entry ->
+                                    RankingEntryCard(entry = entry)
+                                }
+                            } else {
+                                item {
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(32.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "No rankings for this category yet. Come back soon!",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                         
-                        // Global Ranking
-                        if (uiState.globalRanking.isNotEmpty() && uiState.selectedStepId == null) {
+                        // Global Ranking (shown when no step is selected)
+                        if (uiState.selectedStepId == null) {
                             item {
                                 val selectedCategory = uiState.categories.find { it.id == uiState.selectedCategoryId }
                                 val categoryText = if (selectedCategory != null) " - ${selectedCategory.name}" else ""
@@ -293,13 +315,35 @@ fun ContestDetailScreen(
                                 }
                             }
                             
-                            items(uiState.globalRanking) { entry ->
-                                RankingEntryCard(entry = entry)
+                            // Show rankings or empty state
+                            if (uiState.globalRanking.isNotEmpty()) {
+                                items(uiState.globalRanking) { entry ->
+                                    RankingEntryCard(entry = entry)
+                                }
+                            } else {
+                                item {
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(32.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "No rankings for this category yet. Come back soon!",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                         
-                        // Empty state
-                        if (uiState.steps.isEmpty() && uiState.globalRanking.isEmpty()) {
+                        // Empty state (only show if no steps, no categories, and no rankings)
+                        if (uiState.steps.isEmpty() && uiState.categories.isEmpty() && uiState.globalRanking.isEmpty()) {
                             item {
                                 Card(
                                     modifier = Modifier.fillMaxWidth()
