@@ -566,39 +566,6 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
             
-            // Friends card - only show for authenticated users
-            if (uiState.isAuthenticated) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Friends",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Button(
-                            onClick = onNavigateToFriends,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                Icons.Default.People,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Manage Friends")
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            
             // Settings card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -624,6 +591,24 @@ fun ProfileScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Manage TopoClimb Instances")
+                    }
+                    
+                    // Manage Friends button - only show for authenticated users
+                    if (uiState.isAuthenticated) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Button(
+                            onClick = onNavigateToFriends,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.People,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Manage Friends")
+                        }
                     }
                 }
             }

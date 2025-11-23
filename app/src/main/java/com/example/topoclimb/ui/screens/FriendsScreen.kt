@@ -56,6 +56,7 @@ fun FriendsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Friends") },
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -346,12 +347,18 @@ private fun FriendCard(
                             }
                         },
                         error = {
-                            Icon(
-                                imageVector = Icons.Default.Face,
-                                contentDescription = "Default profile",
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = friendWithInstance.friend.name.firstOrNull()?.uppercase() ?: "?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
                         }
                     )
                 }
