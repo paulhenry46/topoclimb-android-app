@@ -719,7 +719,8 @@ fun AreaDetailScreen(
                         showBottomSheet = false // Close the bottom sheet when logging starts
                     }
                 } else null,
-                favoriteRoutesViewModel = favoriteRoutesViewModel
+                favoriteRoutesViewModel = favoriteRoutesViewModel,
+                backendId = backendId
             )
         }
         

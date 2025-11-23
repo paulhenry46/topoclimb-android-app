@@ -84,7 +84,8 @@ fun RouteDetailBottomSheet(
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
     viewModel: RouteDetailViewModel = viewModel(),
     favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = viewModel(),
-    friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel = viewModel()
+    friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel = viewModel(),
+    backendId: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
@@ -148,7 +149,8 @@ fun RouteDetailBottomSheet(
                         gradingSystem = gradingSystem,
                         viewModel = viewModel,
                         onStartLogging = onStartLogging,
-                        friendsViewModel = friendsViewModel
+                        friendsViewModel = friendsViewModel,
+                        backendId = backendId
                     )
                 }
             }
@@ -622,7 +624,8 @@ private fun LogsTab(
     gradingSystem: GradingSystem?,
     viewModel: RouteDetailViewModel,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
-    friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel
+    friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel,
+    backendId: String?
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
     var showOnlyFriends by remember { mutableStateOf(false) }
@@ -630,17 +633,11 @@ private fun LogsTab(
     val isNetworkAvailable = NetworkUtils.isNetworkAvailable(context)
     val friendsUiState by friendsViewModel.uiState.collectAsState()
     
-    // Get the backend ID for the current route
-    val backendConfigRepository = remember { com.example.topoclimb.repository.BackendConfigRepository(context) }
-    val currentBackendId = remember(routeWithMetadata.siteId) {
-        backendConfigRepository.getDefaultBackend()?.id
-    }
-    
     // Get friend IDs for the current backend
-    val friendIds = remember(friendsUiState.friends, currentBackendId) {
-        if (currentBackendId != null) {
+    val friendIds = remember(friendsUiState.friends, backendId) {
+        if (backendId != null) {
             friendsUiState.friends
-                .filter { it.backendId == currentBackendId }
+                .filter { it.backendId == backendId }
                 .map { it.friend.id }
                 .toSet()
         } else {

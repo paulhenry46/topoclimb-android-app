@@ -1,6 +1,7 @@
 package com.example.topoclimb.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.AddFriendRequest
@@ -14,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+private const val TAG = "FriendsViewModel"
 
 /**
  * Data class to hold friend with their instance information
@@ -85,7 +88,7 @@ class FriendsViewModel(
                         }
                     } catch (e: Exception) {
                         // Log error but continue with other backends
-                        println("Error loading friends from ${backend.name}: ${e.message}")
+                        Log.e(TAG, "Error loading friends from ${backend.name}", e)
                     }
                 }
                 
@@ -141,7 +144,7 @@ class FriendsViewModel(
                         }
                     } catch (e: Exception) {
                         // Log error but continue with other backends
-                        println("Error searching users from ${backend.name}: ${e.message}")
+                        Log.e(TAG, "Error searching users from ${backend.name}", e)
                     }
                 }
                 
