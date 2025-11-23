@@ -1094,7 +1094,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
             if (NetworkUtils.isNetworkAvailable(context)) {
                 try {
                     val api = retrofitManager.getApiService(backend)
-                    api.registerToCategory(contestId, categoryId, "Bearer $authToken")
+                    val response = api.registerToCategory(contestId, categoryId, "Bearer $authToken")
                     android.util.Log.d("OfflineFirst", "Successfully registered to category $categoryId")
                     return Result.success(Unit)
                 } catch (e: Exception) {
@@ -1124,7 +1124,7 @@ class FederatedTopoClimbRepository(private val context: Context) {
             if (NetworkUtils.isNetworkAvailable(context)) {
                 try {
                     val api = retrofitManager.getApiService(backend)
-                    api.unregisterFromCategory(contestId, categoryId, "Bearer $authToken")
+                    val response = api.unregisterFromCategory(contestId, categoryId, "Bearer $authToken")
                     android.util.Log.d("OfflineFirst", "Successfully unregistered from category $categoryId")
                     return Result.success(Unit)
                 } catch (e: Exception) {
