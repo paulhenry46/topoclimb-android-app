@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -82,7 +83,8 @@ fun RouteDetailBottomSheet(
     gradingSystem: GradingSystem? = null,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
     viewModel: RouteDetailViewModel = viewModel(),
-    favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = viewModel()
+    favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = viewModel(),
+    friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
@@ -145,7 +147,8 @@ fun RouteDetailBottomSheet(
                         routeWithMetadata = routeWithMetadata,
                         gradingSystem = gradingSystem,
                         viewModel = viewModel,
-                        onStartLogging = onStartLogging
+                        onStartLogging = onStartLogging,
+                        friendsViewModel = friendsViewModel
                     )
                 }
             }
@@ -618,19 +621,46 @@ private fun LogsTab(
     routeWithMetadata: RouteWithMetadata,
     gradingSystem: GradingSystem?,
     viewModel: RouteDetailViewModel,
-    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null
+    onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
+    friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
+    var showOnlyFriends by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val isNetworkAvailable = NetworkUtils.isNetworkAvailable(context)
+    val friendsUiState by friendsViewModel.uiState.collectAsState()
     
-    // Filter logs based on the toggle state
-    val filteredLogs = remember(uiState.logs, showOnlyWithComments) {
-        if (showOnlyWithComments) {
-            uiState.logs.filter { !it.comments.isNullOrBlank() }
+    // Get the backend ID for the current route
+    val backendConfigRepository = remember { com.example.topoclimb.repository.BackendConfigRepository(context) }
+    val currentBackendId = remember(routeWithMetadata.siteId) {
+        backendConfigRepository.getDefaultBackend()?.id
+    }
+    
+    // Get friend IDs for the current backend
+    val friendIds = remember(friendsUiState.friends, currentBackendId) {
+        if (currentBackendId != null) {
+            friendsUiState.friends
+                .filter { it.backendId == currentBackendId }
+                .map { it.friend.id }
+                .toSet()
         } else {
-            uiState.logs
+            emptySet()
         }
+    }
+    
+    // Filter logs based on the toggle states
+    val filteredLogs = remember(uiState.logs, showOnlyWithComments, showOnlyFriends, friendIds) {
+        var logs = uiState.logs
+        
+        if (showOnlyWithComments) {
+            logs = logs.filter { !it.comments.isNullOrBlank() }
+        }
+        
+        if (showOnlyFriends && friendIds.isNotEmpty()) {
+            logs = logs.filter { log -> friendIds.contains(log.user.id) }
+        }
+        
+        logs
     }
     
     Box(
@@ -646,31 +676,26 @@ private fun LogsTab(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Filter Logs",
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (showOnlyWithComments) "Showing logs with comments" else "Showing all logs",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = "Filter Logs",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                     
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // With Comments toggle
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "With Comments",
@@ -682,6 +707,41 @@ private fun LogsTab(
                             onCheckedChange = { showOnlyWithComments = it }
                         )
                     }
+                    
+                    // Friends Only toggle - only show if user has friends
+                    if (friendIds.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Friends Only (${friendIds.size})",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Switch(
+                                checked = showOnlyFriends,
+                                onCheckedChange = { showOnlyFriends = it }
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Status text
+                    Text(
+                        text = when {
+                            showOnlyFriends && showOnlyWithComments -> "Showing logs from friends with comments"
+                            showOnlyFriends -> "Showing logs from friends"
+                            showOnlyWithComments -> "Showing logs with comments"
+                            else -> "Showing all logs"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
             
@@ -750,6 +810,33 @@ private fun LogsTab(
                                 )
                                 Text(
                                     text = "No logs with comments for now. Be the first to comment ! That always makes the route openers happy!",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                    filteredLogs.isEmpty() && showOnlyFriends && uiState.logs.isNotEmpty() -> {
+                        // No logs from friends but there are logs
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.People,
+                                    contentDescription = "No friends logs",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(120.dp)
+                                )
+                                Text(
+                                    text = "No logs from friends yet. Your friends haven't logged this route.",
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

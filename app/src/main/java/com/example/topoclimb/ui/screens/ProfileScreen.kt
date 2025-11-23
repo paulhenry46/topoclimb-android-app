@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.runtime.*
@@ -42,6 +43,7 @@ import com.example.topoclimb.viewmodel.ProfileViewModel
 fun ProfileScreen(
     onManageBackendsClick: () -> Unit = {},
     onNavigateToQRCode: (String) -> Unit = {},
+    onNavigateToFriends: () -> Unit = {},
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -557,6 +559,39 @@ fun ProfileScreen(
                             ) {
                                 Text(backend.name)
                             }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            // Friends card - only show for authenticated users
+            if (uiState.isAuthenticated) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Friends",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Button(
+                            onClick = onNavigateToFriends,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.People,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Manage Friends")
                         }
                     }
                 }

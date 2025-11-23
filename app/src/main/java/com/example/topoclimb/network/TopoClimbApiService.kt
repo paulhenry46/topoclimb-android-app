@@ -154,5 +154,26 @@ interface TopoClimbApiService {
         @Path("categoryId") categoryId: Int,
         @Header("Authorization") authToken: String
     ): ApiResponse<Unit>
+    
+    @GET("user/friends")
+    suspend fun getFriends(@Header("Authorization") authToken: String): com.example.topoclimb.data.FriendsResponse
+    
+    @GET("user/search")
+    suspend fun searchUsers(
+        @Query("query") query: String,
+        @Header("Authorization") authToken: String
+    ): com.example.topoclimb.data.UserSearchResponse
+    
+    @POST("user/friends")
+    suspend fun addFriend(
+        @Body request: com.example.topoclimb.data.AddFriendRequest,
+        @Header("Authorization") authToken: String
+    ): com.example.topoclimb.data.AddFriendResponse
+    
+    @DELETE("user/friends/{friendId}")
+    suspend fun removeFriend(
+        @Path("friendId") friendId: Int,
+        @Header("Authorization") authToken: String
+    ): com.example.topoclimb.data.RemoveFriendResponse
 }
 

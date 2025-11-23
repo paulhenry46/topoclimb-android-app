@@ -207,6 +207,9 @@ fun NavigationGraph(
                 },
                 onNavigateToQRCode = { backendId ->
                     navController.navigate("qrcode/$backendId")
+                },
+                onNavigateToFriends = {
+                    navController.navigate("friends")
                 }
             )
         }
@@ -433,6 +436,14 @@ fun NavigationGraph(
                     }
                 }
             }
+        }
+        
+        composable("friends") {
+            com.example.topoclimb.ui.screens.FriendsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }
