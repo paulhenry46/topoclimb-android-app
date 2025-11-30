@@ -45,15 +45,15 @@ fun SitesScreen(
     var searchQuery by remember { mutableStateOf("") }
     
     // Filter sites based on favorite flag and search query
-    val displaySites = remember(uiState.sites, uiState.favoriteSiteId, favoriteOnly, searchQuery, showSearchBar) {
+    val displaySites = remember(uiState.sites, uiState.favoriteSiteId, favoriteOnly, searchQuery) {
         var sites = if (favoriteOnly) {
             uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
         } else {
             uiState.sites
         }
         
-        // Apply search filter only when search bar is visible and query is not empty
-        if (showSearchBar && searchQuery.isNotEmpty()) {
+        // Apply search filter when query is not empty
+        if (searchQuery.isNotEmpty()) {
             sites = sites.filter { federatedSite ->
                 federatedSite.data.name.contains(searchQuery, ignoreCase = true) ||
                 federatedSite.data.description?.contains(searchQuery, ignoreCase = true) == true ||

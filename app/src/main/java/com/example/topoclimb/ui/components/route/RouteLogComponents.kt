@@ -111,9 +111,7 @@ fun LogCard(
             .combinedClickable(
                 onClick = { isExpanded = !isExpanded },
                 onLongClick = {
-                    if (onLongPressUser != null) {
-                        showAddFriendDialog = true
-                    }
+                    onLongPressUser?.let { showAddFriendDialog = true }
                 }
             )
             .padding(vertical = 8.dp),

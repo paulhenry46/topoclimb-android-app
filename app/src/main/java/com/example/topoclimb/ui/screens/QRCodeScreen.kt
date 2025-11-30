@@ -5,6 +5,7 @@ import android.net.Uri
 import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -105,7 +106,7 @@ fun QRCodeScreen(
                 Box(
                     modifier = Modifier
                         .size(64.dp)
-                        .clip(RoundedCornerShape(50))
+                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
