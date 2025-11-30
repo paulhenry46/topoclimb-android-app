@@ -402,6 +402,7 @@ fun NavigationGraph(
                     userGender = backend.user.gender,
                     userBirthDate = backend.user.birthDate,
                     instanceName = backend.name,
+                    instanceUrl = backend.baseUrl,
                     qrCodeUrl = uiState.qrCodeUrl,
                     isLoading = uiState.isLoadingQRCode,
                     error = uiState.qrCodeError,

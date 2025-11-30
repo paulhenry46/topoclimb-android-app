@@ -880,7 +880,15 @@ private fun LogsTab(
                                 LogCard(
                                     log = log,
                                     routeGrade = routeWithMetadata.grade,
-                                    gradingSystem = gradingSystem
+                                    gradingSystem = gradingSystem,
+                                    onLongPressUser = if (backendId != null && friendsUiState.isAuthenticated) {
+                                        { userId, _ ->
+                                            // Add as friend only if not already a friend
+                                            if (!friendIds.contains(userId)) {
+                                                friendsViewModel.addFriend(userId, backendId)
+                                            }
+                                        }
+                                    } else null
                                 )
                             }
                         }

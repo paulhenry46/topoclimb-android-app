@@ -1,18 +1,22 @@
 package com.example.topoclimb.ui.screens
 
 import android.app.Activity
+import android.net.Uri
 import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
@@ -28,6 +32,7 @@ fun QRCodeScreen(
     userGender: String?,
     userBirthDate: String?,
     instanceName: String,
+    instanceUrl: String,
     qrCodeUrl: String?,
     isLoading: Boolean,
     error: String?,
@@ -53,6 +58,20 @@ fun QRCodeScreen(
         }
     }
     
+    // Calculate age and format birthday info
+    val age = userBirthDate?.let { calculateAge(it) }
+    val formattedBirthday = userBirthDate?.let { formatBirthday(it) }
+    
+    // Extract domain name from URL
+    val domainName = remember(instanceUrl) {
+        try {
+            val uri = Uri.parse(instanceUrl)
+            uri.host ?: instanceUrl
+        } catch (e: Exception) {
+            instanceUrl
+        }
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -74,54 +93,76 @@ fun QRCodeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top section with user info
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 16.dp)
+            // Top section with user info - avatar circle next to name and info
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = userName,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // User info
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                // Circle avatar with first letter of name
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
                 ) {
-                    userGender?.let { gender ->
-                        if (gender.isNotEmpty()) {
+                    Text(
+                        text = userName.firstOrNull()?.uppercase() ?: "?",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                // Name and info column
+                Column {
+                    Text(
+                        text = userName,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    // Birthday and gender info
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Birthday with age
+                        if (formattedBirthday != null && age != null) {
                             Text(
-                                text = gender.replaceFirstChar { char -> 
-                                    if (char.isLowerCase()) char.titlecase() else char.toString() 
-                                },
+                                text = "$formattedBirthday ($age)",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                    
-                    userBirthDate?.let { birthDate ->
-                        val age = calculateAge(birthDate)
-                        age?.let {
+                        
+                        // Separator if both exist
+                        if (formattedBirthday != null && age != null && userGender?.isNotEmpty() == true) {
                             Text(
-                                text = "$it years old",
+                                text = "•",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                        
+                        // Gender
+                        userGender?.let { gender ->
+                            if (gender.isNotEmpty()) {
+                                Text(
+                                    text = gender.replaceFirstChar { char -> 
+                                        if (char.isLowerCase()) char.titlecase() else char.toString() 
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Text(
-                    text = instanceName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
             
             // Center section with QR code
@@ -141,25 +182,49 @@ fun QRCodeScreen(
                         )
                     }
                     qrCodeUrl != null -> {
-                        // Box with white background for QR code
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.8f)
-                                .aspectRatio(1f)
-                                .background(Color.White)
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
+                        // Column for QR code and backend info
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            val context = LocalContext.current
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(qrCodeUrl)
-                                    .decoderFactory(SvgDecoder.Factory())
-                                    .build(),
-                                contentDescription = "User QR Code",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
-                            )
+                            // Box with white background and rounded corners for QR code
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.8f)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color.White)
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val context = LocalContext.current
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(qrCodeUrl)
+                                        .decoderFactory(SvgDecoder.Factory())
+                                        .build(),
+                                    contentDescription = "User QR Code",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // Backend name and URL below QR code
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = instanceName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = domainName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                     else -> {
@@ -194,6 +259,21 @@ fun calculateAge(birthDate: String): Int? {
         val birthLocalDate = LocalDate.parse(birthDate.substring(0, 10), formatter)
         val now = LocalDate.now()
         Period.between(birthLocalDate, now).years
+    } catch (e: Exception) {
+        null
+    }
+}
+
+/**
+ * Format birth date string to a readable format (e.g., "Jan 15, 1990")
+ */
+fun formatBirthday(birthDate: String): String? {
+    return try {
+        if (birthDate.length < 10) return null
+        val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val outputFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+        val birthLocalDate = LocalDate.parse(birthDate.substring(0, 10), inputFormatter)
+        birthLocalDate.format(outputFormatter)
     } catch (e: Exception) {
         null
     }
