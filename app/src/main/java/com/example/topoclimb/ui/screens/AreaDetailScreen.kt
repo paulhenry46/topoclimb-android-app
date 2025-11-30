@@ -57,7 +57,8 @@ fun AreaDetailScreen(
     onBackClick: () -> Unit,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
     viewModel: AreaDetailViewModel = viewModel(),
-    favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
@@ -720,6 +721,7 @@ fun AreaDetailScreen(
                     }
                 } else null,
                 favoriteRoutesViewModel = favoriteRoutesViewModel,
+                friendsViewModel = friendsViewModel,
                 backendId = backendId
             )
         }
