@@ -30,7 +30,8 @@ import kotlinx.coroutines.launch
 fun FavoritesScreen(
     onSiteClick: (String, Int) -> Unit,
     viewModel: SitesViewModel = viewModel(),
-    favoriteRoutesViewModel: FavoriteRoutesViewModel = viewModel()
+    favoriteRoutesViewModel: FavoriteRoutesViewModel = viewModel(),
+    friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
@@ -139,7 +140,8 @@ fun FavoritesScreen(
             onDismiss = { showRouteBottomSheet = false },
             gradingSystem = gradingSystem,
             onStartLogging = null, // Can't log routes from favorites - need area context
-            favoriteRoutesViewModel = favoriteRoutesViewModel
+            favoriteRoutesViewModel = favoriteRoutesViewModel,
+            friendsViewModel = friendsViewModel
         )
     }
 }

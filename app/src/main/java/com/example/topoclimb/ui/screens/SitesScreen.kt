@@ -1,5 +1,10 @@
 package com.example.topoclimb.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,13 +12,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,99 +41,192 @@ fun SitesScreen(
     onManageInstancesClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showSearchBar by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     
-    // Filter sites based on favorite flag
-    val displaySites = if (favoriteOnly) {
-        uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
-    } else {
-        uiState.sites
+    // Filter sites based on favorite flag and search query
+    val displaySites = remember(uiState.sites, uiState.favoriteSiteId, favoriteOnly, searchQuery) {
+        var sites = if (favoriteOnly) {
+            uiState.sites.filter { it.data.id == uiState.favoriteSiteId }
+        } else {
+            uiState.sites
+        }
+        
+        // Apply search filter when query is not empty
+        if (searchQuery.isNotEmpty()) {
+            sites = sites.filter { federatedSite ->
+                federatedSite.data.name.contains(searchQuery, ignoreCase = true) ||
+                federatedSite.data.description?.contains(searchQuery, ignoreCase = true) == true ||
+                federatedSite.backend.backendName.contains(searchQuery, ignoreCase = true)
+            }
+        }
+        
+        sites
     }
     
     Scaffold(
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") }
-            )
-        }
-    ) { padding ->
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            uiState.error != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Error: ${uiState.error}",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadSites() }) {
-                            Text("Retry")
+                title = { Text(if (favoriteOnly) "Favorite Site" else "Climbing Sites") },
+                actions = {
+                    // Only show search icon on all sites screen (not favorites)
+                    if (!favoriteOnly) {
+                        IconButton(
+                            onClick = {
+                                showSearchBar = !showSearchBar
+                                if (!showSearchBar) {
+                                    searchQuery = "" // Clear search when hiding
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = if (showSearchBar) "Close search" else "Search",
+                                tint = if (showSearchBar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 }
-            }
-            else -> {
-                PullToRefreshBox(
-                    isRefreshing = uiState.isRefreshing,
-                    onRefresh = { viewModel.refreshSites() },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Animated search bar
+            AnimatedVisibility(
+                visible = showSearchBar,
+                enter = slideInVertically(initialOffsetY = { -it }) + expandVertically(),
+                exit = slideOutVertically(targetOffsetY = { -it }) + shrinkVertically()
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (displaySites.isEmpty() && favoriteOnly) {
-                            item {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(32.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "No favorite site selected. Tap the star on a site card to set it as favorite.",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        placeholder = { Text("Search sites...") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search"
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear"
+                                    )
                                 }
                             }
-                        } else {
-                            items(displaySites) { federatedSite ->
-                                SiteItem(
-                                    site = federatedSite.data,
-                                    backendName = federatedSite.backend.backendName,
-                                    onClick = { onSiteClick(federatedSite.backend.backendId, federatedSite.data.id) },
-                                    isFavorite = federatedSite.data.id == uiState.favoriteSiteId,
-                                    onFavoriteClick = { viewModel.toggleFavorite(federatedSite.data.id) }
-                                )
+                        },
+                        singleLine = true
+                    )
+                }
+            }
+            
+            // Content
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                uiState.error != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "Error: ${uiState.error}",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { viewModel.loadSites() }) {
+                                Text("Retry")
                             }
-                            
-                            // Add "Site not found" card only for all sites page (not favorites)
-                            if (!favoriteOnly) {
+                        }
+                    }
+                }
+                else -> {
+                    PullToRefreshBox(
+                        isRefreshing = uiState.isRefreshing,
+                        onRefresh = { viewModel.refreshSites() },
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Show "no results" message when searching with no matches
+                            if (displaySites.isEmpty() && showSearchBar && searchQuery.isNotEmpty()) {
                                 item {
-                                    SiteNotFoundCard(onManageInstancesClick = onManageInstancesClick)
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(32.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "No sites found matching \"$searchQuery\"",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            } else if (displaySites.isEmpty() && favoriteOnly) {
+                                item {
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(32.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "No favorite site selected. Tap the star on a site card to set it as favorite.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                items(displaySites) { federatedSite ->
+                                    SiteItem(
+                                        site = federatedSite.data,
+                                        backendName = federatedSite.backend.backendName,
+                                        onClick = { onSiteClick(federatedSite.backend.backendId, federatedSite.data.id) },
+                                        isFavorite = federatedSite.data.id == uiState.favoriteSiteId,
+                                        onFavoriteClick = { viewModel.toggleFavorite(federatedSite.data.id) }
+                                    )
+                                }
+                                
+                                // Add "Site not found" card only for all sites page (not favorites)
+                                if (!favoriteOnly) {
+                                    item {
+                                        SiteNotFoundCard(onManageInstancesClick = onManageInstancesClick)
+                                    }
                                 }
                             }
                         }

@@ -633,6 +633,19 @@ private fun LogsTab(
     val isNetworkAvailable = NetworkUtils.isNetworkAvailable(context)
     val friendsUiState by friendsViewModel.uiState.collectAsState()
     
+    // Show success/error messages for friend operations using Toast
+    LaunchedEffect(friendsUiState.successMessage, friendsUiState.error) {
+        friendsUiState.successMessage?.let { message ->
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+        }
+        friendsUiState.error?.let { error ->
+            android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_LONG).show()
+        }
+        if (friendsUiState.successMessage != null || friendsUiState.error != null) {
+            friendsViewModel.clearMessages()
+        }
+    }
+    
     // Get friend IDs for the current backend
     val friendIds = remember(friendsUiState.friends, backendId) {
         if (backendId != null) {
@@ -880,7 +893,15 @@ private fun LogsTab(
                                 LogCard(
                                     log = log,
                                     routeGrade = routeWithMetadata.grade,
-                                    gradingSystem = gradingSystem
+                                    gradingSystem = gradingSystem,
+                                    onLongPressUser = if (backendId != null && friendsUiState.isAuthenticated) {
+                                        { userId, _ ->
+                                            // Add as friend only if not already a friend
+                                            if (!friendIds.contains(userId)) {
+                                                friendsViewModel.addFriend(userId, backendId)
+                                            }
+                                        }
+                                    } else null
                                 )
                             }
                         }

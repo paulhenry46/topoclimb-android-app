@@ -110,7 +110,8 @@ fun NavigationGraph(
                     // Navigate to step 1 of route logging
                     navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step1/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}")
                 },
-                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry)
+                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry),
+                friendsViewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         
@@ -196,7 +197,8 @@ fun NavigationGraph(
                     navController.navigate("site/$backendId/$siteId")
                 },
                 viewModel = viewModel(viewModelStoreOwner = parentEntry),
-                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry)
+                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry),
+                friendsViewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
         
@@ -402,6 +404,7 @@ fun NavigationGraph(
                     userGender = backend.user.gender,
                     userBirthDate = backend.user.birthDate,
                     instanceName = backend.name,
+                    instanceUrl = backend.baseUrl,
                     qrCodeUrl = uiState.qrCodeUrl,
                     isLoading = uiState.isLoadingQRCode,
                     error = uiState.qrCodeError,
@@ -438,11 +441,15 @@ fun NavigationGraph(
             }
         }
         
-        composable("friends") {
+        composable("friends") { backStackEntry ->
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(navController.graph.findStartDestination().id)
+            }
             com.example.topoclimb.ui.screens.FriendsScreen(
                 onBackClick = {
                     navController.popBackStack()
-                }
+                },
+                viewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
         }
     }

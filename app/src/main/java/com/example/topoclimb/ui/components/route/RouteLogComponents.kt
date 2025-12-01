@@ -7,9 +7,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -43,14 +45,17 @@ private enum class GradeComparison {
 /**
  * Card component displaying a single log entry with expandable details
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LogCard(
     log: Log,
     routeGrade: Int?,
     gradingSystem: GradingSystem?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLongPressUser: ((userId: Int, userName: String) -> Unit)? = null
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    var showAddFriendDialog by remember { mutableStateOf(false) }
     
     // Calculate badge data
     val typeIcon = when (log.type?.lowercase()) {
@@ -76,10 +81,39 @@ fun LogCard(
         }
     }
     
+    // Dialog for confirming add friend
+    if (showAddFriendDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddFriendDialog = false },
+            title = { Text("Add Friend") },
+            text = { Text("Add ${log.userName} as a friend?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onLongPressUser?.invoke(log.user.id, log.userName)
+                        showAddFriendDialog = false
+                    }
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddFriendDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickableWithoutRipple { isExpanded = !isExpanded }
+            .combinedClickable(
+                onClick = { isExpanded = !isExpanded },
+                onLongClick = {
+                    onLongPressUser?.let { showAddFriendDialog = true }
+                }
+            )
             .padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
