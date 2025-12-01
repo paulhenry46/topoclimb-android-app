@@ -127,8 +127,11 @@ class UserProfileViewModel(
                 val routeLogsResponse = apiService.getUserRoutes(userId)
                 val routeLogs = routeLogsResponse.data
                 
-                // Fetch route details for each log
-                val routeLogsWithDetails = routeLogs.map { log ->
+                // Note: Fetching route details sequentially is not optimal for large lists.
+                // A future optimization could batch requests or use an API endpoint that returns
+                // route details alongside logs. For now, we limit to recent logs and handle
+                // failures gracefully.
+                val routeLogsWithDetails = routeLogs.take(20).map { log ->
                     try {
                         val routeResponse = apiService.getRoute(log.routeId)
                         RouteLogWithDetails(log = log, route = routeResponse.data)

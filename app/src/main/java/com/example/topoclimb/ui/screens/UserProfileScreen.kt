@@ -197,7 +197,10 @@ fun UserProfileScreen(
                             items(uiState.routeLogs) { routeLogWithDetails ->
                                 UserRouteLogCard(
                                     routeLogWithDetails = routeLogWithDetails,
-                                    gradingSystem = null // TODO: Pass grading system if available
+                                    // Note: Grading system is null here because user routes can be from
+                                    // multiple sites with different grading systems. The grade points
+                                    // are displayed as-is using the default conversion.
+                                    gradingSystem = null
                                 )
                             }
                         }
@@ -400,14 +403,20 @@ fun UserRouteLogCard(
     
     val routeColor = parseRouteColor(route?.color)
     
-    // Parse date
+    // Parse date - handles various timestamp formats from API
     val formattedDate = log.createdAt?.let { dateString ->
         try {
-            val inputFormatter = DateTimeFormatter.ISO_DATE_TIME
+            // Handle different timestamp formats
+            val cleanedDate = dateString
+                .replace(Regex("\\.\\d+Z?$"), "") // Remove microseconds and Z
+                .replace("Z", "") // Remove trailing Z if present
+            
+            val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
             val outputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-            val dateTime = LocalDateTime.parse(dateString.replace(".000000Z", ""))
+            val dateTime = LocalDateTime.parse(cleanedDate, inputFormatter)
             dateTime.format(outputFormatter)
         } catch (e: Exception) {
+            // Fallback to just taking the date portion
             dateString.take(10)
         }
     } ?: ""
