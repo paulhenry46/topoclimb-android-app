@@ -110,6 +110,9 @@ fun NavigationGraph(
                     // Navigate to step 1 of route logging
                     navController.navigate("site/$backendId/$siteId/area/$areaId/logRoute/step1/$routeId/$routeName/${routeGrade ?: 0}/${areaType ?: ""}")
                 },
+                onUserClick = { userId, userBackendId ->
+                    navController.navigate("userProfile/$userBackendId/$userId")
+                },
                 favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry),
                 friendsViewModel = viewModel(viewModelStoreOwner = parentEntry)
             )
@@ -449,7 +452,33 @@ fun NavigationGraph(
                 onBackClick = {
                     navController.popBackStack()
                 },
+                onUserClick = { userId, backendId ->
+                    navController.navigate("userProfile/$backendId/$userId")
+                },
                 viewModel = viewModel(viewModelStoreOwner = parentEntry)
+            )
+        }
+        
+        composable(
+            route = "userProfile/{backendId}/{userId}",
+            arguments = listOf(
+                navArgument("backendId") {
+                    type = NavType.StringType
+                },
+                navArgument("userId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            val backendId = backStackEntry.arguments?.getString("backendId") ?: return@composable
+            val userId = backStackEntry.arguments?.getInt("userId") ?: return@composable
+            
+            com.example.topoclimb.ui.screens.UserProfileScreen(
+                userId = userId,
+                backendId = backendId,
+                onBackClick = {
+                    navController.popBackStack()
+                }
             )
         }
     }

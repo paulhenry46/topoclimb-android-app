@@ -1,6 +1,7 @@
 package com.example.topoclimb.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +32,7 @@ import com.example.topoclimb.viewmodel.FriendsViewModel
 @Composable
 fun FriendsScreen(
     onBackClick: () -> Unit = {},
+    onUserClick: (Int, String) -> Unit = { _, _ -> },
     viewModel: FriendsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -90,7 +92,8 @@ fun FriendsScreen(
                         isLoading = uiState.isLoadingSearch,
                         onAddFriend = { friendId, backendId ->
                             viewModel.addFriend(friendId, backendId)
-                        }
+                        },
+                        onUserClick = onUserClick
                     )
                 }
                 else -> {
@@ -100,7 +103,8 @@ fun FriendsScreen(
                         isLoading = uiState.isLoadingFriends,
                         onRemoveFriend = { friendId, backendId ->
                             viewModel.removeFriend(friendId, backendId)
-                        }
+                        },
+                        onUserClick = onUserClick
                     )
                 }
             }
@@ -155,7 +159,8 @@ private fun SearchBar(
 private fun FriendsListSection(
     friends: List<FriendWithInstance>,
     isLoading: Boolean,
-    onRemoveFriend: (Int, String) -> Unit
+    onRemoveFriend: (Int, String) -> Unit,
+    onUserClick: (Int, String) -> Unit = { _, _ -> }
 ) {
     when {
         isLoading -> {
@@ -213,6 +218,9 @@ private fun FriendsListSection(
                         showRemoveButton = true,
                         onRemoveFriend = {
                             onRemoveFriend(friendWithInstance.friend.id, friendWithInstance.backendId)
+                        },
+                        onClick = {
+                            onUserClick(friendWithInstance.friend.id, friendWithInstance.backendId)
                         }
                     )
                 }
@@ -226,7 +234,8 @@ private fun SearchResultsSection(
     searchResults: List<FriendWithInstance>,
     friends: List<FriendWithInstance>,
     isLoading: Boolean,
-    onAddFriend: (Int, String) -> Unit
+    onAddFriend: (Int, String) -> Unit,
+    onUserClick: (Int, String) -> Unit = { _, _ -> }
 ) {
     when {
         isLoading -> {
@@ -290,6 +299,9 @@ private fun SearchResultsSection(
                         showAddButton = !isAlreadyFriend,
                         onAddFriend = {
                             onAddFriend(friendWithInstance.friend.id, friendWithInstance.backendId)
+                        },
+                        onClick = {
+                            onUserClick(friendWithInstance.friend.id, friendWithInstance.backendId)
                         }
                     )
                 }
@@ -304,10 +316,13 @@ private fun FriendCard(
     showAddButton: Boolean = false,
     showRemoveButton: Boolean = false,
     onAddFriend: () -> Unit = {},
-    onRemoveFriend: () -> Unit = {}
+    onRemoveFriend: () -> Unit = {},
+    onClick: () -> Unit = {}
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
