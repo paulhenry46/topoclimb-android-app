@@ -10,14 +10,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -233,7 +232,7 @@ private fun ProfileHeader(
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center
         ) {
             SubcomposeAsyncImage(
@@ -242,11 +241,11 @@ private fun ProfileHeader(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 error = {
-                    Icon(
-                        imageVector = Icons.Default.Face,
-                        contentDescription = "Default profile",
-                        modifier = Modifier.size(60.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    // Show first letter of name on primary background
+                    Text(
+                        text = name.firstOrNull()?.uppercase() ?: "?",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             )
@@ -443,35 +442,42 @@ fun UserRouteLogCard(
         bottomStart = 0.dp
     )
     
+    // Get type display name
+    val typeDisplayName = when (log.type?.lowercase()) {
+        "flash" -> "Flash"
+        "work" -> "After-work"
+        "view" -> "View"
+        else -> log.type?.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } ?: ""
+    }
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Type icon column with date and felt grade
-        Column(
-            modifier = Modifier.width(60.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        // Type icon
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(typeIconShape)
+                .background(getTypeColor(log.type)),
+            contentAlignment = Alignment.Center
         ) {
-            // Type icon
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(typeIconShape)
-                    .background(getTypeColor(log.type)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = getTypeIcon(log.type),
-                    contentDescription = log.type,
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            
+            Icon(
+                imageVector = getTypeIcon(log.type),
+                contentDescription = log.type,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        // Date and Type name column (almost glued to icon)
+        Column(
+            modifier = Modifier.width(80.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
             // Date
             Text(
                 text = formattedDate,
@@ -479,9 +485,9 @@ fun UserRouteLogCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            // Felt grade (cotation felt)
+            // Type name
             Text(
-                text = gradeString,
+                text = typeDisplayName,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -489,56 +495,20 @@ fun UserRouteLogCard(
             )
         }
         
-        // Route thumbnail
-        AsyncImage(
-            model = route?.thumbnail,
-            contentDescription = "Route thumbnail",
-            modifier = Modifier
-                .size(60.dp)
-                .border(
-                    width = 3.dp,
-                    color = routeColor,
-                    shape = thumbnailShape
-                )
-                .clip(thumbnailShape),
-            contentScale = ContentScale.Crop
-        )
+        Spacer(modifier = Modifier.weight(1f))
         
-        // Route grade badge
-        route?.grade?.let { routeGrade ->
-            val routeGradeString = GradeUtils.pointsToGrade(routeGrade, gradingSystem) ?: routeGrade.toString()
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .background(
-                        color = routeColor,
-                        shape = gradeBadgeShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = routeGradeString,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    ),
-                    color = Color.White
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.width(4.dp))
-        
-        // Route name
+        // Route name and climbing style column (right aligned)
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.width(100.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
                 text = route?.name ?: "Unknown Route",
-                style = MaterialTheme.typography.titleMedium.copy(
+                style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold
-                )
+                ),
+                maxLines = 1
             )
             
             // Show way (climbing style)
@@ -552,6 +522,44 @@ fun UserRouteLogCard(
                 )
             }
         }
+        
+        // Route thumbnail (glued to grade)
+        AsyncImage(
+            model = route?.thumbnail,
+            contentDescription = "Route thumbnail",
+            modifier = Modifier
+                .size(50.dp)
+                .border(
+                    width = 2.dp,
+                    color = routeColor,
+                    shape = thumbnailShape
+                )
+                .clip(thumbnailShape),
+            contentScale = ContentScale.Crop
+        )
+        
+        // Route grade badge (glued to thumbnail)
+        route?.grade?.let { routeGrade ->
+            val routeGradeString = GradeUtils.pointsToGrade(routeGrade, gradingSystem) ?: routeGrade.toString()
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(
+                        color = routeColor,
+                        shape = gradeBadgeShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = routeGradeString,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    ),
+                    color = Color.White
+                )
+            }
+        }
     }
 }
 
@@ -561,9 +569,9 @@ fun UserRouteLogCard(
 @Composable
 private fun getTypeIcon(type: String?) = when (type?.lowercase()) {
     "flash" -> Icons.Default.FlashOn
-    "work" -> Icons.Default.Work
+    "work" -> Icons.Default.Check
     "view" -> Icons.Default.Visibility
-    else -> Icons.Default.Work
+    else -> Icons.Default.Check
 }
 
 /**
