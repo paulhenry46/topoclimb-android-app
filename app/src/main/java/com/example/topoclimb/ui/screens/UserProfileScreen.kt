@@ -1,12 +1,14 @@
 package com.example.topoclimb.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -545,11 +547,17 @@ fun UserRouteLogCard(
         Row(
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Route thumbnail (no radius, no border)
+            // Route thumbnail (with border, no radius)
             AsyncImage(
                 model = route?.thumbnail,
                 contentDescription = "Route thumbnail",
-                modifier = Modifier.size(50.dp),
+                modifier = Modifier
+                    .size(50.dp)
+                    .border(
+                        width = 2.dp,
+                        color = routeColor,
+                        shape = RectangleShape
+                    ),
                 contentScale = ContentScale.Crop
             )
             
