@@ -1,7 +1,7 @@
 package com.example.topoclimb.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,12 +25,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.example.topoclimb.data.GradingSystem
+import com.example.topoclimb.data.Route
+import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.ui.components.profile.RoutesByGradeChart
 import com.example.topoclimb.ui.components.profile.StatsItem
 import com.example.topoclimb.ui.components.profile.parseRoutesbyGrade
@@ -51,6 +54,10 @@ fun UserProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    
+    // State for route bottom sheet
+    var showRouteBottomSheet by remember { mutableStateOf(false) }
+    var selectedRouteWithMetadata by remember { mutableStateOf<RouteWithMetadata?>(null) }
     
     // Load user profile when screen is displayed
     LaunchedEffect(userId, backendId) {
@@ -196,10 +203,14 @@ fun UserProfileScreen(
                             items(uiState.routeLogs) { routeLogWithDetails ->
                                 UserRouteLogCard(
                                     routeLogWithDetails = routeLogWithDetails,
-                                    // Note: Grading system is null here because user routes can be from
-                                    // multiple sites with different grading systems. The grade points
-                                    // are displayed as-is using the default conversion.
-                                    gradingSystem = null
+                                    gradingSystem = null,
+                                    onClick = {
+                                        // Create RouteWithMetadata from Route for bottom sheet
+                                        routeLogWithDetails.route?.let { route ->
+                                            selectedRouteWithMetadata = RouteWithMetadata(route = route)
+                                            showRouteBottomSheet = true
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -207,6 +218,17 @@ fun UserProfileScreen(
                 }
             }
         }
+    }
+    
+    // Route detail bottom sheet
+    if (showRouteBottomSheet && selectedRouteWithMetadata != null) {
+        com.example.topoclimb.ui.components.RouteDetailBottomSheet(
+            routeWithMetadata = selectedRouteWithMetadata!!,
+            onDismiss = { showRouteBottomSheet = false },
+            gradingSystem = null,
+            onStartLogging = null,
+            backendId = backendId
+        )
     }
 }
 
@@ -241,81 +263,86 @@ private fun ProfileHeader(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 error = {
-                    // Show first letter of name on primary background
-                    Text(
-                        text = name.firstOrNull()?.uppercase() ?: "?",
-                        style = MaterialTheme.typography.displayMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    // Show first letter of name on primary background - centered
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = name.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.displayMedium,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             )
         }
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // User name
-        Text(
-            text = name,
-            style = MaterialTheme.typography.headlineMedium
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Add/Remove friend button (only show if authenticated and not own profile)
-        if (isAuthenticated && !isOwnProfile) {
-            when {
-                isCheckingFriendship -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-                isFriend -> {
-                    Button(
-                        onClick = onRemoveFriend,
-                        enabled = !isRemovingFriend,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+        // User name with friend icon next to it
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.headlineMedium
+            )
+            
+            // Add/Remove friend icon (only show if authenticated and not own profile)
+            if (isAuthenticated && !isOwnProfile) {
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                when {
+                    isCheckingFriendship -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
                         )
-                    ) {
-                        if (isRemovingFriend) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.PersonRemove,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Remove Friend")
                     }
-                }
-                else -> {
-                    Button(
-                        onClick = onAddFriend,
-                        enabled = !isAddingFriend
-                    ) {
-                        if (isAddingFriend) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.PersonAdd,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
+                    isFriend -> {
+                        IconButton(
+                            onClick = onRemoveFriend,
+                            enabled = !isRemovingFriend,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            if (isRemovingFriend) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.PersonRemove,
+                                    contentDescription = "Remove friend",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Add Friend")
+                    }
+                    else -> {
+                        IconButton(
+                            onClick = onAddFriend,
+                            enabled = !isAddingFriend,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            if (isAddingFriend) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.PersonAdd,
+                                    contentDescription = "Add friend",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -395,7 +422,8 @@ private fun UserStatsCard(
 @Composable
 fun UserRouteLogCard(
     routeLogWithDetails: RouteLogWithDetails,
-    gradingSystem: GradingSystem? = null
+    gradingSystem: GradingSystem? = null,
+    onClick: () -> Unit = {}
 ) {
     val log = routeLogWithDetails.log
     val route = routeLogWithDetails.route
@@ -420,21 +448,10 @@ fun UserRouteLogCard(
         }
     } ?: ""
     
-    // Convert grade to string
-    val gradeString = GradeUtils.pointsToGrade(log.grade, gradingSystem) ?: log.grade.toString()
-    
     // Shape for type icon container
     val typeIconShape = RoundedCornerShape(8.dp)
     
-    // Shape for thumbnail: rounded on left, square on right for continuity with grade
-    val thumbnailShape = RoundedCornerShape(
-        topStart = 8.dp,
-        topEnd = 0.dp,
-        bottomEnd = 0.dp,
-        bottomStart = 8.dp
-    )
-    
-    // Shape for grade badge: square on left, rounded on right for continuity with thumbnail
+    // Shape for grade badge: rounded only on right side
     val gradeBadgeShape = RoundedCornerShape(
         topStart = 0.dp,
         topEnd = 8.dp,
@@ -453,6 +470,7 @@ fun UserRouteLogCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -523,41 +541,39 @@ fun UserRouteLogCard(
             }
         }
         
-        // Route thumbnail (glued to grade)
-        AsyncImage(
-            model = route?.thumbnail,
-            contentDescription = "Route thumbnail",
-            modifier = Modifier
-                .size(50.dp)
-                .border(
-                    width = 2.dp,
-                    color = routeColor,
-                    shape = thumbnailShape
-                )
-                .clip(thumbnailShape),
-            contentScale = ContentScale.Crop
-        )
-        
-        // Route grade badge (glued to thumbnail)
-        route?.grade?.let { routeGrade ->
-            val routeGradeString = GradeUtils.pointsToGrade(routeGrade, gradingSystem) ?: routeGrade.toString()
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .background(
-                        color = routeColor,
-                        shape = gradeBadgeShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = routeGradeString,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    ),
-                    color = Color.White
-                )
+        // Route thumbnail and grade glued together (no space, no radius for picture)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            // Route thumbnail (no radius, no border)
+            AsyncImage(
+                model = route?.thumbnail,
+                contentDescription = "Route thumbnail",
+                modifier = Modifier.size(50.dp),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Route grade badge (glued to thumbnail)
+            route?.grade?.let { routeGrade ->
+                val routeGradeString = GradeUtils.pointsToGrade(routeGrade, gradingSystem) ?: routeGrade.toString()
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(
+                            color = routeColor,
+                            shape = gradeBadgeShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = routeGradeString,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        ),
+                        color = Color.White
+                    )
+                }
             }
         }
     }
