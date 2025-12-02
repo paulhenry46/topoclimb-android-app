@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.AddFriendRequest
+import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Route
 import com.example.topoclimb.data.UserProfile
 import com.example.topoclimb.data.UserRouteLog
@@ -18,11 +19,12 @@ import kotlinx.coroutines.launch
 private const val TAG = "UserProfileViewModel"
 
 /**
- * Data class representing a route log with its associated route details
+ * Data class representing a route log with its associated route details and grading system
  */
 data class RouteLogWithDetails(
     val log: UserRouteLog,
-    val route: Route?
+    val route: Route?,
+    val gradingSystem: GradingSystem? = null
 )
 
 data class UserProfileUiState(
@@ -105,7 +107,7 @@ class UserProfileViewModel(
     }
     
     /**
-     * Load user's route logs with route details
+     * Load user's route logs with route details and grading systems
      */
     private fun loadUserRoutes(userId: Int, backendId: String) {
         viewModelScope.launch {
@@ -127,6 +129,9 @@ class UserProfileViewModel(
                 val routeLogsResponse = apiService.getUserRoutes(userId)
                 val routeLogs = routeLogsResponse.data
                 
+                // Cache for grading systems by site ID to avoid redundant API calls
+                val gradingSystemCache = mutableMapOf<Int, GradingSystem?>()
+                
                 // Note: Fetching route details sequentially is not optimal for large lists.
                 // A future optimization could batch requests or use an API endpoint that returns
                 // route details alongside logs. For now, we limit to recent logs and handle
@@ -134,10 +139,30 @@ class UserProfileViewModel(
                 val routeLogsWithDetails = routeLogs.take(20).map { log ->
                     try {
                         val routeResponse = apiService.getRoute(log.routeId)
-                        RouteLogWithDetails(log = log, route = routeResponse.data)
+                        val route = routeResponse.data
+                        
+                        // Get grading system for this route's site (cached if already fetched)
+                        val gradingSystem = route.siteId.let { siteId ->
+                            if (gradingSystemCache.containsKey(siteId)) {
+                                gradingSystemCache[siteId]
+                            } else {
+                                try {
+                                    val siteResponse = apiService.getSite(siteId)
+                                    val gs = siteResponse.data.gradingSystem
+                                    gradingSystemCache[siteId] = gs
+                                    gs
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error fetching site $siteId grading system", e)
+                                    gradingSystemCache[siteId] = null
+                                    null
+                                }
+                            }
+                        }
+                        
+                        RouteLogWithDetails(log = log, route = route, gradingSystem = gradingSystem)
                     } catch (e: Exception) {
                         Log.e(TAG, "Error fetching route ${log.routeId}", e)
-                        RouteLogWithDetails(log = log, route = null)
+                        RouteLogWithDetails(log = log, route = null, gradingSystem = null)
                     }
                 }
                 

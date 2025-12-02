@@ -60,6 +60,7 @@ fun UserProfileScreen(
     // State for route bottom sheet
     var showRouteBottomSheet by remember { mutableStateOf(false) }
     var selectedRouteWithMetadata by remember { mutableStateOf<RouteWithMetadata?>(null) }
+    var selectedGradingSystem by remember { mutableStateOf<GradingSystem?>(null) }
     
     // Load user profile when screen is displayed
     LaunchedEffect(userId, backendId) {
@@ -205,11 +206,12 @@ fun UserProfileScreen(
                             items(uiState.routeLogs) { routeLogWithDetails ->
                                 UserRouteLogCard(
                                     routeLogWithDetails = routeLogWithDetails,
-                                    gradingSystem = null,
+                                    gradingSystem = routeLogWithDetails.gradingSystem,
                                     onClick = {
                                         // Create RouteWithMetadata from Route for bottom sheet
                                         routeLogWithDetails.route?.let { route ->
                                             selectedRouteWithMetadata = RouteWithMetadata(route = route)
+                                            selectedGradingSystem = routeLogWithDetails.gradingSystem
                                             showRouteBottomSheet = true
                                         }
                                     }
@@ -227,7 +229,7 @@ fun UserProfileScreen(
         com.example.topoclimb.ui.components.RouteDetailBottomSheet(
             routeWithMetadata = selectedRouteWithMetadata!!,
             onDismiss = { showRouteBottomSheet = false },
-            gradingSystem = null,
+            gradingSystem = selectedGradingSystem,
             onStartLogging = null,
             backendId = backendId
         )
