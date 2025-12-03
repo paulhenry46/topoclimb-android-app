@@ -98,18 +98,36 @@ class HomeViewModel(
     
     fun loadAllData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            loadFriendLogs()
-            loadCurrentEvents()
-            loadNewRoutes()
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            // Load data concurrently using async
+            val friendLogsJob = viewModelScope.launch { loadFriendLogs() }
+            val eventsJob = viewModelScope.launch { loadCurrentEvents() }
+            val newRoutesJob = viewModelScope.launch { loadNewRoutes() }
+            
+            // Wait for all to complete
+            friendLogsJob.join()
+            eventsJob.join()
+            newRoutesJob.join()
+            
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
     
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true)
-            loadAllData()
+            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            
+            // Load data concurrently using async
+            val friendLogsJob = viewModelScope.launch { loadFriendLogs() }
+            val eventsJob = viewModelScope.launch { loadCurrentEvents() }
+            val newRoutesJob = viewModelScope.launch { loadNewRoutes() }
+            
+            // Wait for all to complete
+            friendLogsJob.join()
+            eventsJob.join()
+            newRoutesJob.join()
+            
             _uiState.value = _uiState.value.copy(isRefreshing = false)
         }
     }
@@ -286,6 +304,13 @@ class HomeViewModel(
                 
                 _uiState.value = _uiState.value.copy(
                     newRoutes = sortedNewRoutes,
+                    isLoadingNewRoutes = false
+                )
+            }
+            
+            sitesResult.onFailure { exception ->
+                Log.e(TAG, "Error getting sites for new routes", exception)
+                _uiState.value = _uiState.value.copy(
                     isLoadingNewRoutes = false
                 )
             }

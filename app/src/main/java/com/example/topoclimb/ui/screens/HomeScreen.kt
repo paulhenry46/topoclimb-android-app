@@ -61,9 +61,13 @@ fun HomeScreen(
     val sitesUiState by sitesViewModel.uiState.collectAsState()
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
     
-    // Update favorite sites and routes in the home view model
-    LaunchedEffect(sitesUiState.sites, sitesUiState.favoriteSiteId) {
-        val favoriteSites = sitesUiState.sites.filter { it.data.id == sitesUiState.favoriteSiteId }
+    // Derive favorite sites from sitesUiState
+    val favoriteSites = remember(sitesUiState.favoriteSiteId, sitesUiState.sites) {
+        sitesUiState.sites.filter { it.data.id == sitesUiState.favoriteSiteId }
+    }
+    
+    // Update favorite sites in home view model only when they change
+    LaunchedEffect(favoriteSites) {
         homeViewModel.updateFavoriteSites(favoriteSites)
     }
     
