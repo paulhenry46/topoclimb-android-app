@@ -56,6 +56,7 @@ fun AreaDetailScreen(
     areaId: Int,
     onBackClick: () -> Unit,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
+    onUserClick: ((userId: Int, backendId: String) -> Unit)? = null,
     viewModel: AreaDetailViewModel = viewModel(),
     favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -722,7 +723,13 @@ fun AreaDetailScreen(
                 } else null,
                 favoriteRoutesViewModel = favoriteRoutesViewModel,
                 friendsViewModel = friendsViewModel,
-                backendId = backendId
+                backendId = backendId,
+                onUserClick = if (onUserClick != null) {
+                    { userId, backend ->
+                        showBottomSheet = false // Close the bottom sheet when navigating
+                        onUserClick(userId, backend)
+                    }
+                } else null
             )
         }
         

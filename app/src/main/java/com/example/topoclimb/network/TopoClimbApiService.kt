@@ -175,5 +175,11 @@ interface TopoClimbApiService {
         @Path("friendId") friendId: Int,
         @Header("Authorization") authToken: String
     ): com.example.topoclimb.data.RemoveFriendResponse
+    
+    @GET("users/{id}")
+    suspend fun getUserProfile(@Path("id") userId: Int): com.example.topoclimb.data.UserProfileResponse
+    
+    @GET("users/{id}/routes")
+    suspend fun getUserRoutes(@Path("id") userId: Int): com.example.topoclimb.data.UserRouteLogsResponse
 }
 

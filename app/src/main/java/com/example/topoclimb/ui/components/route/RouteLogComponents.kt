@@ -52,7 +52,8 @@ fun LogCard(
     routeGrade: Int?,
     gradingSystem: GradingSystem?,
     modifier: Modifier = Modifier,
-    onLongPressUser: ((userId: Int, userName: String) -> Unit)? = null
+    onLongPressUser: ((userId: Int, userName: String) -> Unit)? = null,
+    onUserClick: ((userId: Int) -> Unit)? = null
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var showAddFriendDialog by remember { mutableStateOf(false) }
@@ -130,7 +131,15 @@ fun LogCard(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(
+                            if (onUserClick != null) {
+                                Modifier.clickable { onUserClick(log.user.id) }
+                            } else {
+                                Modifier
+                            }
+                        )
                 ) {
                     // User avatar
                     UserAvatar(

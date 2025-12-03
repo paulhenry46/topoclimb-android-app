@@ -85,7 +85,8 @@ fun RouteDetailBottomSheet(
     viewModel: RouteDetailViewModel = viewModel(),
     favoriteRoutesViewModel: com.example.topoclimb.viewmodel.FavoriteRoutesViewModel = viewModel(),
     friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel = viewModel(),
-    backendId: String? = null
+    backendId: String? = null,
+    onUserClick: ((userId: Int, backendId: String) -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val favoriteRoutesUiState by favoriteRoutesViewModel.uiState.collectAsState()
@@ -150,7 +151,8 @@ fun RouteDetailBottomSheet(
                         viewModel = viewModel,
                         onStartLogging = onStartLogging,
                         friendsViewModel = friendsViewModel,
-                        backendId = backendId
+                        backendId = backendId,
+                        onUserClick = onUserClick
                     )
                 }
             }
@@ -625,7 +627,8 @@ private fun LogsTab(
     viewModel: RouteDetailViewModel,
     onStartLogging: ((routeId: Int, routeName: String, routeGrade: Int?, areaType: String?) -> Unit)? = null,
     friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel,
-    backendId: String?
+    backendId: String?,
+    onUserClick: ((userId: Int, backendId: String) -> Unit)? = null
 ) {
     var showOnlyWithComments by remember { mutableStateOf(false) }
     var showOnlyFriends by remember { mutableStateOf(false) }
@@ -901,6 +904,9 @@ private fun LogsTab(
                                                 friendsViewModel.addFriend(userId, backendId)
                                             }
                                         }
+                                    } else null,
+                                    onUserClick = if (backendId != null && onUserClick != null) {
+                                        { userId -> onUserClick(userId, backendId) }
                                     } else null
                                 )
                             }
