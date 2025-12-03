@@ -99,17 +99,6 @@ object GradeUtils {
             return it.key
         }
         
-        // If no exact match, find the closest grade in the grading system
-        gradingSystem?.points?.let { pointsMap ->
-            if (pointsMap.isNotEmpty()) {
-                // Find the entry with the closest point value
-                val closest = pointsMap.entries.minByOrNull { kotlin.math.abs(it.value - points) }
-                if (closest != null) {
-                    return closest.key
-                }
-            }
-        }
-        
         // Fall back to reconstructing from default parsing logic
         return reconstructGradeFromPoints(points) ?: points.toString()
     }
