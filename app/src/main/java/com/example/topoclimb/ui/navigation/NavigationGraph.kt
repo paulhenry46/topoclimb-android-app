@@ -224,6 +224,9 @@ fun NavigationGraph(
                 onSiteClick = { backendId, siteId ->
                     navController.navigate("site/$backendId/$siteId")
                 },
+                onBackClick = {
+                    navController.popBackStack()
+                },
                 viewModel = viewModel(viewModelStoreOwner = parentEntry),
                 favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry),
                 friendsViewModel = viewModel(viewModelStoreOwner = parentEntry)

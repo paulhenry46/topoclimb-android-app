@@ -15,6 +15,7 @@ import com.example.topoclimb.repository.FederatedTopoClimbRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
 private const val TAG = "HomeViewModel"
@@ -100,15 +101,12 @@ class HomeViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
-            // Load data concurrently using async
-            val friendLogsJob = viewModelScope.launch { loadFriendLogs() }
-            val eventsJob = viewModelScope.launch { loadCurrentEvents() }
-            val newRoutesJob = viewModelScope.launch { loadNewRoutes() }
-            
-            // Wait for all to complete
-            friendLogsJob.join()
-            eventsJob.join()
-            newRoutesJob.join()
+            // Load data concurrently - all jobs start immediately
+            listOf(
+                launch { loadFriendLogs() },
+                launch { loadCurrentEvents() },
+                launch { loadNewRoutes() }
+            ).joinAll()
             
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
@@ -118,15 +116,12 @@ class HomeViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
             
-            // Load data concurrently using async
-            val friendLogsJob = viewModelScope.launch { loadFriendLogs() }
-            val eventsJob = viewModelScope.launch { loadCurrentEvents() }
-            val newRoutesJob = viewModelScope.launch { loadNewRoutes() }
-            
-            // Wait for all to complete
-            friendLogsJob.join()
-            eventsJob.join()
-            newRoutesJob.join()
+            // Load data concurrently - all jobs start immediately
+            listOf(
+                launch { loadFriendLogs() },
+                launch { loadCurrentEvents() },
+                launch { loadNewRoutes() }
+            ).joinAll()
             
             _uiState.value = _uiState.value.copy(isRefreshing = false)
         }
