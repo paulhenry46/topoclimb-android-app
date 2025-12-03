@@ -94,13 +94,24 @@ object GradeUtils {
      * @return Grade string (e.g., "6a+"), or null if points cannot be converted
      */
     fun pointsToGrade(points: Int, gradingSystem: GradingSystem?): String? {
-        // First try to find the grade in the grading system
+        // First try to find the exact grade in the grading system
         gradingSystem?.points?.entries?.find { it.value == points }?.let {
             return it.key
         }
         
+        // If no exact match, find the closest grade in the grading system
+        gradingSystem?.points?.let { pointsMap ->
+            if (pointsMap.isNotEmpty()) {
+                // Find the entry with the closest point value
+                val closest = pointsMap.entries.minByOrNull { kotlin.math.abs(it.value - points) }
+                if (closest != null) {
+                    return closest.key
+                }
+            }
+        }
+        
         // Fall back to reconstructing from default parsing logic
-        return points.toString()
+        return reconstructGradeFromPoints(points) ?: points.toString()
     }
     
     /**

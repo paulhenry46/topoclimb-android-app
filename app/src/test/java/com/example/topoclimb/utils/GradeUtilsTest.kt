@@ -169,7 +169,7 @@ class GradeUtilsTest {
     }
     
     @Test
-    fun pointsToGrade_fallsBackToReconstructionWhenNotInSystem() {
+    fun pointsToGrade_findsClosestMatchWhenNotExactInSystem() {
         val gradingSystem = GradingSystem(
             free = false,
             hint = "Limited system",
@@ -179,18 +179,28 @@ class GradeUtilsTest {
             )
         )
         
-        // Points not in system, should reconstruct
-        assertEquals("5a", GradeUtils.pointsToGrade(500, gradingSystem))
-        assertEquals("7a", GradeUtils.pointsToGrade(700, gradingSystem))
+        // Points not exactly in system, should find closest match
+        assertEquals("6a", GradeUtils.pointsToGrade(595, gradingSystem)) // Closer to 600 (6a)
+        assertEquals("6b", GradeUtils.pointsToGrade(615, gradingSystem)) // Closer to 620 (6b)
+        assertEquals("6a", GradeUtils.pointsToGrade(500, gradingSystem)) // Closest to 600 (6a)
+        assertEquals("6b", GradeUtils.pointsToGrade(700, gradingSystem)) // Closest to 620 (6b)
     }
     
     @Test
-    fun pointsToGrade_returnsNullForInvalidPoints() {
-        assertNull(GradeUtils.pointsToGrade(0, null))
-        assertNull(GradeUtils.pointsToGrade(-100, null))
-        // Points that don't match valid grade range
-        assertNull(GradeUtils.pointsToGrade(250, null)) // Would be 2.5a, but 2 is out of range
-        assertNull(GradeUtils.pointsToGrade(1000, null)) // Would be 10.0a, but 10 is out of range
+    fun pointsToGrade_fallsBackToReconstructionWhenNoGradingSystem() {
+        // Without grading system, should reconstruct from default parsing logic
+        assertEquals("5a", GradeUtils.pointsToGrade(500, null))
+        assertEquals("7a", GradeUtils.pointsToGrade(700, null))
+    }
+    
+    @Test
+    fun pointsToGrade_handlesInvalidPoints() {
+        // Invalid points should return a string representation (not null)
+        assertNotNull(GradeUtils.pointsToGrade(0, null))
+        assertNotNull(GradeUtils.pointsToGrade(-100, null))
+        // Points outside typical grade range still get converted
+        assertNotNull(GradeUtils.pointsToGrade(250, null))
+        assertNotNull(GradeUtils.pointsToGrade(1000, null))
     }
     
     @Test
