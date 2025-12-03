@@ -181,5 +181,8 @@ interface TopoClimbApiService {
     
     @GET("users/{id}/routes")
     suspend fun getUserRoutes(@Path("id") userId: Int): com.example.topoclimb.data.UserRouteLogsResponse
+    
+    @GET("current_events")
+    suspend fun getCurrentEvents(): com.example.topoclimb.data.CurrentEventsResponse
 }
 

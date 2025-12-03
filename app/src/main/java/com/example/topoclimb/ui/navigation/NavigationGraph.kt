@@ -18,6 +18,7 @@ import com.example.topoclimb.ui.BottomNavItem
 import com.example.topoclimb.ui.screens.AreaDetailScreen
 import com.example.topoclimb.ui.screens.ContestDetailScreen
 import com.example.topoclimb.ui.screens.FavoritesScreen
+import com.example.topoclimb.ui.screens.HomeScreen
 import com.example.topoclimb.ui.screens.ProfileScreen
 import com.example.topoclimb.ui.screens.SiteDetailScreen
 import com.example.topoclimb.ui.screens.SitesScreen
@@ -191,7 +192,31 @@ fun NavigationGraph(
             }
         }
         
-        composable(BottomNavItem.Favorite.route) { backStackEntry ->
+        composable(BottomNavItem.Home.route) { backStackEntry ->
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(navController.graph.findStartDestination().id)
+            }
+            HomeScreen(
+                onSiteClick = { backendId, siteId ->
+                    navController.navigate("site/$backendId/$siteId")
+                },
+                onAllFavoriteSitesClick = {
+                    navController.navigate("favorites")
+                },
+                onAllFavoriteRoutesClick = {
+                    navController.navigate("favorites")
+                },
+                onAllSitesClick = {
+                    navController.navigate(BottomNavItem.Sites.route)
+                },
+                sitesViewModel = viewModel(viewModelStoreOwner = parentEntry),
+                favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry),
+                friendsViewModel = viewModel(viewModelStoreOwner = parentEntry)
+            )
+        }
+        
+        // Keep the favorites screen as a separate route for the "more" navigation
+        composable("favorites") { backStackEntry ->
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(navController.graph.findStartDestination().id)
             }

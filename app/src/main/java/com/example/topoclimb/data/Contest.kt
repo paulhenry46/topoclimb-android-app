@@ -53,3 +53,11 @@ data class ContestCategory(
 data class ContestCategoriesResponse(
     val data: List<ContestCategory>
 )
+
+/**
+ * Response from /v1/current_events endpoint
+ * Returns contests that are currently happening across all sites
+ */
+data class CurrentEventsResponse(
+    val data: List<Contest>
+)
