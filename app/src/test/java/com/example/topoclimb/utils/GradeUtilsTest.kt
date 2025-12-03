@@ -169,7 +169,7 @@ class GradeUtilsTest {
     }
     
     @Test
-    fun pointsToGrade_fallsBackToReconstructionWhenNotExactInSystem() {
+    fun pointsToGrade_findsClosestMatchWhenNotExactInSystem() {
         val gradingSystem = GradingSystem(
             free = false,
             hint = "Limited system",
@@ -179,10 +179,11 @@ class GradeUtilsTest {
             )
         )
         
-        // Points not exactly in system, should fall back to reconstruction
-        assertEquals("5a+", GradeUtils.pointsToGrade(505, gradingSystem)) // Not in system, reconstructed
-        assertEquals("5a", GradeUtils.pointsToGrade(500, gradingSystem)) // Not in system, reconstructed
-        assertEquals("7a", GradeUtils.pointsToGrade(700, gradingSystem)) // Not in system, reconstructed
+        // Points not exactly in system, should find closest match
+        assertEquals("6a", GradeUtils.pointsToGrade(595, gradingSystem)) // Closer to 600 (6a)
+        assertEquals("6b", GradeUtils.pointsToGrade(615, gradingSystem)) // Closer to 620 (6b)
+        assertEquals("6a", GradeUtils.pointsToGrade(500, gradingSystem)) // Closest to 600 (6a)
+        assertEquals("6b", GradeUtils.pointsToGrade(700, gradingSystem)) // Closest to 620 (6b)
     }
     
     @Test

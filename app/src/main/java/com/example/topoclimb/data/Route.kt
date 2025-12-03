@@ -9,7 +9,9 @@ data class Route(
     val type: String?, // e.g., "sport", "trad", "boulder"
     val description: String?,
     val height: Int?,
+    @SerializedName("site_id")
     val siteId: Int,
+    @SerializedName("site_name")
     val siteName: String?,
     val thumbnail: String?, // URL of the route thumbnail
     val color: String?, // Hex color code for the route
