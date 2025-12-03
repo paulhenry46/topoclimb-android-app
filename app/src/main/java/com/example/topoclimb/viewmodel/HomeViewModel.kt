@@ -74,6 +74,16 @@ class HomeViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     
+    companion object {
+        // Maximum counts for displaying items on the home screen
+        private const val MAX_FRIENDS_FOR_LOGS = 5
+        private const val MAX_LOGS_PER_FRIEND = 2
+        private const val MAX_FRIEND_LOGS = 10
+        private const val MAX_SITES_FOR_NEW_ROUTES = 3
+        private const val MAX_ROUTES_PER_SITE = 5
+        private const val MAX_NEW_ROUTES = 10
+    }
+    
     private val backendConfigRepository = BackendConfigRepository(application)
     private val federatedRepository = FederatedTopoClimbRepository(application)
     private val retrofitManager = MultiBackendRetrofitManager()
@@ -135,6 +145,7 @@ class HomeViewModel(
             val allLogs = mutableListOf<FriendLogWithDetails>()
             
             // Fetch friends' logs from all authenticated backends
+            // Note: This uses a sequential approach per backend due to API limitations
             backends.filter { it.isAuthenticated() }.forEach { backend ->
                 try {
                     val apiService = retrofitManager.getApiService(backend)
@@ -144,12 +155,12 @@ class HomeViewModel(
                     val friendsResponse = apiService.getFriends(authToken)
                     
                     // For each friend, get their recent routes (limited to avoid too many calls)
-                    friendsResponse.data.take(5).forEach { friend ->
+                    friendsResponse.data.take(MAX_FRIENDS_FOR_LOGS).forEach { friend ->
                         try {
                             val routeLogsResponse = apiService.getUserRoutes(friend.id)
                             
                             // Take the most recent logs from each friend
-                            routeLogsResponse.data.take(2).forEach { log ->
+                            routeLogsResponse.data.take(MAX_LOGS_PER_FRIEND).forEach { log ->
                                 try {
                                     val routeResponse = apiService.getRoute(log.routeId)
                                     val route = routeResponse.data
@@ -186,7 +197,7 @@ class HomeViewModel(
             }
             
             // Sort by created date and take the most recent 10
-            val sortedLogs = allLogs.sortedByDescending { it.logCreatedAt }.take(10)
+            val sortedLogs = allLogs.sortedByDescending { it.logCreatedAt }.take(MAX_FRIEND_LOGS)
             
             _uiState.value = _uiState.value.copy(
                 friendLogs = sortedLogs,
@@ -264,7 +275,7 @@ class HomeViewModel(
                 val backends = backendConfigRepository.backends.value
                 
                 // Get routes from the first few sites (to show recent routes)
-                sites.take(3).forEach { federatedSite ->
+                sites.take(MAX_SITES_FOR_NEW_ROUTES).forEach { federatedSite ->
                     val backend = backends.find { it.id == federatedSite.backend.backendId }
                     if (backend != null) {
                         try {
@@ -274,7 +285,7 @@ class HomeViewModel(
                             // Sort by created date and take the newest routes
                             val newRoutes = routesResponse.data
                                 .sortedByDescending { it.createdAt }
-                                .take(5)
+                                .take(MAX_ROUTES_PER_SITE)
                                 .map { route ->
                                     RouteWithMetadata(
                                         route = route,
@@ -295,7 +306,7 @@ class HomeViewModel(
                 val sortedNewRoutes = allNewRoutes
                     .distinctBy { it.id }
                     .sortedByDescending { it.createdAt }
-                    .take(10)
+                    .take(MAX_NEW_ROUTES)
                 
                 _uiState.value = _uiState.value.copy(
                     newRoutes = sortedNewRoutes,
