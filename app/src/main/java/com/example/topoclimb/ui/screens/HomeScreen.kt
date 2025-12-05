@@ -1,10 +1,10 @@
 package com.example.topoclimb.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.R
@@ -34,6 +36,7 @@ import com.example.topoclimb.data.RouteWithMetadata
 import com.example.topoclimb.data.Site
 import com.example.topoclimb.ui.components.RouteCard
 import com.example.topoclimb.ui.components.RouteDetailBottomSheet
+import com.example.topoclimb.ui.utils.parseRouteColor
 import com.example.topoclimb.utils.GradeUtils
 import com.example.topoclimb.viewmodel.CurrentEventWithSite
 import com.example.topoclimb.viewmodel.FavoriteRoutesViewModel
@@ -42,6 +45,7 @@ import com.example.topoclimb.viewmodel.FriendsViewModel
 import com.example.topoclimb.viewmodel.HomeViewModel
 import com.example.topoclimb.viewmodel.SitesViewModel
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -52,6 +56,7 @@ fun HomeScreen(
     onAllFavoriteSitesClick: () -> Unit,
     onAllFavoriteRoutesClick: () -> Unit,
     onAllSitesClick: () -> Unit,
+    onUserClick: (Int, String) -> Unit = { _, _ -> },
     homeViewModel: HomeViewModel = viewModel(),
     sitesViewModel: SitesViewModel = viewModel(),
     favoriteRoutesViewModel: FavoriteRoutesViewModel = viewModel(),
@@ -84,22 +89,24 @@ fun HomeScreen(
     var showRouteBottomSheet by remember { mutableStateOf(false) }
     var selectedRoute by remember { mutableStateOf<RouteWithMetadata?>(null) }
     
-    val greeting = if (homeUiState.userName != null) {
-        "Hello ${homeUiState.userName}"
-    } else {
-        "Hello"
-    }
-    
     Scaffold(
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { 
-                    Text(
-                        text = greeting,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    ) 
+                    Row {
+                        Text(
+                            text = "Hello ",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        homeUiState.userName?.let { name ->
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             )
         }
@@ -114,7 +121,7 @@ fun HomeScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // NEWS SECTION
                 item {
@@ -131,26 +138,19 @@ fun HomeScreen(
                     item {
                         Text(
                             text = "Ongoing Contests",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            style = MaterialTheme.typography.titleMedium
                         )
                     }
                     
-                    item {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(homeUiState.currentEvents) { eventWithSite ->
-                                CurrentEventCard(
-                                    event = eventWithSite,
-                                    onClick = {
-                                        eventWithSite.siteId?.let { siteId ->
-                                            onSiteClick(eventWithSite.backendId, siteId)
-                                        }
-                                    }
-                                )
+                    items(homeUiState.currentEvents) { eventWithSite ->
+                        CurrentEventCard(
+                            event = eventWithSite,
+                            onClick = {
+                                eventWithSite.siteId?.let { siteId ->
+                                    onSiteClick(eventWithSite.backendId, siteId)
+                                }
                             }
-                        }
+                        )
                     }
                 }
                 
@@ -160,7 +160,7 @@ fun HomeScreen(
                         Text(
                             text = "Friend Activity",
                             style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = if (homeUiState.currentEvents.isNotEmpty()) 8.dp else 0.dp, bottom = 8.dp)
+                            modifier = Modifier.padding(top = if (homeUiState.currentEvents.isNotEmpty()) 4.dp else 0.dp)
                         )
                     }
                     
@@ -169,7 +169,7 @@ fun HomeScreen(
                             friendLog = friendLog,
                             gradingSystem = friendLog.siteId?.let { gradingSystemMap[it] },
                             onClick = {
-                                // Could navigate to user profile or route
+                                onUserClick(friendLog.friendId, friendLog.backendId)
                             }
                         )
                     }
@@ -264,8 +264,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = "Favorite Routes",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = 8.dp)
+                            style = MaterialTheme.typography.titleMedium
                         )
                         if (homeUiState.favoriteRoutes.isNotEmpty()) {
                             TextButton(onClick = onAllFavoriteRoutesClick) {
@@ -300,7 +299,6 @@ fun HomeScreen(
                                 showRouteBottomSheet = true
                             }
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 } else {
                     item {
@@ -313,8 +311,7 @@ fun HomeScreen(
                     item {
                         Text(
                             text = "New Routes",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                            style = MaterialTheme.typography.titleMedium
                         )
                     }
                     
@@ -337,7 +334,6 @@ fun HomeScreen(
                                 showRouteBottomSheet = true
                             }
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
                 
@@ -383,7 +379,7 @@ private fun CurrentEventCard(
     
     Card(
         modifier = Modifier
-            .width(280.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
@@ -482,119 +478,178 @@ private fun FriendLogCard(
     gradingSystem: GradingSystem?,
     onClick: () -> Unit
 ) {
-    val gradeString = friendLog.routeGrade?.let {
-        GradeUtils.pointsToGrade(it, gradingSystem)
-    }
+    val routeColor = parseRouteColor(friendLog.routeColor)
     
-    // Format the time
-    val timeAgo = friendLog.logCreatedAt?.let { dateStr ->
+    // Parse date - handles various timestamp formats from API
+    val formattedDate = friendLog.logCreatedAt?.let { dateString ->
         try {
-            val createdDate = LocalDate.parse(dateStr.substring(0, 10))
-            val today = LocalDate.now()
-            val days = ChronoUnit.DAYS.between(createdDate, today).toInt()
-            when {
-                days == 0 -> "Today"
-                days == 1 -> "Yesterday"
-                days < 7 -> "$days days ago"
-                else -> "${days / 7} weeks ago"
-            }
+            // Handle different timestamp formats
+            val cleanedDate = dateString
+                .replace(Regex("\\.\\d+Z?$"), "") // Remove microseconds and Z
+                .replace("Z", "") // Remove trailing Z if present
+            
+            val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+            val outputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+            val dateTime = LocalDateTime.parse(cleanedDate, inputFormatter)
+            dateTime.format(outputFormatter)
         } catch (e: Exception) {
-            null
+            // Fallback to just taking the date portion
+            dateString.take(10)
         }
-    }
+    } ?: ""
     
-    val logTypeDisplay = when (friendLog.logType?.lowercase()) {
-        "flash" -> "flashed"
-        "work" -> "climbed"
-        "view" -> "tried"
-        else -> "logged"
-    }
+    // Shape for type icon container
+    val typeIconShape = RoundedCornerShape(8.dp)
     
-    Card(
+    // Shape for grade badge: rounded only on right side
+    val gradeBadgeShape = RoundedCornerShape(
+        topStart = 0.dp,
+        topEnd = 8.dp,
+        bottomEnd = 8.dp,
+        bottomStart = 0.dp
+    )
+    
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .clickable { onClick() }
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Type icon
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(40.dp)
+                .clip(typeIconShape)
+                .background(getTypeColor(friendLog.logType)),
+            contentAlignment = Alignment.Center
         ) {
-            // Friend avatar
-            AsyncImage(
-                model = friendLog.friendPhotoUrl,
-                contentDescription = "Friend photo",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
+            Icon(
+                imageVector = getTypeIcon(friendLog.logType),
+                contentDescription = friendLog.logType,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        // Date and Friend name column (replacing Type name with Friend name)
+        Column(
+            modifier = Modifier.width(80.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            // Date
+            Text(
+                text = formattedDate,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            Spacer(modifier = Modifier.width(12.dp))
+            // Friend name (instead of type name)
+            Text(
+                text = friendLog.friendName,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Route name column (right aligned)
+        Column(
+            modifier = Modifier.width(100.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = friendLog.routeName ?: "Route",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             
-            Column(modifier = Modifier.weight(1f)) {
-                Row {
-                    Text(
-                        text = friendLog.friendName,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = " $logTypeDisplay",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                
+            // Show site name
+            friendLog.siteName?.let { siteName ->
                 Text(
-                    text = friendLog.routeName ?: "Route",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = siteName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                
-                Row {
-                    gradeString?.let { grade ->
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer
-                        ) {
-                            Text(
-                                text = grade,
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    
-                    timeAgo?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
+        }
+        
+        // Route thumbnail and grade glued together
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            // Route thumbnail (with border, no radius)
+            AsyncImage(
+                model = friendLog.routeThumbnail,
+                contentDescription = "Route thumbnail",
+                modifier = Modifier
+                    .size(50.dp)
+                    .border(
+                        width = 2.dp,
+                        color = routeColor,
+                        shape = RectangleShape
+                    ),
+                contentScale = ContentScale.Crop
+            )
             
-            // Route thumbnail
-            friendLog.routeThumbnail?.let { thumbnail ->
-                AsyncImage(
-                    model = thumbnail,
-                    contentDescription = "Route thumbnail",
+            // Route grade badge (glued to thumbnail)
+            friendLog.routeGrade?.let { routeGrade ->
+                val routeGradeString = GradeUtils.pointsToGrade(routeGrade, gradingSystem) ?: routeGrade.toString()
+                Box(
                     modifier = Modifier
                         .size(50.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                        .background(
+                            color = routeColor,
+                            shape = gradeBadgeShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = routeGradeString,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        ),
+                        color = Color.White
+                    )
+                }
             }
         }
     }
-    
-    Spacer(modifier = Modifier.height(8.dp))
+}
+
+/**
+ * Get icon for climb type
+ */
+@Composable
+private fun getTypeIcon(type: String?) = when (type?.lowercase()) {
+    "flash" -> Icons.Default.FlashOn
+    "work" -> Icons.Default.Check
+    "view" -> Icons.Default.Visibility
+    else -> Icons.Default.Check
+}
+
+/**
+ * Get color for climb type
+ */
+@Composable
+private fun getTypeColor(type: String?): Color = when (type?.lowercase()) {
+    "flash" -> MaterialTheme.colorScheme.primary
+    "work" -> MaterialTheme.colorScheme.secondary
+    "view" -> MaterialTheme.colorScheme.tertiary
+    else -> MaterialTheme.colorScheme.secondary
 }
 
 @Composable
@@ -677,8 +732,6 @@ private fun CompactSiteCard(
             }
         }
     }
-    
-    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable

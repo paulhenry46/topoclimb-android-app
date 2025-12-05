@@ -209,6 +209,9 @@ fun NavigationGraph(
                 onAllSitesClick = {
                     navController.navigate(BottomNavItem.Sites.route)
                 },
+                onUserClick = { userId, backendId ->
+                    navController.navigate("userProfile/$backendId/$userId")
+                },
                 sitesViewModel = viewModel(viewModelStoreOwner = parentEntry),
                 favoriteRoutesViewModel = viewModel(viewModelStoreOwner = parentEntry),
                 friendsViewModel = viewModel(viewModelStoreOwner = parentEntry)

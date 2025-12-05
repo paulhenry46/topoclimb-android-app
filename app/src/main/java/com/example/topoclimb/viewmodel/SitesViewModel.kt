@@ -1,6 +1,7 @@
 package com.example.topoclimb.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Federated
@@ -27,10 +28,21 @@ class SitesViewModel(
     private val repository = FederatedTopoClimbRepository(application)
     private val backendConfigRepository = repository.getBackendConfigRepository()
     
+    private val sharedPreferences = application.getSharedPreferences(
+        "favorite_sites_prefs",
+        Context.MODE_PRIVATE
+    )
+    
+    companion object {
+        private const val FAVORITE_SITE_ID_KEY = "favorite_site_id"
+    }
+    
     private val _uiState = MutableStateFlow(SitesUiState())
     val uiState: StateFlow<SitesUiState> = _uiState.asStateFlow()
     
     init {
+        // Load persisted favorite site ID
+        loadFavoriteSiteId()
         loadSites()
         // Listen to backend configuration changes and refresh sites
         viewModelScope.launch {
@@ -40,6 +52,21 @@ class SitesViewModel(
                     // Reload sites when backends change
                     loadSites()
                 }
+        }
+    }
+    
+    private fun loadFavoriteSiteId() {
+        val savedFavoriteId = sharedPreferences.getInt(FAVORITE_SITE_ID_KEY, -1)
+        if (savedFavoriteId != -1) {
+            _uiState.value = _uiState.value.copy(favoriteSiteId = savedFavoriteId)
+        }
+    }
+    
+    private fun saveFavoriteSiteId(siteId: Int?) {
+        if (siteId != null) {
+            sharedPreferences.edit().putInt(FAVORITE_SITE_ID_KEY, siteId).apply()
+        } else {
+            sharedPreferences.edit().remove(FAVORITE_SITE_ID_KEY).apply()
         }
     }
     
@@ -84,8 +111,8 @@ class SitesViewModel(
     }
     
     fun toggleFavorite(siteId: Int) {
-        _uiState.value = _uiState.value.copy(
-            favoriteSiteId = if (_uiState.value.favoriteSiteId == siteId) null else siteId
-        )
+        val newFavoriteId = if (_uiState.value.favoriteSiteId == siteId) null else siteId
+        _uiState.value = _uiState.value.copy(favoriteSiteId = newFavoriteId)
+        saveFavoriteSiteId(newFavoriteId)
     }
 }
