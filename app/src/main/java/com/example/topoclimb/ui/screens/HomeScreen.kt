@@ -543,7 +543,7 @@ private fun FriendLogCard(
             // Route name and type
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.End
             ) {
                 Text(
                     text = friendLog.routeName ?: "Route",
@@ -551,8 +551,7 @@ private fun FriendLogCard(
                         fontWeight = FontWeight.SemiBold
                     ),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    overflow = TextOverflow.Ellipsis
                 )
                 
                 // Show route type (bouldering/trad/sport)
@@ -564,7 +563,7 @@ private fun FriendLogCard(
                         else -> routeType.replaceFirstChar { it.uppercase() }
                     }
                     Text(
-                        text = "• $displayType",
+                        text = " • $displayType",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
