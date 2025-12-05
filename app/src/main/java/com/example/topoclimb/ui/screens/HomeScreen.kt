@@ -540,44 +540,23 @@ private fun FriendLogCard(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            // Route name and type
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
-            ) {
-                Text(
-                    text = friendLog.routeName ?: "Route",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                // Show route type (bouldering/trad/sport)
-                friendLog.routeType?.let { routeType ->
-                    val displayType = when (routeType.lowercase()) {
-                        "boulder", "bouldering" -> "Bloc"
-                        "trad", "traditional" -> "Trad"
-                        "sport" -> "Sport"
-                        else -> routeType.replaceFirstChar { it.uppercase() }
-                    }
-                    Text(
-                        text = " • $displayType",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            Text(
+                text = friendLog.routeName ?: "Route",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             
-            // Show site name
-            friendLog.siteName?.let { siteName ->
+            // Show way (climbing style) - like "bouldering", "traditional", etc.
+            friendLog.logWay?.let { way ->
                 Text(
-                    text = siteName,
+                    text = way.replaceFirstChar { char -> 
+                        if (char.isLowerCase()) char.titlecase() else char.toString() 
+                    },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
