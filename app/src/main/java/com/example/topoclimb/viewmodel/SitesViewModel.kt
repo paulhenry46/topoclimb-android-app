@@ -35,6 +35,7 @@ class SitesViewModel(
     
     companion object {
         private const val FAVORITE_SITE_ID_KEY = "favorite_site_id"
+        private const val NO_FAVORITE_SITE = -1
     }
     
     private val _uiState = MutableStateFlow(SitesUiState())
@@ -56,8 +57,8 @@ class SitesViewModel(
     }
     
     private fun loadFavoriteSiteId() {
-        val savedFavoriteId = sharedPreferences.getInt(FAVORITE_SITE_ID_KEY, -1)
-        if (savedFavoriteId != -1) {
+        val savedFavoriteId = sharedPreferences.getInt(FAVORITE_SITE_ID_KEY, NO_FAVORITE_SITE)
+        if (savedFavoriteId != NO_FAVORITE_SITE) {
             _uiState.value = _uiState.value.copy(favoriteSiteId = savedFavoriteId)
         }
     }

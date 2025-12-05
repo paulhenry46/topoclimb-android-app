@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.R
-import com.example.topoclimb.data.Contest
 import com.example.topoclimb.data.Federated
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.RouteWithMetadata
@@ -483,18 +482,18 @@ private fun FriendLogCard(
     // Parse date - handles various timestamp formats from API
     val formattedDate = friendLog.logCreatedAt?.let { dateString ->
         try {
-            // Handle different timestamp formats
+            // Handle different timestamp formats by removing microseconds
             val cleanedDate = dateString
-                .replace(Regex("\\.\\d+Z?$"), "") // Remove microseconds and Z
-                .replace("Z", "") // Remove trailing Z if present
+                .replace(Regex("\\.\\d+Z?$"), "") // Remove microseconds and optional trailing Z
+                .trimEnd('Z') // Remove any remaining trailing Z
             
             val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
             val outputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
             val dateTime = LocalDateTime.parse(cleanedDate, inputFormatter)
             dateTime.format(outputFormatter)
         } catch (e: Exception) {
-            // Fallback to just taking the date portion
-            dateString.take(10)
+            // Fallback: extract date portion (first 10 characters: YYYY-MM-DD)
+            if (dateString.length >= 10) dateString.substring(0, 10) else dateString
         }
     } ?: ""
     
