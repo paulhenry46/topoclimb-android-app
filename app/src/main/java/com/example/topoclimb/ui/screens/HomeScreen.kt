@@ -122,22 +122,12 @@ fun HomeScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // NEWS SECTION
-                item {
-                    Text(
-                        text = "News",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                
                 // Current Events (Contests)
                 if (homeUiState.currentEvents.isNotEmpty()) {
                     item {
                         Text(
                             text = "Ongoing Contests",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
                     }
                     
@@ -158,7 +148,7 @@ fun HomeScreen(
                     item {
                         Text(
                             text = "Friend Activity",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.padding(top = if (homeUiState.currentEvents.isNotEmpty()) 4.dp else 0.dp)
                         )
                     }
@@ -189,20 +179,6 @@ fun HomeScreen(
                     }
                 }
                 
-                // CLIMB SECTION
-                item {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                }
-                
-                item {
-                    Text(
-                        text = "Climb",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                
                 // Favorite Sites (max 3)
                 item {
                     Row(
@@ -212,7 +188,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = "Favorite Sites",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
                         TextButton(onClick = onAllSitesClick) {
                             Text("See all")
@@ -263,7 +239,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = "Favorite Routes",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
                         if (homeUiState.favoriteRoutes.isNotEmpty()) {
                             TextButton(onClick = onAllFavoriteRoutesClick) {
@@ -310,7 +286,7 @@ fun HomeScreen(
                     item {
                         Text(
                             text = "New Routes",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
                     }
                     
@@ -564,14 +540,36 @@ private fun FriendLogCard(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Text(
-                text = friendLog.routeName ?: "Route",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.SemiBold
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Route name and type
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = friendLog.routeName ?: "Route",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                
+                // Show route type (bouldering/trad/sport)
+                friendLog.routeType?.let { routeType ->
+                    val displayType = when (routeType.lowercase()) {
+                        "boulder", "bouldering" -> "Bloc"
+                        "trad", "traditional" -> "Trad"
+                        "sport" -> "Sport"
+                        else -> routeType.replaceFirstChar { it.uppercase() }
+                    }
+                    Text(
+                        text = "• $displayType",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             
             // Show site name
             friendLog.siteName?.let { siteName ->
