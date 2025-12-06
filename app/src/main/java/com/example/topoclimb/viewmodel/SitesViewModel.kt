@@ -63,48 +63,53 @@ class SitesViewModel(
         }
     }
     
+    /**
+     * Persists favorite site ID to SharedPreferences
+     * @param siteId Site ID to save, or null to clear
+     */
     private fun saveFavoriteSiteId(siteId: Int?) {
-        if (siteId != null) {
-            sharedPreferences.edit().putInt(FAVORITE_SITE_ID_KEY, siteId).apply()
-        } else {
-            sharedPreferences.edit().remove(FAVORITE_SITE_ID_KEY).apply()
+        sharedPreferences.edit().apply {
+            if (siteId != null) {
+                putInt(FAVORITE_SITE_ID_KEY, siteId)
+            } else {
+                remove(FAVORITE_SITE_ID_KEY)
+            }
+            apply()
         }
     }
     
     fun loadSites() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            repository.getSites()
-                .onSuccess { sites ->
-                    _uiState.value = _uiState.value.copy(
-                        sites = sites,
-                        isLoading = false,
-                        isRefreshing = false
-                    )
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        error = exception.message ?: "Unknown error",
-                        isLoading = false,
-                        isRefreshing = false
-                    )
-                }
-        }
+        fetchSites(isRefresh = false)
     }
     
     fun refreshSites() {
+        fetchSites(isRefresh = true)
+    }
+    
+    /**
+     * Fetches sites from repository and updates UI state
+     * @param isRefresh Whether this is a refresh operation (affects loading state)
+     */
+    private fun fetchSites(isRefresh: Boolean) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            _uiState.value = if (isRefresh) {
+                _uiState.value.copy(isRefreshing = true, error = null)
+            } else {
+                _uiState.value.copy(isLoading = true, error = null)
+            }
+            
             repository.getSites()
                 .onSuccess { sites ->
                     _uiState.value = _uiState.value.copy(
                         sites = sites,
+                        isLoading = false,
                         isRefreshing = false
                     )
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         error = exception.message ?: "Unknown error",
+                        isLoading = false,
                         isRefreshing = false
                     )
                 }
