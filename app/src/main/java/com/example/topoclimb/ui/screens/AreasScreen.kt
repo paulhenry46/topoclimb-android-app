@@ -39,7 +39,7 @@ fun AreasScreen(
             }
             uiState.error != null -> {
                 ErrorState(
-                    error = uiState.error,
+                    error = uiState.error ?: "Unknown error",
                     modifier = Modifier.padding(padding),
                     onRetry = { viewModel.loadAreas() }
                 )

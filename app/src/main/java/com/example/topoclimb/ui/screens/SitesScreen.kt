@@ -144,7 +144,7 @@ fun SitesScreen(
                 }
                 uiState.error != null -> {
                     ErrorState(
-                        error = uiState.error,
+                        error = uiState.error ?: "Unknown error",
                         onRetry = { viewModel.loadSites() }
                     )
                 }

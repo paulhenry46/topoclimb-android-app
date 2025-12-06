@@ -86,10 +86,9 @@ class PreferencesRepository(
     /**
      * Get an object from JSON
      */
-    inline fun <reified T> getObject(key: String): T? {
+    fun <T> getObject(key: String, type: java.lang.reflect.Type): T? {
         val json = getString(key) ?: return null
         return try {
-            val type = object : TypeToken<T>() {}.type
             gson.fromJson(json, type)
         } catch (e: Exception) {
             null
@@ -110,12 +109,11 @@ class PreferencesRepository(
     /**
      * Get cached data with its timestamp
      */
-    inline fun <reified T> getCachedData(dataKey: String, timeKey: String): Pair<T?, Long>? {
+    fun <T> getCachedData(dataKey: String, timeKey: String, type: java.lang.reflect.Type): Pair<T?, Long>? {
         val json = getString(dataKey) ?: return null
         val timestamp = getLong(timeKey, 0L)
         
         return try {
-            val type = object : TypeToken<T>() {}.type
             val data: T = gson.fromJson(json, type)
             data to timestamp
         } catch (e: Exception) {
