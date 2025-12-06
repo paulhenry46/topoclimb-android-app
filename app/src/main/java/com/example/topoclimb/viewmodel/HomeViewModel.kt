@@ -102,8 +102,13 @@ class HomeViewModel(
                     userName = defaultBackend?.user?.name,
                     isAuthenticated = isAuth
                 )
+                // Always load current events (they don't require auth)
+                // and new routes (based on favorite sites)
+                loadCurrentEvents()
+                
+                // Only load friend data if authenticated
                 if (isAuth) {
-                    loadAllData()
+                    loadFriendLogs()
                 }
             }
         }
@@ -114,11 +119,17 @@ class HomeViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             // Load data concurrently - all jobs start immediately
-            listOf(
-                launch { loadFriendLogs() },
+            val jobs = mutableListOf(
                 launch { loadCurrentEvents() },
                 launch { loadNewRoutes() }
-            ).joinAll()
+            )
+            
+            // Only load friend logs if authenticated
+            if (_uiState.value.isAuthenticated) {
+                jobs.add(launch { loadFriendLogs() })
+            }
+            
+            jobs.joinAll()
             
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
@@ -129,11 +140,17 @@ class HomeViewModel(
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
             
             // Load data concurrently - all jobs start immediately
-            listOf(
-                launch { loadFriendLogs() },
+            val jobs = mutableListOf(
                 launch { loadCurrentEvents() },
                 launch { loadNewRoutes() }
-            ).joinAll()
+            )
+            
+            // Only load friend logs if authenticated
+            if (_uiState.value.isAuthenticated) {
+                jobs.add(launch { loadFriendLogs() })
+            }
+            
+            jobs.joinAll()
             
             _uiState.value = _uiState.value.copy(isRefreshing = false)
         }

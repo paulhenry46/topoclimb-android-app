@@ -127,7 +127,7 @@ fun HomeScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // Current Events (Contests)
                 if (homeUiState.currentEvents.isNotEmpty()) {
@@ -154,14 +154,15 @@ fun HomeScreen(
                 if (homeUiState.friendLogs.isNotEmpty()) {
                     item {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = if (homeUiState.currentEvents.isNotEmpty()) 12.dp else 0.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Friend Activity",
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(top = if (homeUiState.currentEvents.isNotEmpty()) 4.dp else 0.dp)
+                                style = MaterialTheme.typography.titleLarge
                             )
                             TextButton(onClick = onFriendsClick) {
                                 Text("Your friends")
@@ -203,7 +204,9 @@ fun HomeScreen(
                 // Favorite Sites (max 3)
                 item {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -254,7 +257,9 @@ fun HomeScreen(
                 // Favorite Routes (max 3)
                 item {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -307,7 +312,8 @@ fun HomeScreen(
                     item {
                         Text(
                             text = "New Routes",
-                            style = MaterialTheme.typography.titleLarge
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(top = 12.dp)
                         )
                     }
                     
