@@ -59,6 +59,15 @@ fun BottomNavigationBar(navController: NavHostController) {
                             }
                             launchSingleTop = true
                         }
+                    } else if (item.route == BottomNavItem.Home.route) {
+                        // Always navigate to home and clear the stack for home
+                        navController.navigate(item.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = false // Don't restore state, always go to fresh home
+                        }
                     } else {
                         navController.navigate(item.route) {
                             // Pop up to the start destination of the graph to

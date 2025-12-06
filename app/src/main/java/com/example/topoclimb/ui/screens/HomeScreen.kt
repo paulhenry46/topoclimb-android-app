@@ -1,5 +1,11 @@
 package com.example.topoclimb.ui.screens
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,6 +61,7 @@ fun HomeScreen(
     onAllFavoriteSitesClick: () -> Unit,
     onAllFavoriteRoutesClick: () -> Unit,
     onAllSitesClick: () -> Unit,
+    onFriendsClick: () -> Unit = {},
     onUserClick: (Int, String) -> Unit = { _, _ -> },
     homeViewModel: HomeViewModel = viewModel(),
     sitesViewModel: SitesViewModel = viewModel(),
@@ -146,11 +153,25 @@ fun HomeScreen(
                 // Friend Activity
                 if (homeUiState.friendLogs.isNotEmpty()) {
                     item {
-                        Text(
-                            text = "Friend Activity",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(top = if (homeUiState.currentEvents.isNotEmpty()) 4.dp else 0.dp)
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Friend Activity",
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.padding(top = if (homeUiState.currentEvents.isNotEmpty()) 4.dp else 0.dp)
+                            )
+                            TextButton(onClick = onFriendsClick) {
+                                Text("Your friends")
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                     }
                     
                     items(homeUiState.friendLogs.take(10)) { friendLog ->
@@ -341,108 +362,78 @@ private fun CurrentEventCard(
 ) {
     val contest = event.contest
     
-    // Calculate days remaining
-    val daysRemaining = try {
-        contest.endDate?.let { endDateStr ->
-            val endDate = LocalDate.parse(endDateStr.substring(0, 10))
-            val today = LocalDate.now()
-            ChronoUnit.DAYS.between(today, endDate).toInt()
-        }
-    } catch (e: Exception) {
-        null
-    }
+    // Pulsing animation for the ongoing indicator
+    val infiniteTransition = rememberInfiniteTransition(label = "ongoing_pulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
     
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(12.dp)
+            )
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.EmojiEvents,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
+            // Animated indicator dot
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                        shape = CircleShape
+                    )
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            // Contest info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = contest.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                event.siteName?.let { siteName ->
                     Text(
-                        text = contest.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        text = siteName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    event.siteName?.let { siteName ->
-                        Text(
-                            text = siteName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Status badge
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Ongoing",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
-                }
-                
-                // Days remaining
-                daysRemaining?.let { days ->
-                    if (days > 0) {
-                        Text(
-                            text = "$days days left",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        )
-                    } else if (days == 0) {
-                        Text(
-                            text = "Last day!",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
+            // Chevron to access site
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Go to site",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -473,8 +464,13 @@ private fun FriendLogCard(
         }
     } ?: ""
     
-    // Shape for type icon container
-    val typeIconShape = RoundedCornerShape(8.dp)
+    // Shape for type icon container - same rounded corners as grade badge
+    val typeIconShape = RoundedCornerShape(
+        topStart = 8.dp,
+        topEnd = 0.dp,
+        bottomEnd = 0.dp,
+        bottomStart = 8.dp
+    )
     
     // Shape for grade badge: rounded only on right side
     val gradeBadgeShape = RoundedCornerShape(
@@ -492,23 +488,23 @@ private fun FriendLogCard(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Type icon
+        // Type icon - same height as picture+grade section (50.dp) with neutral background
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(50.dp)
                 .clip(typeIconShape)
-                .background(getTypeColor(friendLog.logType)),
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = getTypeIcon(friendLog.logType),
                 contentDescription = friendLog.logType,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(28.dp)
             )
         }
         
-        // Date and Friend name column (replacing Type name with Friend name)
+        // Date and Friend name column
         Column(
             modifier = Modifier.width(80.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -520,13 +516,13 @@ private fun FriendLogCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            // Friend name (instead of type name)
+            // Friend name - neutral color instead of primary
             Text(
                 text = friendLog.friendName,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
