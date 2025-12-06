@@ -144,27 +144,27 @@ class HomeViewModel(
      * Load cached data from SharedPreferences for instant display
      */
     private fun loadFromCache() {
-        // Load cached events
-        val eventsJson = sharedPreferences.getString(EVENTS_CACHE_KEY, null)
-        if (eventsJson != null) {
-            try {
-                val type = object : TypeToken<List<CurrentEventWithSite>>() {}.type
-                val cachedEvents: List<CurrentEventWithSite> = gson.fromJson(eventsJson, type)
-                _uiState.value = _uiState.value.copy(currentEvents = cachedEvents)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading cached events", e)
-            }
+        loadCachedData(EVENTS_CACHE_KEY) { cachedEvents: List<CurrentEventWithSite> ->
+            _uiState.value = _uiState.value.copy(currentEvents = cachedEvents)
         }
         
-        // Load cached friend logs
-        val friendLogsJson = sharedPreferences.getString(FRIEND_LOGS_CACHE_KEY, null)
-        if (friendLogsJson != null) {
+        loadCachedData(FRIEND_LOGS_CACHE_KEY) { cachedLogs: List<FriendLogWithDetails> ->
+            _uiState.value = _uiState.value.copy(friendLogs = cachedLogs)
+        }
+    }
+    
+    /**
+     * Generic function to load cached data from SharedPreferences
+     */
+    private inline fun <reified T> loadCachedData(cacheKey: String, crossinline onSuccess: (T) -> Unit) {
+        val json = sharedPreferences.getString(cacheKey, null)
+        if (json != null) {
             try {
-                val type = object : TypeToken<List<FriendLogWithDetails>>() {}.type
-                val cachedLogs: List<FriendLogWithDetails> = gson.fromJson(friendLogsJson, type)
-                _uiState.value = _uiState.value.copy(friendLogs = cachedLogs)
+                val type = object : TypeToken<T>() {}.type
+                val cachedData: T = gson.fromJson(json, type)
+                onSuccess(cachedData)
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading cached friend logs", e)
+                Log.e(TAG, "Error loading cached data for $cacheKey", e)
             }
         }
     }
@@ -173,56 +173,50 @@ class HomeViewModel(
      * Save current events to cache
      */
     private fun saveEventsToCache(events: List<CurrentEventWithSite>) {
-        try {
-            val json = gson.toJson(events)
-            sharedPreferences.edit()
-                .putString(EVENTS_CACHE_KEY, json)
-                .putLong(EVENTS_CACHE_TIME_KEY, System.currentTimeMillis())
-                .apply()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving events to cache", e)
-        }
+        saveCacheData(EVENTS_CACHE_KEY, EVENTS_CACHE_TIME_KEY, events)
     }
     
     /**
      * Save friend logs to cache
      */
     private fun saveFriendLogsToCache(logs: List<FriendLogWithDetails>) {
+        saveCacheData(FRIEND_LOGS_CACHE_KEY, FRIEND_LOGS_CACHE_TIME_KEY, logs)
+    }
+    
+    /**
+     * Generic function to save data to cache with timestamp
+     */
+    private fun <T> saveCacheData(dataKey: String, timeKey: String, data: T) {
         try {
-            val json = gson.toJson(logs)
+            val json = gson.toJson(data)
             sharedPreferences.edit()
-                .putString(FRIEND_LOGS_CACHE_KEY, json)
-                .putLong(FRIEND_LOGS_CACHE_TIME_KEY, System.currentTimeMillis())
+                .putString(dataKey, json)
+                .putLong(timeKey, System.currentTimeMillis())
                 .apply()
         } catch (e: Exception) {
-            Log.e(TAG, "Error saving friend logs to cache", e)
+            Log.e(TAG, "Error saving data to cache for $dataKey", e)
         }
     }
     
     fun loadAllData() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
-            // Load data concurrently - all jobs start immediately
-            val jobs = mutableListOf(
-                launch { loadCurrentEvents() },
-                launch { loadNewRoutes() }
-            )
-            
-            // Only load friend logs if authenticated
-            if (_uiState.value.isAuthenticated) {
-                jobs.add(launch { loadFriendLogs() })
-            }
-            
-            jobs.joinAll()
-            
-            _uiState.value = _uiState.value.copy(isLoading = false)
-        }
+        loadDataConcurrently(isRefresh = false)
     }
     
     fun refresh() {
+        loadDataConcurrently(isRefresh = true)
+    }
+    
+    /**
+     * Loads all data concurrently
+     * @param isRefresh Whether this is a refresh operation (affects loading state)
+     */
+    private fun loadDataConcurrently(isRefresh: Boolean) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            _uiState.value = if (isRefresh) {
+                _uiState.value.copy(isRefreshing = true, error = null)
+            } else {
+                _uiState.value.copy(isLoading = true, error = null)
+            }
             
             // Load data concurrently - all jobs start immediately
             val jobs = mutableListOf(
@@ -237,7 +231,11 @@ class HomeViewModel(
             
             jobs.joinAll()
             
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
+            _uiState.value = if (isRefresh) {
+                _uiState.value.copy(isRefreshing = false)
+            } else {
+                _uiState.value.copy(isLoading = false)
+            }
         }
     }
     

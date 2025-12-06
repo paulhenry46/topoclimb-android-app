@@ -1,6 +1,7 @@
 package com.example.topoclimb.utils
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -35,3 +36,16 @@ inline fun <T> T?.orElse(block: () -> T): T = this ?: block()
  * Extension to transform a nullable value
  */
 inline fun <T, R> T?.letIfNotNull(block: (T) -> R): R? = this?.let(block)
+
+/**
+ * Extension to safely update MutableStateFlow with a copy operation
+ */
+inline fun <T> MutableStateFlow<T>.update(function: (T) -> T) {
+    value = function(value)
+}
+
+/**
+ * Extension to check if a list is not null or empty
+ */
+fun <T> List<T>?.isNotNullOrEmpty(): Boolean = !this.isNullOrEmpty()
+

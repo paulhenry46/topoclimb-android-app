@@ -37,9 +37,7 @@ object GradeUtils {
      */
     fun gradeToPoints(grade: String, gradingSystem: GradingSystem?): Int {
         // Validate input
-        if (grade.isBlank()) {
-            return 0
-        }
+        if (grade.isBlank()) return 0
         
         // First try to use the grading system if available
         gradingSystem?.points?.get(grade)?.let { return it }
@@ -131,9 +129,7 @@ object GradeUtils {
         val number = baseValue / 10
         
         // Validate ranges
-        if (number < 3 || number > 9 || letter < 0 || letter > 2) {
-            return null
-        }
+        if (number !in 3..9 || letter !in 0..2) return null
         
         val letterChar = when (letter) {
             0 -> "a"

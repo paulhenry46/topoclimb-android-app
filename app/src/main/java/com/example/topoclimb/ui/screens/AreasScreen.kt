@@ -8,12 +8,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Federated
+import com.example.topoclimb.ui.components.ErrorState
+import com.example.topoclimb.ui.components.LoadingState
 import com.example.topoclimb.viewmodel.AreasViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,33 +35,14 @@ fun AreasScreen(
     ) { padding ->
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                LoadingState(modifier = Modifier.padding(padding))
             }
             uiState.error != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Error: ${uiState.error}",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadAreas() }) {
-                            Text("Retry")
-                        }
-                    }
-                }
+                ErrorState(
+                    error = uiState.error,
+                    modifier = Modifier.padding(padding),
+                    onRetry = { viewModel.loadAreas() }
+                )
             }
             else -> {
                 LazyColumn(
