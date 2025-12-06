@@ -16,6 +16,10 @@ val White = Color(0xFFFFFFFF)
 val DarkGray = Color(0xFF212121)
 val LightGray = Color(0xFFF5F5F5)
 
+// New dark theme background colors
+val DarkBlueBackground = Color(0xFF0e1326) // New default dark background
+val DarkBlueSurface = Color(0xFF232a3d) // New default card/surface color
+
 // Warning/Orange colors for less aggressive notifications
 val Orange80 = Color(0xFFFFCC80) // Light orange for dark theme
 val Orange40 = Color(0xFFFF9800) // Orange for light theme

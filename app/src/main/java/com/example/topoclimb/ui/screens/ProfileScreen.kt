@@ -580,6 +580,35 @@ fun ProfileScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     
+                    // OLED Dark Theme Toggle
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val themePreferencesRepository = remember { com.example.topoclimb.repository.ThemePreferencesRepository(context) }
+                    val useOledDark by themePreferencesRepository.useOledDark.collectAsState()
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "True OLED Dark",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = "Use pure black background for OLED displays",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = useOledDark,
+                            onCheckedChange = { themePreferencesRepository.setUseOledDark(it) }
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
                     Button(
                         onClick = onManageBackendsClick,
                         modifier = Modifier.fillMaxWidth()

@@ -109,6 +109,9 @@ fun AreaDetailScreen(
     // State for filter modal
     var showFilterModal by remember { mutableStateOf(false) }
     
+    // State for search bar
+    var showSearchBar by remember { mutableStateOf(false) }
+    
     // Check if there are active filters (excluding search query)
     val hasActiveFilters = uiState.minGrade != null || uiState.maxGrade != null || 
         uiState.showNewRoutesOnly || uiState.climbedFilter != com.example.topoclimb.ui.state.ClimbedFilter.ALL || 
@@ -144,6 +147,22 @@ fun AreaDetailScreen(
                                     .offset(x = (-8).dp, y = 8.dp)
                             )
                         }
+                    }
+                    
+                    // Search icon
+                    IconButton(
+                        onClick = {
+                            showSearchBar = !showSearchBar
+                            if (!showSearchBar) {
+                                viewModel.updateSearchQuery("") // Clear search when hiding
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = if (showSearchBar) "Close search" else "Search",
+                            tint = if (showSearchBar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     
                     // Show view mode toggle for trad areas (regardless of schema availability)
@@ -200,18 +219,59 @@ fun AreaDetailScreen(
                 }
             }
             uiState.area != null -> {
-                PullToRefreshBox(
-                    isRefreshing = uiState.isRefreshing,
-                    onRefresh = { viewModel.refreshAreaDetails() },
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    // Animated search bar
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showSearchBar,
+                        enter = androidx.compose.animation.slideInVertically(initialOffsetY = { -it }) + androidx.compose.animation.expandVertically(),
+                        exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { -it }) + androidx.compose.animation.shrinkVertically()
                     ) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.searchQuery,
+                                onValueChange = { viewModel.updateSearchQuery(it) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                placeholder = { Text("Search routes...") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search"
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (uiState.searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Clear,
+                                                contentDescription = "Clear"
+                                            )
+                                        }
+                                    }
+                                },
+                                singleLine = true
+                            )
+                        }
+                    }
+                    
+                    PullToRefreshBox(
+                        isRefreshing = uiState.isRefreshing,
+                        onRefresh = { viewModel.refreshAreaDetails() },
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
                     // Map or Schema section based on view mode
                     if (uiState.viewMode == ViewMode.SCHEMA) {
                         // Schema view mode
@@ -704,6 +764,7 @@ fun AreaDetailScreen(
                         }
                     }
                     }
+                }
                 }
             }
         }

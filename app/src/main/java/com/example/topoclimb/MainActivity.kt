@@ -4,7 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.example.topoclimb.network.RetrofitInstance
+import com.example.topoclimb.repository.ThemePreferencesRepository
 import com.example.topoclimb.ui.TopoClimbApp
 import com.example.topoclimb.ui.theme.TopoClimbTheme
 
@@ -17,7 +20,10 @@ class MainActivity : ComponentActivity() {
         
         enableEdgeToEdge()
         setContent {
-            TopoClimbTheme {
+            val themePreferencesRepository = ThemePreferencesRepository(applicationContext)
+            val useOledDark by themePreferencesRepository.useOledDark.collectAsState()
+            
+            TopoClimbTheme(useOledDark = useOledDark) {
                 TopoClimbApp()
             }
         }

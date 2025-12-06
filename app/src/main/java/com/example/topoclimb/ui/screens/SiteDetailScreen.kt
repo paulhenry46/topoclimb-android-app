@@ -438,11 +438,12 @@ fun ContestItem(contest: Contest, onClick: () -> Unit = {}) {
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (contestState == ContestState.PAST) 
-                MaterialTheme.colorScheme.surfaceVariant 
-            else 
-                MaterialTheme.colorScheme.surface
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = if (contestState == ContestState.ONGOING) 
+            androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        else 
+            null
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
