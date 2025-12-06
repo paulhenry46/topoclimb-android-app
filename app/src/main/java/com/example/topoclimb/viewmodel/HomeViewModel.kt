@@ -1,6 +1,7 @@
 package com.example.topoclimb.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,9 @@ import com.example.topoclimb.data.Site
 import com.example.topoclimb.network.MultiBackendRetrofitManager
 import com.example.topoclimb.repository.BackendConfigRepository
 import com.example.topoclimb.repository.FederatedTopoClimbRepository
+import com.example.topoclimb.utils.CacheUtils
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -84,16 +88,29 @@ class HomeViewModel(
         private const val MAX_SITES_FOR_NEW_ROUTES = 3
         private const val MAX_ROUTES_PER_SITE = 5
         private const val MAX_NEW_ROUTES = 10
+        
+        // Cache keys
+        private const val PREFS_NAME = "home_cache_prefs"
+        private const val EVENTS_CACHE_KEY = "current_events_cache"
+        private const val EVENTS_CACHE_TIME_KEY = "current_events_cache_time"
+        private const val FRIEND_LOGS_CACHE_KEY = "friend_logs_cache"
+        private const val FRIEND_LOGS_CACHE_TIME_KEY = "friend_logs_cache_time"
     }
     
     private val backendConfigRepository = BackendConfigRepository(application)
     private val federatedRepository = FederatedTopoClimbRepository(application)
     private val retrofitManager = MultiBackendRetrofitManager()
     
+    private val sharedPreferences = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val gson = Gson()
+    
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
     
     init {
+        // Load from cache first (instant display)
+        loadFromCache()
+        
         viewModelScope.launch {
             backendConfigRepository.backends.collect { backends ->
                 val defaultBackend = backendConfigRepository.getDefaultBackend()
@@ -102,15 +119,83 @@ class HomeViewModel(
                     userName = defaultBackend?.user?.name,
                     isAuthenticated = isAuth
                 )
-                // Always load current events (they don't require auth)
-                // and new routes (based on favorite sites)
-                loadCurrentEvents()
+                
+                // Check if cache is stale and refresh from network
+                val eventsCacheTime = sharedPreferences.getLong(EVENTS_CACHE_TIME_KEY, 0)
+                val friendLogsCacheTime = sharedPreferences.getLong(FRIEND_LOGS_CACHE_TIME_KEY, 0)
+                
+                // Refresh events if cache is stale or empty
+                if (CacheUtils.isCacheStale(eventsCacheTime) || _uiState.value.currentEvents.isEmpty()) {
+                    loadCurrentEvents()
+                }
                 
                 // Only load friend data if authenticated
                 if (isAuth) {
-                    loadFriendLogs()
+                    // Refresh friend logs if cache is stale or empty
+                    if (CacheUtils.isCacheStale(friendLogsCacheTime) || _uiState.value.friendLogs.isEmpty()) {
+                        loadFriendLogs()
+                    }
                 }
             }
+        }
+    }
+    
+    /**
+     * Load cached data from SharedPreferences for instant display
+     */
+    private fun loadFromCache() {
+        // Load cached events
+        val eventsJson = sharedPreferences.getString(EVENTS_CACHE_KEY, null)
+        if (eventsJson != null) {
+            try {
+                val type = object : TypeToken<List<CurrentEventWithSite>>() {}.type
+                val cachedEvents: List<CurrentEventWithSite> = gson.fromJson(eventsJson, type)
+                _uiState.value = _uiState.value.copy(currentEvents = cachedEvents)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading cached events", e)
+            }
+        }
+        
+        // Load cached friend logs
+        val friendLogsJson = sharedPreferences.getString(FRIEND_LOGS_CACHE_KEY, null)
+        if (friendLogsJson != null) {
+            try {
+                val type = object : TypeToken<List<FriendLogWithDetails>>() {}.type
+                val cachedLogs: List<FriendLogWithDetails> = gson.fromJson(friendLogsJson, type)
+                _uiState.value = _uiState.value.copy(friendLogs = cachedLogs)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading cached friend logs", e)
+            }
+        }
+    }
+    
+    /**
+     * Save current events to cache
+     */
+    private fun saveEventsToCache(events: List<CurrentEventWithSite>) {
+        try {
+            val json = gson.toJson(events)
+            sharedPreferences.edit()
+                .putString(EVENTS_CACHE_KEY, json)
+                .putLong(EVENTS_CACHE_TIME_KEY, System.currentTimeMillis())
+                .apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving events to cache", e)
+        }
+    }
+    
+    /**
+     * Save friend logs to cache
+     */
+    private fun saveFriendLogsToCache(logs: List<FriendLogWithDetails>) {
+        try {
+            val json = gson.toJson(logs)
+            sharedPreferences.edit()
+                .putString(FRIEND_LOGS_CACHE_KEY, json)
+                .putLong(FRIEND_LOGS_CACHE_TIME_KEY, System.currentTimeMillis())
+                .apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving friend logs to cache", e)
         }
     }
     
@@ -220,6 +305,9 @@ class HomeViewModel(
             // Sort by created date and take the most recent 10
             val sortedLogs = allLogs.sortedByDescending { it.logCreatedAt }.take(MAX_FRIEND_LOGS)
             
+            // Save to cache
+            saveFriendLogsToCache(sortedLogs)
+            
             _uiState.value = _uiState.value.copy(
                 friendLogs = sortedLogs,
                 isLoadingFriendLogs = false
@@ -271,6 +359,9 @@ class HomeViewModel(
                     Log.e(TAG, "Error loading events from ${backend.name}", e)
                 }
             }
+            
+            // Save to cache
+            saveEventsToCache(allEvents)
             
             _uiState.value = _uiState.value.copy(
                 currentEvents = allEvents,

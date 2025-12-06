@@ -184,7 +184,8 @@ fun HomeScreen(
                             }
                         )
                     }
-                } else if (homeUiState.isLoadingFriendLogs) {
+                } else if (homeUiState.isLoadingFriendLogs || homeUiState.isLoadingEvents) {
+                    // Show loading spinner while loading from network
                     item {
                         Box(
                             modifier = Modifier
@@ -195,7 +196,8 @@ fun HomeScreen(
                             CircularProgressIndicator()
                         }
                     }
-                } else if (homeUiState.currentEvents.isEmpty()) {
+                } else if (homeUiState.currentEvents.isEmpty() && homeUiState.friendLogs.isEmpty()) {
+                    // Only show empty card when no contests AND no friend activity
                     item {
                         EmptyNewsCard()
                     }
