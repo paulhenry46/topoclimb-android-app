@@ -3,6 +3,11 @@ package com.example.topoclimb.ui.screens
 import android.annotation.SuppressLint
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -225,10 +230,10 @@ fun AreaDetailScreen(
                         .padding(padding)
                 ) {
                     // Animated search bar
-                    androidx.compose.animation.AnimatedVisibility(
+                    AnimatedVisibility(
                         visible = showSearchBar,
-                        enter = androidx.compose.animation.slideInVertically(initialOffsetY = { -it }) + androidx.compose.animation.expandVertically(),
-                        exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { -it }) + androidx.compose.animation.shrinkVertically()
+                        enter = slideInVertically(initialOffsetY = { -it }) + expandVertically(),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + shrinkVertically()
                     ) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),

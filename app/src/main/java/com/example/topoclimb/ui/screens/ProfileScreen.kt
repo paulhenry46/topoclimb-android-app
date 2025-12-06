@@ -28,11 +28,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.SubcomposeAsyncImage
 import com.example.topoclimb.R
+import com.example.topoclimb.repository.ThemePreferencesRepository
 import com.example.topoclimb.ui.components.profile.*
 import com.example.topoclimb.ui.theme.Orange40
 import com.example.topoclimb.ui.theme.Orange80
@@ -581,13 +583,13 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     // OLED Dark Theme Toggle
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    val themePreferencesRepository = remember { com.example.topoclimb.repository.ThemePreferencesRepository(context) }
+                    val context = LocalContext.current
+                    val themePreferencesRepository = remember { ThemePreferencesRepository(context) }
                     val useOledDark by themePreferencesRepository.useOledDark.collectAsState()
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
