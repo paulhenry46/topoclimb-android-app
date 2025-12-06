@@ -584,7 +584,7 @@ fun ProfileScreen(
                     
                     // OLED Dark Theme Toggle
                     val context = LocalContext.current
-                    val themePreferencesRepository = remember { ThemePreferencesRepository(context) }
+                    val themePreferencesRepository = remember { ThemePreferencesRepository.getInstance(context) }
                     val useOledDark by themePreferencesRepository.useOledDark.collectAsState()
                     
                     Row(

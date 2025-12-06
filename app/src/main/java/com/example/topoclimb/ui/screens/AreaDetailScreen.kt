@@ -645,14 +645,6 @@ fun AreaDetailScreen(
                         }
                     }
                     
-                    // Filter section - now only search bar
-                    item {
-                        FilterSection(
-                            searchQuery = uiState.searchQuery,
-                            onSearchQueryChange = { viewModel.updateSearchQuery(it) }
-                        )
-                    }
-                    
                     // Routes section
                     if (uiState.routes.isNotEmpty()) {
                         // Group routes if grouping is enabled
@@ -823,45 +815,6 @@ fun AreaDetailScreen(
                 onContestStepSelected = { stepId, routeIds -> viewModel.setContestStepFilter(stepId, routeIds) },
                 onClearFilters = { viewModel.clearFilters() },
                 onDismiss = { showFilterModal = false }
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FilterSection(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Search bar only
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search routes...") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary
-                )
             )
         }
     }

@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         
         enableEdgeToEdge()
         setContent {
-            val themePreferencesRepository = remember { ThemePreferencesRepository(applicationContext) }
+            val themePreferencesRepository = remember { ThemePreferencesRepository.getInstance(applicationContext) }
             val useOledDark by themePreferencesRepository.useOledDark.collectAsState()
             
             TopoClimbTheme(useOledDark = useOledDark) {
