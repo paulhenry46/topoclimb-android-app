@@ -1,4 +1,6 @@
 package com.example.topoclimb.data
+
+import androidx.compose.runtime.Stable
 import com.google.gson.annotations.SerializedName
 
 object AreaType {
@@ -6,6 +8,7 @@ object AreaType {
     const val BOULDERING = "bouldering"
 }
 
+@Stable
 data class Area(
     val id: Int,
     val name: String,

@@ -1,7 +1,9 @@
 package com.example.topoclimb.data
 
+import androidx.compose.runtime.Stable
 import com.google.gson.annotations.SerializedName
 
+@Stable
 data class Route(
     val id: Int,
     val name: String,
@@ -35,6 +37,7 @@ data class Route(
  * Route with additional display metadata (line/sector info)
  * Used when displaying routes that have been filtered by sector/line
  */
+@Stable
 data class RouteWithMetadata(
     val route: Route,
     val lineLocalId: String? = null,

@@ -30,6 +30,9 @@ import coil.compose.AsyncImage
 import com.example.topoclimb.R
 import com.example.topoclimb.data.Federated
 import com.example.topoclimb.data.Site
+import com.example.topoclimb.ui.components.EmptyState
+import com.example.topoclimb.ui.components.ErrorState
+import com.example.topoclimb.ui.components.LoadingState
 import com.example.topoclimb.viewmodel.SitesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,29 +140,13 @@ fun SitesScreen(
             // Content
             when {
                 uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    LoadingState()
                 }
                 uiState.error != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "Error: ${uiState.error}",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.loadSites() }) {
-                                Text("Retry")
-                            }
-                        }
-                    }
+                    ErrorState(
+                        error = uiState.error,
+                        onRetry = { viewModel.loadSites() }
+                    )
                 }
                 else -> {
                     PullToRefreshBox(

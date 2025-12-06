@@ -1,7 +1,9 @@
 package com.example.topoclimb.data
 
+import androidx.compose.runtime.Stable
 import com.google.gson.annotations.SerializedName
 
+@Stable
 data class Site(
     val id: Int,
     val name: String,
