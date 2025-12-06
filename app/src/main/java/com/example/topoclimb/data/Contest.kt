@@ -1,7 +1,9 @@
 package com.example.topoclimb.data
 
+import androidx.compose.runtime.Stable
 import com.google.gson.annotations.SerializedName
 
+@Stable
 data class Contest(
     val id: Int,
     val name: String,
@@ -13,6 +15,7 @@ data class Contest(
     @SerializedName("updated_at") val updatedAt: String?
 )
 
+@Stable
 data class ContestStep(
     val id: Int,
     val name: String,
@@ -21,10 +24,12 @@ data class ContestStep(
     val routes: List<Int>
 )
 
+@Stable
 data class ContestStepsResponse(
     val steps: List<ContestStep>
 )
 
+@Stable
 data class ContestRankEntry(
     @SerializedName("user_id") val userId: Int,
     @SerializedName("user_name") val userName: String,
@@ -33,10 +38,12 @@ data class ContestRankEntry(
     val rank: Int
 )
 
+@Stable
 data class ContestRankResponse(
     val rank: List<ContestRankEntry>
 )
 
+@Stable
 data class ContestCategory(
     val id: Int,
     val name: String,
@@ -50,6 +57,7 @@ data class ContestCategory(
     @SerializedName("updated_at") val updatedAt: String?
 )
 
+@Stable
 data class ContestCategoriesResponse(
     val data: List<ContestCategory>
 )
@@ -58,6 +66,7 @@ data class ContestCategoriesResponse(
  * Response from /v1/current_events endpoint
  * Returns contests that are currently happening across all sites
  */
+@Stable
 data class CurrentEventsResponse(
     val data: List<Contest>
 )

@@ -1,6 +1,7 @@
 package com.example.topoclimb.viewmodel
 
 import android.app.Application
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Area
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+@Stable
 data class AreasUiState(
     val areas: List<Federated<Area>> = emptyList(),
     val isLoading: Boolean = false,

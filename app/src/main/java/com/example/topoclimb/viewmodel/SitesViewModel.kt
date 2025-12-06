@@ -2,6 +2,7 @@ package com.example.topoclimb.viewmodel
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topoclimb.data.Federated
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
+@Stable
 data class SitesUiState(
     val sites: List<Federated<Site>> = emptyList(),
     val isLoading: Boolean = false,

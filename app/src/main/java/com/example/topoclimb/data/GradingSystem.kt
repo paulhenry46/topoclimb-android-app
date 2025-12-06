@@ -1,5 +1,6 @@
 package com.example.topoclimb.data
 
+import androidx.compose.runtime.Stable
 import com.google.gson.annotations.SerializedName
 
 /**
@@ -9,6 +10,7 @@ import com.google.gson.annotations.SerializedName
  * @property hint Hint or description about the grading system
  * @property points Map of grade strings (e.g., "6a", "7b+") to their point values
  */
+@Stable
 data class GradingSystem(
     val free: Boolean?,
     val hint: String?,
