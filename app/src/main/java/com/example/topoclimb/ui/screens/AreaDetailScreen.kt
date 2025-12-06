@@ -3,6 +3,11 @@ package com.example.topoclimb.ui.screens
 import android.annotation.SuppressLint
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -109,6 +114,9 @@ fun AreaDetailScreen(
     // State for filter modal
     var showFilterModal by remember { mutableStateOf(false) }
     
+    // State for search bar
+    var showSearchBar by remember { mutableStateOf(false) }
+    
     // Check if there are active filters (excluding search query)
     val hasActiveFilters = uiState.minGrade != null || uiState.maxGrade != null || 
         uiState.showNewRoutesOnly || uiState.climbedFilter != com.example.topoclimb.ui.state.ClimbedFilter.ALL || 
@@ -144,6 +152,22 @@ fun AreaDetailScreen(
                                     .offset(x = (-8).dp, y = 8.dp)
                             )
                         }
+                    }
+                    
+                    // Search icon
+                    IconButton(
+                        onClick = {
+                            showSearchBar = !showSearchBar
+                            if (!showSearchBar) {
+                                viewModel.updateSearchQuery("") // Clear search when hiding
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = if (showSearchBar) "Close search" else "Search",
+                            tint = if (showSearchBar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     
                     // Show view mode toggle for trad areas (regardless of schema availability)
@@ -200,18 +224,59 @@ fun AreaDetailScreen(
                 }
             }
             uiState.area != null -> {
-                PullToRefreshBox(
-                    isRefreshing = uiState.isRefreshing,
-                    onRefresh = { viewModel.refreshAreaDetails() },
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    // Animated search bar
+                    AnimatedVisibility(
+                        visible = showSearchBar,
+                        enter = slideInVertically(initialOffsetY = { -it }) + expandVertically(),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + shrinkVertically()
                     ) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.searchQuery,
+                                onValueChange = { viewModel.updateSearchQuery(it) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                placeholder = { Text("Search routes...") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search"
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (uiState.searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Clear,
+                                                contentDescription = "Clear"
+                                            )
+                                        }
+                                    }
+                                },
+                                singleLine = true
+                            )
+                        }
+                    }
+                    
+                    PullToRefreshBox(
+                        isRefreshing = uiState.isRefreshing,
+                        onRefresh = { viewModel.refreshAreaDetails() },
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
                     // Map or Schema section based on view mode
                     if (uiState.viewMode == ViewMode.SCHEMA) {
                         // Schema view mode
@@ -580,14 +645,6 @@ fun AreaDetailScreen(
                         }
                     }
                     
-                    // Filter section - now only search bar
-                    item {
-                        FilterSection(
-                            searchQuery = uiState.searchQuery,
-                            onSearchQueryChange = { viewModel.updateSearchQuery(it) }
-                        )
-                    }
-                    
                     // Routes section
                     if (uiState.routes.isNotEmpty()) {
                         // Group routes if grouping is enabled
@@ -705,6 +762,7 @@ fun AreaDetailScreen(
                     }
                     }
                 }
+                }
             }
         }
         
@@ -757,45 +815,6 @@ fun AreaDetailScreen(
                 onContestStepSelected = { stepId, routeIds -> viewModel.setContestStepFilter(stepId, routeIds) },
                 onClearFilters = { viewModel.clearFilters() },
                 onDismiss = { showFilterModal = false }
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FilterSection(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Search bar only
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search routes...") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary
-                )
             )
         }
     }

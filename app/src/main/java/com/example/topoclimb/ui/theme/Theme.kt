@@ -12,7 +12,41 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+// Default dark color scheme with new background colors
 private val DarkColorScheme = darkColorScheme(
+    primary = LightBlue80,
+    onPrimary = DarkGray,
+    primaryContainer = LightBlue60,
+    onPrimaryContainer = Black,
+    secondary = Gray80,
+    onSecondary = DarkGray,
+    secondaryContainer = Gray60,
+    onSecondaryContainer = White,
+    tertiary = LightBlue60,
+    onTertiary = DarkGray,
+    tertiaryContainer = Gray60,
+    onTertiaryContainer = White,
+    background = DarkBlueBackground,
+    onBackground = White,
+    surface = DarkBlueSurface,
+    onSurface = White,
+    surfaceVariant = DarkBlueSurface,
+    onSurfaceVariant = Gray80,
+    surfaceContainer = DarkBlueSurface,
+    surfaceContainerHigh = DarkBlueSurface,
+    surfaceContainerHighest = DarkBlueSurface,
+    surfaceContainerLow = DarkBlueSurface,
+    surfaceContainerLowest = DarkBlueSurface,
+    error = Color(0xFFCF6679),
+    onError = Black,
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
+    outline = Gray60,
+    outlineVariant = Gray40
+)
+
+// OLED dark color scheme (true black for OLED displays)
+private val OledDarkColorScheme = darkColorScheme(
     primary = LightBlue80,
     onPrimary = DarkGray,
     primaryContainer = LightBlue60,
@@ -69,6 +103,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun TopoClimbTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    useOledDark: Boolean = false,
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
@@ -79,7 +114,7 @@ fun TopoClimbTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
+        darkTheme -> if (useOledDark) OledDarkColorScheme else DarkColorScheme
         else -> LightColorScheme
     }
 

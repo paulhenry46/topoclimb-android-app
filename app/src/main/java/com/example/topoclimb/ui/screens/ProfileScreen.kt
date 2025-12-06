@@ -28,11 +28,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.SubcomposeAsyncImage
 import com.example.topoclimb.R
+import com.example.topoclimb.repository.ThemePreferencesRepository
 import com.example.topoclimb.ui.components.profile.*
 import com.example.topoclimb.ui.theme.Orange40
 import com.example.topoclimb.ui.theme.Orange80
@@ -578,6 +580,35 @@ fun ProfileScreen(
                         text = "Settings",
                         style = MaterialTheme.typography.titleMedium
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // OLED Dark Theme Toggle
+                    val context = LocalContext.current
+                    val themePreferencesRepository = remember { ThemePreferencesRepository.getInstance(context) }
+                    val useOledDark by themePreferencesRepository.useOledDark.collectAsState()
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "True OLED Dark",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = "Use pure black background for OLED displays",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = useOledDark,
+                            onCheckedChange = { themePreferencesRepository.setUseOledDark(it) }
+                        )
+                    }
+                    
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Button(

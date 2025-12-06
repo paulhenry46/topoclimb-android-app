@@ -3,6 +3,7 @@ package com.example.topoclimb.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -438,11 +439,12 @@ fun ContestItem(contest: Contest, onClick: () -> Unit = {}) {
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (contestState == ContestState.PAST) 
-                MaterialTheme.colorScheme.surfaceVariant 
-            else 
-                MaterialTheme.colorScheme.surface
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = if (contestState == ContestState.ONGOING) 
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        else 
+            null
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
