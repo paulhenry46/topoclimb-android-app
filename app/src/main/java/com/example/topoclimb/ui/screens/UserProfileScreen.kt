@@ -452,8 +452,13 @@ fun UserRouteLogCard(
         }
     } ?: ""
     
-    // Shape for type icon container
-    val typeIconShape = RoundedCornerShape(8.dp)
+    // Shape for type icon container - same rounded corners as grade badge
+    val typeIconShape = RoundedCornerShape(
+        topStart = 8.dp,
+        topEnd = 0.dp,
+        bottomEnd = 0.dp,
+        bottomStart = 8.dp
+    )
     
     // Shape for grade badge: rounded only on right side
     val gradeBadgeShape = RoundedCornerShape(
@@ -479,23 +484,23 @@ fun UserRouteLogCard(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Type icon
+        // Type icon - same height as picture+grade section (50.dp) with neutral background
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(50.dp)
                 .clip(typeIconShape)
-                .background(getTypeColor(log.type)),
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = getTypeIcon(log.type),
                 contentDescription = log.type,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(28.dp)
             )
         }
         
-        // Date and Type name column (almost glued to icon)
+        // Date and Type name column
         Column(
             modifier = Modifier.width(80.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -507,13 +512,13 @@ fun UserRouteLogCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            // Type name
+            // Type name - neutral color instead of primary
             Text(
                 text = typeDisplayName,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
         

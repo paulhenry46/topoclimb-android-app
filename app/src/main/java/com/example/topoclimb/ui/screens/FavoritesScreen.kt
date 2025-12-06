@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -29,6 +30,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun FavoritesScreen(
     onSiteClick: (String, Int) -> Unit,
+    onBackClick: (() -> Unit)? = null,
     viewModel: SitesViewModel = viewModel(),
     favoriteRoutesViewModel: FavoriteRoutesViewModel = viewModel(),
     friendsViewModel: com.example.topoclimb.viewmodel.FriendsViewModel = viewModel()
@@ -67,7 +69,17 @@ fun FavoritesScreen(
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text("Favorites") }
+                title = { Text("Favorites") },
+                navigationIcon = {
+                    if (onBackClick != null) {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { padding ->

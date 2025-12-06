@@ -1,9 +1,9 @@
 package com.example.topoclimb.ui
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,7 +18,7 @@ sealed class BottomNavItem(
     val label: String
 ) {
     object Sites : BottomNavItem("sites", Icons.Default.Place, "Sites")
-    object Favorite : BottomNavItem("favorite", Icons.Default.Star, "Favorite")
+    object Home : BottomNavItem("home", Icons.Default.Home, "Home")
     object Profile : BottomNavItem("profile", Icons.Default.Person, "You")
 }
 
@@ -26,7 +26,7 @@ sealed class BottomNavItem(
 fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
         BottomNavItem.Sites,
-        BottomNavItem.Favorite,
+        BottomNavItem.Home,
         BottomNavItem.Profile
     )
     
@@ -58,6 +58,15 @@ fun BottomNavigationBar(navController: NavHostController) {
                                 inclusive = false
                             }
                             launchSingleTop = true
+                        }
+                    } else if (item.route == BottomNavItem.Home.route) {
+                        // Always navigate to home and clear the stack for home
+                        navController.navigate(item.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = false // Don't restore state, always go to fresh home
                         }
                     } else {
                         navController.navigate(item.route) {
