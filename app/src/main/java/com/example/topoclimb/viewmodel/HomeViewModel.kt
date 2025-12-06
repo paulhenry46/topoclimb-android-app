@@ -144,23 +144,25 @@ class HomeViewModel(
      * Load cached data from SharedPreferences for instant display
      */
     private fun loadFromCache() {
-        loadCachedData(EVENTS_CACHE_KEY) { cachedEvents: List<CurrentEventWithSite> ->
+        val eventsType = object : TypeToken<List<CurrentEventWithSite>>() {}.type
+        loadCachedData(EVENTS_CACHE_KEY, eventsType) { cachedEvents: List<CurrentEventWithSite> ->
             _uiState.value = _uiState.value.copy(currentEvents = cachedEvents)
         }
         
-        loadCachedData(FRIEND_LOGS_CACHE_KEY) { cachedLogs: List<FriendLogWithDetails> ->
+        val logsType = object : TypeToken<List<FriendLogWithDetails>>() {}.type
+        loadCachedData(FRIEND_LOGS_CACHE_KEY, logsType) { cachedLogs: List<FriendLogWithDetails> ->
             _uiState.value = _uiState.value.copy(friendLogs = cachedLogs)
         }
     }
     
     /**
      * Generic function to load cached data from SharedPreferences
+     * Note: Not inline to avoid bytecode bloat from JSON parsing overhead
      */
-    private inline fun <reified T> loadCachedData(cacheKey: String, crossinline onSuccess: (T) -> Unit) {
+    private fun <T> loadCachedData(cacheKey: String, type: java.lang.reflect.Type, onSuccess: (T) -> Unit) {
         val json = sharedPreferences.getString(cacheKey, null)
         if (json != null) {
             try {
-                val type = object : TypeToken<T>() {}.type
                 val cachedData: T = gson.fromJson(json, type)
                 onSuccess(cachedData)
             } catch (e: Exception) {

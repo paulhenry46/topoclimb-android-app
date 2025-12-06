@@ -85,12 +85,14 @@ class PreferencesRepository(
     
     /**
      * Get an object from JSON
+     * Logs errors for debugging data corruption or schema changes
      */
     fun <T> getObject(key: String, type: java.lang.reflect.Type): T? {
         val json = getString(key) ?: return null
         return try {
             gson.fromJson(json, type)
         } catch (e: Exception) {
+            android.util.Log.e("PreferencesRepository", "Error parsing JSON for key $key", e)
             null
         }
     }
@@ -108,6 +110,7 @@ class PreferencesRepository(
     
     /**
      * Get cached data with its timestamp
+     * Logs errors for debugging data corruption or schema changes
      */
     fun <T> getCachedData(dataKey: String, timeKey: String, type: java.lang.reflect.Type): Pair<T?, Long>? {
         val json = getString(dataKey) ?: return null
@@ -117,6 +120,7 @@ class PreferencesRepository(
             val data: T = gson.fromJson(json, type)
             data to timestamp
         } catch (e: Exception) {
+            android.util.Log.e("PreferencesRepository", "Error parsing cached JSON for key $dataKey", e)
             null
         }
     }
