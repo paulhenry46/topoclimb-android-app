@@ -33,6 +33,12 @@ import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import com.example.topoclimb.data.GradingSystem
 import com.example.topoclimb.data.Log
+import com.example.topoclimb.ui.theme.OnPinkSurface
+import com.example.topoclimb.ui.theme.OnSuccessSurface
+import com.example.topoclimb.ui.theme.OnVioletSurface
+import com.example.topoclimb.ui.theme.PinkSurface
+import com.example.topoclimb.ui.theme.SuccessSurface
+import com.example.topoclimb.ui.theme.VioletSurface
 import com.example.topoclimb.utils.GradeUtils
 
 /**
@@ -375,7 +381,7 @@ private fun FullBadgesRow(
 @Composable
 private fun VerifiedBadge() {
     Surface(
-        color = Color(0xFF4CAF50).copy(alpha = 0.1f),
+        color = SuccessSurface.copy(alpha = 0.1f),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -386,13 +392,13 @@ private fun VerifiedBadge() {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = "Verified",
-                tint = Color(0xFF4CAF50),
+                tint = OnSuccessSurface,
                 modifier = Modifier.size(16.dp)
             )
             Text(
                 text = "Verified",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF2E7D32)
+                color = OnSuccessSurface
             )
         }
     }
@@ -579,9 +585,8 @@ fun CompactBadgeWithText(
 @Composable
 private fun getTypeColor(type: String?): Color {
     return when (type?.lowercase()) {
-        "flash" -> Color(0xFFFFB74D)
-        "redpoint" -> Color(0xFF64B5F6)
-        "onsight" -> Color(0xFF81C784)
+        "flash" -> PinkSurface
+        "view" -> VioletSurface
         else -> MaterialTheme.colorScheme.secondaryContainer
     }
 }
@@ -589,9 +594,8 @@ private fun getTypeColor(type: String?): Color {
 @Composable
 private fun getTypeContentColor(type: String?): Color {
     return when (type?.lowercase()) {
-        "flash" -> Color(0xFFE65100)
-        "redpoint" -> Color(0xFF0D47A1)
-        "onsight" -> Color(0xFF1B5E20)
+        "flash" -> OnPinkSurface
+        "view" -> OnVioletSurface
         else -> MaterialTheme.colorScheme.onSecondaryContainer
     }
 }

@@ -63,14 +63,6 @@ fun LogRouteStep2Screen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Route name
-            Text(
-                text = "Logging: $routeName",
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            
             Text(
                 text = "How did you climb this route?",
                 style = MaterialTheme.typography.titleMedium,
