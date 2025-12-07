@@ -224,7 +224,12 @@ fun ContestDetailScreen(
                                             label = { Text("All") },
                                             leadingIcon = if (uiState.selectedCategoryId == null) {
                                                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                            } else null
+                                            } else null,
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
                                         )
                                         
                                         // Category chips
@@ -235,7 +240,12 @@ fun ContestDetailScreen(
                                                 label = { Text(category.name) },
                                                 leadingIcon = if (uiState.selectedCategoryId == category.id) {
                                                     { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                                } else null
+                                                } else null,
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
                                             )
                                         }
                                     }
@@ -297,7 +307,12 @@ fun ContestDetailScreen(
                                             label = { Text("All") },
                                             leadingIcon = if (uiState.selectedCategoryId == null) {
                                                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                            } else null
+                                            } else null,
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
                                         )
                                         
                                         // Category chips
@@ -308,7 +323,12 @@ fun ContestDetailScreen(
                                                 label = { Text(category.name) },
                                                 leadingIcon = if (uiState.selectedCategoryId == category.id) {
                                                     { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                                } else null
+                                                } else null,
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
                                             )
                                         }
                                     }
