@@ -936,6 +936,11 @@ fun FilterModalDialog(
                             leadingIcon = if (climbedFilter == com.example.topoclimb.ui.state.ClimbedFilter.CLIMBED) {
                                 { Icon(Icons.Default.Check, contentDescription = "Selected") }
                             } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
@@ -952,6 +957,11 @@ fun FilterModalDialog(
                             leadingIcon = if (climbedFilter == com.example.topoclimb.ui.state.ClimbedFilter.NOT_CLIMBED) {
                                 { Icon(Icons.Default.Check, contentDescription = "Selected") }
                             } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -982,6 +992,11 @@ fun FilterModalDialog(
                             leadingIcon = if (groupingOption == com.example.topoclimb.ui.state.GroupingOption.BY_GRADE) {
                                 { Icon(Icons.Default.Check, contentDescription = "Selected") }
                             } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
@@ -998,6 +1013,11 @@ fun FilterModalDialog(
                             leadingIcon = if (groupingOption == com.example.topoclimb.ui.state.GroupingOption.BY_SECTOR) {
                                 { Icon(Icons.Default.Check, contentDescription = "Selected") }
                             } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                     }
