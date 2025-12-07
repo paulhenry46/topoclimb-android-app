@@ -16,39 +16,34 @@ val White = Color(0xFFFFFFFF)
 val DarkGray = Color(0xFF212121)
 val LightGray = Color(0xFFF5F5F5)
 
-// Updated dark theme background colors (elevation 0)
+// Updated dark theme background colors (elevation 0) DARK
 val NewBackground = Color(0xFF131313) // New default dark background
-// Surface colors (elevation 1)
+// Surface colors (elevation 1) DARK
 val NewSurface = Color(0xFF1e1f21) // New default surface/container/cards
-// Surface2 colors (elevation 2)
+// Surface2 colors (elevation 2) DARK
 val NewSurface2 = Color(0xFF343537) // Secondary surface color for components on top of surface
 
-// Success colors
+// Success colors DARK
 val SuccessSurface = Color(0xFF1f3a2b) // Success surface color
 val OnSuccessSurface = Color(0xFF78dea5) // On success surface color
 
-// Bottom navigation bar and chips colors
+// Violet colors DARK
+val VioletSurface = Color(0xFF2c315b) 
+val OnVioletSurface = Color(0xFFbcc2fe) 
+
+// Pink colors DARK
+val PinkSurface = Color(0xFF532349) 
+val OnPinkSurface = Color(0xFFfeace7) 
+
+// Bottom navigation bar and chips colors DARK
 val IconBottomBar = Color(0xFFc2e6ff) // Icon color for bottom bar and text on chips
 val IconBackground = Color(0xFF004a77) // Icon background and chip background
 
-// New primary colors
+// New primary colors DARK
 val NewPrimary = Color(0xFFa8c8fb) // New primary color
 val NewOnPrimary = Color(0xFF062d6e) // New onPrimary color (text on buttons)
-
-// Old colors kept for backwards compatibility
-val DarkBlueBackground = Color(0xFF0e1326) // Old default dark background
-val DarkBlueSurface = Color(0xFF232a3d) // Old default card/surface color
 
 // Warning/Orange colors for less aggressive notifications
 val Orange80 = Color(0xFFFFCC80) // Light orange for dark theme
 val Orange40 = Color(0xFFFF9800) // Orange for light theme
 val Orange60 = Color(0xFFFFB74D) // Medium orange
-
-// Keep old colors for backwards compatibility if needed elsewhere
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
