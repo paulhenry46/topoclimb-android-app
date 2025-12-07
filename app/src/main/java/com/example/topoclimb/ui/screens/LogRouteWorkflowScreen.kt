@@ -67,7 +67,7 @@ fun LogRouteWorkflowScreen(
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text("Log Route") },
+                title = { Text("Log Route $routeName") },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
@@ -260,11 +260,7 @@ fun LogRouteStep2Content(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Route name
-        Text(
-            text = "Logging: $routeName",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.fillMaxWidth()
-        )
+
         
         Text(
             text = "How did you climb this route?",
@@ -334,12 +330,7 @@ fun LogRouteStep3Content(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Route name
-        Text(
-            text = "Logging: $routeName",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.fillMaxWidth()
-        )
+
         
         Text(
             text = "Final details",

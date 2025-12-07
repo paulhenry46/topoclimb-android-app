@@ -15,12 +15,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.topoclimb.ui.theme.OnPinkSurface
+import com.example.topoclimb.ui.theme.OnSuccessSurface
+import com.example.topoclimb.ui.theme.OnVioletSurface
+import com.example.topoclimb.ui.theme.PinkSurface
+import com.example.topoclimb.ui.theme.SuccessSurface
+import com.example.topoclimb.ui.theme.VioletSurface
 
 // Color constants for climbing type cards
-private val FLASH_COLOR = androidx.compose.ui.graphics.Color(0xFFfe9a00)
-private val VIEW_COLOR = androidx.compose.ui.graphics.Color(0xFF615fff)
-private val WORK_COLOR = androidx.compose.ui.graphics.Color(0xFF00bc7d)
-private val CARD_TEXT_COLOR = androidx.compose.ui.graphics.Color.White
+private val FLASH_COLOR = PinkSurface
+private val FLASH_TEXT_COLOR = OnPinkSurface
+private val VIEW_COLOR = VioletSurface
+private val VIEW_TEXT_COLOR = OnVioletSurface
+private val WORK_COLOR = SuccessSurface
+private val WORK_TEXT_COLOR = OnSuccessSurface
+private val DEFAULT_TEXT_COLOR = androidx.compose.ui.graphics.Color.White
 
 /**
  * Step 1: Select climbing type (flash, view, work)
@@ -52,13 +61,6 @@ fun LogRouteStep1Screen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Route name
-            Text(
-                text = "Logging: $routeName",
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
             
             Text(
                 text = "How did you climb this route?",
@@ -103,9 +105,9 @@ fun ClimbingTypeCard(
 ) {
     // Define colors based on type
     val (containerColor, contentColor) = when (type) {
-        "Flash" -> Pair(FLASH_COLOR, CARD_TEXT_COLOR)
-        "View" -> Pair(VIEW_COLOR, CARD_TEXT_COLOR)
-        "Work" -> Pair(WORK_COLOR, CARD_TEXT_COLOR)
+        "Flash" -> Pair(FLASH_COLOR, FLASH_TEXT_COLOR)
+        "View" -> Pair(VIEW_COLOR, VIEW_TEXT_COLOR)
+        "Work" -> Pair(WORK_COLOR, WORK_TEXT_COLOR)
         else -> Pair(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurface)
     }
     
@@ -141,7 +143,7 @@ fun ClimbingTypeCard(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = contentColor
+                    color = DEFAULT_TEXT_COLOR
                 )
                 
                 Text(
