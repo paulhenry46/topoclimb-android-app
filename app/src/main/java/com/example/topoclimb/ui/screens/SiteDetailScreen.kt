@@ -40,6 +40,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topoclimb.data.Area
 import com.example.topoclimb.data.Contest
+import com.example.topoclimb.ui.theme.OnVioletSurface
+import com.example.topoclimb.ui.theme.VioletSurface
 import com.example.topoclimb.viewmodel.SiteDetailViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -362,12 +364,12 @@ fun SiteAreaItem(
                 // Area type badge
                 area.type?.let { type ->
                     Spacer(modifier = Modifier.height(4.dp))
-                    val (badgeText, badgeColor) = when (type.lowercase()) {
-                        "bouldering", "boulder" -> "Boulder" to MaterialTheme.colorScheme.primary
-                        "traditional", "trad", "sport" -> "Trad" to MaterialTheme.colorScheme.secondary
-                        else -> type.replaceFirstChar { it.uppercase() } to MaterialTheme.colorScheme.tertiary
+                    val (badgeText, badgeColor, textColor) = when (type.lowercase()) {
+                        "bouldering", "boulder" -> Triple("Boulder", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary)
+                        "traditional", "trad" -> Triple("Trad", VioletSurface, OnVioletSurface)
+                        else -> Triple(type.replaceFirstChar { it.uppercase() }, MaterialTheme.colorScheme.tertiary, OnVioletSurface)
                     }
-                    
+
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = badgeColor
@@ -375,7 +377,7 @@ fun SiteAreaItem(
                         Text(
                             text = badgeText,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = textColor,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }

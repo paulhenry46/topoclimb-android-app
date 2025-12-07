@@ -60,11 +60,11 @@ fun RouteCard(
         bottomStart = 8.dp
     )
     
-    // Shape for grade badge: square on left, rounded on right for continuity with thumbnail
+    // Shape for grade badge: squared
     val gradeBadgeShape = RoundedCornerShape(
         topStart = 0.dp,
-        topEnd = 8.dp,
-        bottomEnd = 8.dp,
+        topEnd = 0.dp,
+        bottomEnd = 0.dp,
         bottomStart = 0.dp
     )
     

@@ -11,22 +11,27 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Place
 
 sealed class BottomNavItem(
     val route: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
     val label: String
 ) {
-    object Sites : BottomNavItem("sites", Icons.Default.Place, "Sites")
-    object Home : BottomNavItem("home", Icons.Default.Home, "Home")
-    object Profile : BottomNavItem("profile", Icons.Default.Person, "You")
+    object Home : BottomNavItem("home", Icons.Default.Home, Icons.Outlined.Home, "Home")
+    object Sites : BottomNavItem("sites", Icons.Default.Place, Icons.Outlined.Place, "Sites")
+    object Profile : BottomNavItem("profile", Icons.Default.Person, Icons.Outlined.Person, "You")
 }
 
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
-        BottomNavItem.Sites,
         BottomNavItem.Home,
+        BottomNavItem.Sites,
         BottomNavItem.Profile
     )
     
@@ -38,10 +43,16 @@ fun BottomNavigationBar(navController: NavHostController) {
     
     NavigationBar {
         items.forEach { item ->
+            val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
             NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.label) },
+                icon = {
+                    Icon(
+                        imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = item.label
+                    )
+                },
                 label = { Text(item.label) },
-                selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
+                selected = selected,
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
